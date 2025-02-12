@@ -1,10 +1,13 @@
 import { TOrgPermission } from "@app/lib/types";
-import { ActorType } from "@app/services/auth/auth-type";
+import { ActorAuthMethod, ActorType } from "@app/services/auth/auth-type";
 
 export enum SamlProviders {
   OKTA_SAML = "okta-saml",
   AZURE_SAML = "azure-saml",
-  JUMPCLOUD_SAML = "jumpcloud-saml"
+  JUMPCLOUD_SAML = "jumpcloud-saml",
+  GOOGLE_SAML = "google-saml",
+  KEYCLOAK_SAML = "keycloak-saml",
+  AUTH0_SAML = "auth0-saml"
 }
 
 export type TCreateSamlCfgDTO = {
@@ -25,7 +28,14 @@ export type TUpdateSamlCfgDTO = Partial<{
   TOrgPermission;
 
 export type TGetSamlCfgDTO =
-  | { type: "org"; orgId: string; actor: ActorType; actorId: string; actorOrgId?: string }
+  | {
+      type: "org";
+      orgId: string;
+      actor: ActorType;
+      actorId: string;
+      actorAuthMethod: ActorAuthMethod;
+      actorOrgId: string | undefined;
+    }
   | {
       type: "orgSlug";
       orgSlug: string;
@@ -36,6 +46,7 @@ export type TGetSamlCfgDTO =
     };
 
 export type TSamlLoginDTO = {
+  externalId: string;
   email: string;
   firstName: string;
   lastName?: string;
@@ -43,4 +54,5 @@ export type TSamlLoginDTO = {
   orgId: string;
   // saml thingy
   relayState?: string;
+  metadata?: { key: string; value: string }[];
 };

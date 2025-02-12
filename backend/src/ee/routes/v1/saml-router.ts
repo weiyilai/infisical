@@ -12,12 +12,13 @@ import { MultiSamlStrategy } from "@node-saml/passport-saml";
 import { FastifyRequest } from "fastify";
 import { z } from "zod";
 
-import { SamlConfigsSchema } from "@app/db/schemas";
 import { SamlProviders, TGetSamlCfgDTO } from "@app/ee/services/saml-config/saml-config-types";
 import { getConfig } from "@app/lib/config/env";
 import { BadRequestError } from "@app/lib/errors";
 import { logger } from "@app/lib/logger";
+import { readLimit, writeLimit } from "@app/server/config/rateLimiter";
 import { verifyAuth } from "@app/server/plugins/auth/verify-auth";
+import { SanitizedSamlConfigSchema } from "@app/server/routes/sanitizedSchema/directory-config";
 import { AuthMode } from "@app/services/auth/auth-type";
 
 type TSAMLConfig = {
@@ -27,6 +28,7 @@ type TSAMLConfig = {
   cert: string;
   audience: string;
   wantAuthnResponseSigned?: boolean;
+  wantAssertionsSigned?: boolean;
   disableRequestedAuthnContext?: boolean;
 };
 
@@ -59,7 +61,7 @@ export const registerSamlRouter = async (server: FastifyZodProvider) => {
                 id: samlConfigId
               };
             } else {
-              throw new BadRequestError({ message: "Missing sso identitier or org slug" });
+              throw new BadRequestError({ message: "Missing sso identifier or org slug" });
             }
 
             const ssoConfig = await server.services.saml.getSaml(ssoLookupDetails);
@@ -82,6 +84,13 @@ export const registerSamlRouter = async (server: FastifyZodProvider) => {
                 samlConfig.audience = `spn:${ssoConfig.issuer}`;
               }
             }
+            if (
+              ssoConfig.authProvider === SamlProviders.GOOGLE_SAML ||
+              ssoConfig.authProvider === SamlProviders.AUTH0_SAML
+            ) {
+              samlConfig.wantAssertionsSigned = false;
+            }
+
             (req as unknown as FastifyRequest).ssoConfig = ssoConfig;
             done(null, samlConfig);
           } catch (error) {
@@ -94,25 +103,60 @@ export const registerSamlRouter = async (server: FastifyZodProvider) => {
       async (req, profile, cb) => {
         try {
           if (!profile) throw new BadRequestError({ message: "Missing profile" });
-          const { firstName } = profile;
-          const email = profile?.email ?? (profile?.emailAddress as string); // emailRippling is added because in Rippling the field `email` reserved
+
+          const email =
+            profile?.email ??
+            // entra sends data in this format
+            (profile["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/email"] as string) ??
+            (profile?.emailAddress as string); // emailRippling is added because in Rippling the field `email` reserved\
+
+          const firstName = (profile.firstName ??
+            // entra sends data in this format
+            profile["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/firstName"]) as string;
+
+          const lastName =
+            profile.lastName ?? profile["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/lastName"];
 
           if (!email || !firstName) {
-            throw new BadRequestError({ message: "Invalid request. Missing email or first name" });
+            logger.info(
+              {
+                err: new Error("Invalid saml request. Missing email or first name"),
+                profile
+              },
+              `email: ${email} firstName: ${profile.firstName as string}`
+            );
+
+            throw new BadRequestError({
+              message:
+                "Missing email or first name. Please double check your SAML attribute mapping for the selected provider."
+            });
           }
 
+          const userMetadata = Object.keys(profile.attributes || {})
+            .map((key) => {
+              // for the ones like in format: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/email
+              const formatedKey = key.startsWith("http") ? key.split("/").at(-1) || "" : key;
+              return {
+                key: formatedKey,
+                value: String((profile.attributes as Record<string, string>)[key]).substring(0, 1020)
+              };
+            })
+            .filter((el) => el.key && !["email", "firstName", "lastName"].includes(el.key));
+
           const { isUserCompleted, providerAuthToken } = await server.services.saml.samlLogin({
+            externalId: profile.nameID,
             email,
-            firstName: profile.firstName as string,
-            lastName: profile.lastName as string,
+            firstName,
+            lastName: lastName as string,
             relayState: (req.body as { RelayState?: string }).RelayState,
             authProvider: (req as unknown as FastifyRequest).ssoConfig?.authProvider as string,
-            orgId: (req as unknown as FastifyRequest).ssoConfig?.orgId as string
+            orgId: (req as unknown as FastifyRequest).ssoConfig?.orgId as string,
+            metadata: userMetadata
           });
           cb(null, { isUserCompleted, providerAuthToken });
         } catch (error) {
           logger.error(error);
-          cb(null, {});
+          cb(error as Error);
         }
       },
       () => {}
@@ -198,8 +242,11 @@ export const registerSamlRouter = async (server: FastifyZodProvider) => {
   });
 
   server.route({
-    url: "/config",
     method: "GET",
+    url: "/config",
+    config: {
+      rateLimit: readLimit
+    },
     onRequest: verifyAuth([AuthMode.JWT]),
     schema: {
       querystring: z.object({
@@ -226,6 +273,7 @@ export const registerSamlRouter = async (server: FastifyZodProvider) => {
         actor: req.permission.type,
         actorId: req.permission.id,
         actorOrgId: req.permission.orgId,
+        actorAuthMethod: req.permission.authMethod,
         orgId: req.query.organizationId,
         type: "org"
       });
@@ -234,8 +282,11 @@ export const registerSamlRouter = async (server: FastifyZodProvider) => {
   });
 
   server.route({
-    url: "/config",
     method: "POST",
+    url: "/config",
+    config: {
+      rateLimit: writeLimit
+    },
     onRequest: verifyAuth([AuthMode.JWT]),
     schema: {
       body: z.object({
@@ -247,13 +298,14 @@ export const registerSamlRouter = async (server: FastifyZodProvider) => {
         cert: z.string()
       }),
       response: {
-        200: SamlConfigsSchema
+        200: SanitizedSamlConfigSchema
       }
     },
     handler: async (req) => {
       const saml = await server.services.saml.createSamlCfg({
         actor: req.permission.type,
         actorId: req.permission.id,
+        actorAuthMethod: req.permission.authMethod,
         actorOrgId: req.permission.orgId,
         orgId: req.body.organizationId,
         ...req.body
@@ -263,8 +315,11 @@ export const registerSamlRouter = async (server: FastifyZodProvider) => {
   });
 
   server.route({
-    url: "/config",
     method: "PATCH",
+    url: "/config",
+    config: {
+      rateLimit: writeLimit
+    },
     onRequest: verifyAuth([AuthMode.JWT]),
     schema: {
       body: z
@@ -278,13 +333,14 @@ export const registerSamlRouter = async (server: FastifyZodProvider) => {
         .partial()
         .merge(z.object({ organizationId: z.string() })),
       response: {
-        200: SamlConfigsSchema
+        200: SanitizedSamlConfigSchema
       }
     },
     handler: async (req) => {
       const saml = await server.services.saml.updateSamlCfg({
         actor: req.permission.type,
         actorId: req.permission.id,
+        actorAuthMethod: req.permission.authMethod,
         actorOrgId: req.permission.orgId,
         orgId: req.body.organizationId,
         ...req.body

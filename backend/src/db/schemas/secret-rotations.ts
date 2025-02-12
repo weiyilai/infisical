@@ -5,6 +5,8 @@
 
 import { z } from "zod";
 
+import { zodBuffer } from "@app/lib/zod";
+
 import { TImmutableDBKeys } from "./models";
 
 export const SecretRotationsSchema = z.object({
@@ -22,9 +24,10 @@ export const SecretRotationsSchema = z.object({
   keyEncoding: z.string().nullable().optional(),
   envId: z.string().uuid(),
   createdAt: z.date(),
-  updatedAt: z.date()
+  updatedAt: z.date(),
+  encryptedRotationData: zodBuffer
 });
 
 export type TSecretRotations = z.infer<typeof SecretRotationsSchema>;
-export type TSecretRotationsInsert = Omit<TSecretRotations, TImmutableDBKeys>;
-export type TSecretRotationsUpdate = Partial<Omit<TSecretRotations, TImmutableDBKeys>>;
+export type TSecretRotationsInsert = Omit<z.input<typeof SecretRotationsSchema>, TImmutableDBKeys>;
+export type TSecretRotationsUpdate = Partial<Omit<z.input<typeof SecretRotationsSchema>, TImmutableDBKeys>>;

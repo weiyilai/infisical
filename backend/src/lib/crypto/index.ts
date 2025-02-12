@@ -9,7 +9,8 @@ export {
   encryptAsymmetric,
   encryptSymmetric,
   encryptSymmetric128BitHexKeyUTF8,
-  generateAsymmetricKeyPair
+  generateAsymmetricKeyPair,
+  randomSecureBytes
 } from "./encryption";
 export {
   decryptIntegrationAuths,
@@ -17,4 +18,5 @@ export {
   decryptSecrets,
   decryptSecretVersions
 } from "./secret-encryption";
+export { verifyOfflineLicense } from "./signing";
 export { generateSrpServerKey, srpCheckClientProof } from "./srp";

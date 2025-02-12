@@ -7,17 +7,29 @@ import path from "path";
 
 // Update with your config settings. .
 dotenv.config({
-  path: path.join(__dirname, "../../../.env.migration"),
-  debug: true
+  path: path.join(__dirname, "../../../.env.migration")
 });
 dotenv.config({
-  path: path.join(__dirname, "../../../.env"),
-  debug: true
+  path: path.join(__dirname, "../../../.env")
 });
+
 export default {
   development: {
     client: "postgres",
-    connection: process.env.DB_CONNECTION_URI,
+    connection: {
+      connectionString: process.env.DB_CONNECTION_URI,
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      database: process.env.DB_NAME,
+      password: process.env.DB_PASSWORD,
+      ssl: process.env.DB_ROOT_CERT
+        ? {
+            rejectUnauthorized: true,
+            ca: Buffer.from(process.env.DB_ROOT_CERT, "base64").toString("ascii")
+          }
+        : false
+    },
     pool: {
       min: 2,
       max: 10
@@ -26,18 +38,33 @@ export default {
       directory: "./seeds"
     },
     migrations: {
-      tableName: "infisical_migrations"
+      tableName: "infisical_migrations",
+      loadExtensions: [".mjs"]
     }
   },
   production: {
     client: "postgres",
-    connection: process.env.DB_CONNECTION_URI,
+    connection: {
+      connectionString: process.env.DB_CONNECTION_URI,
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      database: process.env.DB_NAME,
+      password: process.env.DB_PASSWORD,
+      ssl: process.env.DB_ROOT_CERT
+        ? {
+            rejectUnauthorized: true,
+            ca: Buffer.from(process.env.DB_ROOT_CERT, "base64").toString("ascii")
+          }
+        : false
+    },
     pool: {
       min: 2,
       max: 10
     },
     migrations: {
-      tableName: "infisical_migrations"
+      tableName: "infisical_migrations",
+      loadExtensions: [".mjs"]
     }
   }
 } as Knex.Config;

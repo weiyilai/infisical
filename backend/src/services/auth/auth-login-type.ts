@@ -1,4 +1,4 @@
-import { AuthMethod } from "./auth-type";
+import { AuthMethod, MfaMethod } from "./auth-type";
 
 export type TLoginGenServerPublicKeyDTO = {
   email: string;
@@ -12,11 +12,15 @@ export type TLoginClientProofDTO = {
   providerAuthToken?: string;
   ip: string;
   userAgent: string;
+  captchaToken?: string;
+  password?: string;
 };
 
 export type TVerifyMfaTokenDTO = {
   userId: string;
   mfaToken: string;
+  mfaMethod: MfaMethod;
+  mfaJwtToken: string;
   ip: string;
   userAgent: string;
   orgId?: string;
@@ -28,4 +32,11 @@ export type TOauthLoginDTO = {
   lastName?: string;
   authMethod: AuthMethod;
   callbackPort?: string;
+};
+
+export type TOauthTokenExchangeDTO = {
+  providerAuthToken: string;
+  ip: string;
+  userAgent: string;
+  email: string;
 };

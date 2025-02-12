@@ -59,9 +59,17 @@ yarn-error.log*
 # Infisical init
 .infisical.json
 
+.infisicalignore
+
 # Editor specific
 .vscode/*
+.idea/*
 
 frontend-build
 
 *.tgz
+cli/infisical-merge
+cli/test/infisical-merge
+/backend/binary
+
+/npm/bin

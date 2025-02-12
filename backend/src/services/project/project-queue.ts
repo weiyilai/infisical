@@ -8,6 +8,7 @@ import {
   SecretKeyEncoding,
   SecretsSchema,
   SecretVersionsSchema,
+  TableName,
   TIntegrationAuths,
   TSecretApprovalRequestsSecrets,
   TSecrets,
@@ -38,6 +39,7 @@ import { TProjectBotDALFactory } from "../project-bot/project-bot-dal";
 import { TProjectEnvDALFactory } from "../project-env/project-env-dal";
 import { TProjectKeyDALFactory } from "../project-key/project-key-dal";
 import { TProjectMembershipDALFactory } from "../project-membership/project-membership-dal";
+import { TProjectUserMembershipRoleDALFactory } from "../project-membership/project-user-membership-role-dal";
 import { TSecretDALFactory } from "../secret/secret-dal";
 import { TSecretVersionDALFactory } from "../secret/secret-version-dal";
 import { TSecretFolderDALFactory } from "../secret-folder/secret-folder-dal";
@@ -58,9 +60,9 @@ type TProjectQueueFactoryDep = {
   projectBotDAL: Pick<TProjectBotDALFactory, "findOne" | "delete" | "create">;
   orgService: Pick<TOrgServiceFactory, "addGhostUser">;
   projectMembershipDAL: Pick<TProjectMembershipDALFactory, "create">;
+  projectUserMembershipRoleDAL: Pick<TProjectUserMembershipRoleDALFactory, "create">;
   integrationAuthDAL: TIntegrationAuthDALFactory;
   userDAL: Pick<TUserDALFactory, "findUserEncKeyByUserId">;
-
   projectEnvDAL: Pick<TProjectEnvDALFactory, "find">;
   projectDAL: Pick<TProjectDALFactory, "findOne" | "transaction" | "updateById" | "setProjectUpgradeStatus" | "find">;
   orgDAL: Pick<TOrgDALFactory, "findMembership">;
@@ -81,7 +83,8 @@ export const projectQueueFactory = ({
   orgDAL,
   projectDAL,
   orgService,
-  projectMembershipDAL
+  projectMembershipDAL,
+  projectUserMembershipRoleDAL
 }: TProjectQueueFactoryDep) => {
   const upgradeProject = async (dto: TQueueJobTypes["upgrade-project-to-ghost"]["payload"]) => {
     await queueService.queue(QueueName.UpgradeProjectToGhost, QueueJobs.UpgradeProjectToGhost, dto, {
@@ -102,8 +105,11 @@ export const projectQueueFactory = ({
 
       const oldProjectKey = await projectKeyDAL.findLatestProjectKey(data.startedByUserId, data.projectId);
 
-      if (!project || !oldProjectKey) {
-        throw new Error("Project or project key not found");
+      if (!project) {
+        throw new Error("Project not found");
+      }
+      if (!oldProjectKey) {
+        throw new Error("Old project key not found");
       }
 
       if (project.upgradeStatus !== ProjectUpgradeStatus.Failed && project.upgradeStatus !== null) {
@@ -224,12 +230,15 @@ export const projectQueueFactory = ({
         );
 
         // Create a membership for the ghost user
-        await projectMembershipDAL.create(
+        const projectMembership = await projectMembershipDAL.create(
           {
             projectId: project.id,
-            userId: ghostUser.user.id,
-            role: ProjectMembershipRole.Admin
+            userId: ghostUser.user.id
           },
+          tx
+        );
+        await projectUserMembershipRoleDAL.create(
+          { projectMembershipId: projectMembership.id, role: ProjectMembershipRole.Admin },
           tx
         );
 
@@ -265,10 +274,27 @@ export const projectQueueFactory = ({
 
         for (const key of existingProjectKeys) {
           const user = await userDAL.findUserEncKeyByUserId(key.receiverId);
-          const [orgMembership] = await orgDAL.findMembership({ userId: key.receiverId, orgId: project.orgId });
+          const [orgMembership] = await orgDAL.findMembership({
+            [`${TableName.OrgMembership}.userId` as "userId"]: key.receiverId,
+            [`${TableName.OrgMembership}.orgId` as "orgId"]: project.orgId
+          });
 
-          if (!user || !orgMembership) {
-            throw new Error(`User with ID ${key.receiverId} was not found during upgrade, or user is not in org.`);
+          if (!user) {
+            throw new Error(`User with ID ${key.receiverId} was not found during upgrade.`);
+          }
+
+          if (!orgMembership) {
+            // This can happen. Since we don't remove project memberships and project keys when a user is removed from an org, this is a valid case.
+            logger.info(
+              {
+                userId: key.receiverId,
+                orgId: project.orgId,
+                projectId: project.id
+              },
+              "User is not in organization"
+            );
+            // eslint-disable-next-line no-continue
+            continue;
           }
 
           const [newMember] = assignWorkspaceKeysToMembers({
@@ -277,8 +303,7 @@ export const projectQueueFactory = ({
             members: [
               {
                 userPublicKey: user.publicKey,
-                orgMembershipId: orgMembership.id,
-                projectMembershipRole: ProjectMembershipRole.Admin
+                orgMembershipId: orgMembership.id
               }
             ]
           });
@@ -529,10 +554,15 @@ export const projectQueueFactory = ({
         .catch(() => [null]);
 
       if (!project) {
-        logger.error("Failed to upgrade project, because no project was found", data);
+        logger.error(data, "Failed to upgrade project, because no project was found");
       } else {
         await projectDAL.setProjectUpgradeStatus(data.projectId, ProjectUpgradeStatus.Failed);
-        logger.error(err, "Failed to upgrade project");
+        logger.error(err, "Failed to upgrade project", {
+          extra: {
+            project,
+            jobData: data
+          }
+        });
       }
 
       throw err;

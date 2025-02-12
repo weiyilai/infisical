@@ -11,9 +11,15 @@ export const useGetSSOConfig = (organizationId: string) => {
   return useQuery({
     queryKey: ssoConfigKeys.getSSOConfig(organizationId),
     queryFn: async () => {
-      const { data } = await apiRequest.get(`/api/v1/sso/config?organizationId=${organizationId}`);
+      try {
+        const { data } = await apiRequest.get(
+          `/api/v1/sso/config?organizationId=${organizationId}`
+        );
 
-      return data;
+        return data;
+      } catch {
+        return null;
+      }
     },
     enabled: true
   });
@@ -49,7 +55,7 @@ export const useCreateSSOConfig = () => {
       return data;
     },
     onSuccess(_, dto) {
-      queryClient.invalidateQueries(ssoConfigKeys.getSSOConfig(dto.organizationId));
+      queryClient.invalidateQueries({ queryKey: ssoConfigKeys.getSSOConfig(dto.organizationId) });
     }
   });
 };
@@ -85,10 +91,10 @@ export const useUpdateSSOConfig = () => {
     },
     onSuccess(_, { organizationId, isActive }) {
       if (isActive === false) {
-        queryClient.invalidateQueries(organizationKeys.getUserOrganizations);
+        queryClient.invalidateQueries({ queryKey: organizationKeys.getUserOrganizations });
       }
-    
-      queryClient.invalidateQueries(ssoConfigKeys.getSSOConfig(organizationId));
+
+      queryClient.invalidateQueries({ queryKey: ssoConfigKeys.getSSOConfig(organizationId) });
     }
   });
 };

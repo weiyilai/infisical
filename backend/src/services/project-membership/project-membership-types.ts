@@ -1,15 +1,38 @@
-import { ProjectMembershipRole } from "@app/db/schemas";
 import { TProjectPermission } from "@app/lib/types";
 
-export type TGetProjectMembershipDTO = TProjectPermission;
+export type TGetProjectMembershipDTO = { includeGroupMembers?: boolean } & TProjectPermission;
+export type TLeaveProjectDTO = Omit<TProjectPermission, "actorOrgId" | "actorAuthMethod">;
+export enum ProjectUserMembershipTemporaryMode {
+  Relative = "relative"
+}
 
 export type TInviteUserToProjectDTO = {
   emails: string[];
 } & TProjectPermission;
 
+export type TGetProjectMembershipByUsernameDTO = {
+  username: string;
+} & TProjectPermission;
+
+export type TGetProjectMembershipByIdDTO = {
+  id: string;
+} & TProjectPermission;
+
 export type TUpdateProjectMembershipDTO = {
   membershipId: string;
-  role: string;
+  roles: (
+    | {
+        role: string;
+        isTemporary?: false;
+      }
+    | {
+        role: string;
+        isTemporary: true;
+        temporaryMode: ProjectUserMembershipTemporaryMode.Relative;
+        temporaryRange: string;
+        temporaryAccessStartTime: string;
+      }
+  )[];
 } & TProjectPermission;
 
 export type TDeleteProjectMembershipOldDTO = {
@@ -18,6 +41,7 @@ export type TDeleteProjectMembershipOldDTO = {
 
 export type TDeleteProjectMembershipsDTO = {
   emails: string[];
+  usernames: string[];
 } & TProjectPermission;
 
 export type TAddUsersToWorkspaceDTO = {
@@ -26,11 +50,12 @@ export type TAddUsersToWorkspaceDTO = {
     orgMembershipId: string;
     workspaceEncryptedKey: string;
     workspaceEncryptedNonce: string;
-    projectRole: ProjectMembershipRole;
   }[];
 } & TProjectPermission;
 
 export type TAddUsersToWorkspaceNonE2EEDTO = {
   sendEmails?: boolean;
   emails: string[];
+  usernames: string[];
+  roleSlugs?: string[];
 } & TProjectPermission;

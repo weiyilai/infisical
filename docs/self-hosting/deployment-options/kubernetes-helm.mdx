@@ -1,6 +1,6 @@
 ---
 title: "Kubernetes via Helm Chart"
-description: "Use Helm chart to install Infisical on your Kubernetes cluster"
+description: "Learn how to use Helm chart to install Infisical on your Kubernetes cluster."
 --- 
 **Prerequisites**
 - You have extensive understanding of [Kubernetes](https://kubernetes.io/)
@@ -22,7 +22,7 @@ description: "Use Helm chart to install Infisical on your Kubernetes cluster"
   </Step>
   <Step title="Select Infisical version">
     By default, the Infisical version set in your helm chart will likely be outdated. 
-    Choose the latest Infisical docker image tag from here [here](https://hub.docker.com/r/infisical/infisical/tags).
+    Choose the latest Infisical docker image tag from [here](https://hub.docker.com/r/infisical/infisical/tags).
     
 
     ```yaml values.yaml
@@ -33,7 +33,7 @@ description: "Use Helm chart to install Infisical on your Kubernetes cluster"
         pullPolicy: IfNotPresent
     ```
     <Warning>
-      Do you not use the latest docker image tag in production deployments as they can introduce unexpected changes
+      Do not use the latest docker image tag in production deployments as they can introduce unexpected changes
     </Warning>
   </Step>
 
@@ -41,36 +41,45 @@ description: "Use Helm chart to install Infisical on your Kubernetes cluster"
 
     To deploy this Helm chart, a Kubernetes secret named `infisical-secrets` must be present in the same namespace where the chart is being deployed.
 
-    For a minimal installation of Infisical, you need to configure `ENCRYPTION_KEY`, `AUTH_SECRET`, `DB_CONNECTION_URI`, and `REDIS_URL`. [Learn more about configuration settings](/self-hosting/configuration/envars).
+    For a minimal installation of Infisical, you need to configure `ENCRYPTION_KEY`, `AUTH_SECRET`, `DB_CONNECTION_URI`, `SITE_URL`, and `REDIS_URL`. [Learn more about configuration settings](/self-hosting/configuration/envars).
 
 
     <Tabs>
       <Tab title="Proof of concept deployment">
-          For test or proof-of-concept purposes, you may omit `DB_CONNECTION_URI` and `REDIS_URL` from `infisical-secrets`. This is because the Helm chart will automatically provision and connect to the in-cluster instances of Postgres and Redis by default.
-
+        For test or proof-of-concept purposes, you may omit `DB_CONNECTION_URI` and `REDIS_URL` from `infisical-secrets`. This is because the Helm chart will automatically provision and connect to the in-cluster instances of Postgres and Redis by default.
+        ```yaml simple-values-example.yaml 
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: infisical-secrets
+        type: Opaque
+        stringData:
+          AUTH_SECRET: <>
+          ENCRYPTION_KEY: <>
+          SITE_URL: <>
+        ```
       </Tab>
       <Tab title="Production deployment">
         For production environments, we recommend using Cloud-based Platform as a Service (PaaS) solutions for PostgreSQL and Redis to ensure high availability. In on-premise setups, it's recommended to configure Redis and Postgres for high availability, either by using Bitnami charts or a custom configuration.
-
+        ```yaml simple-values-example.yaml 
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: infisical-secrets
+        type: Opaque
+        stringData:
+          AUTH_SECRET: <>
+          ENCRYPTION_KEY: <>
+          REDIS_URL: <>
+          DB_CONNECTION_URI: <>
+          SITE_URL: <>
+        ```
       </Tab>
     </Tabs>
-
-    ```yaml simple-values-example.yaml 
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: infisical-secrets
-      type: Opaque
-      stringData:
-        AUTH_SECRET: <>
-        ENCRYPTION_KEY: <>
-        REDIS_URL: <>
-        DB_CONNECTION_URI: <>
-    ```
   </Step>
 
   <Step title="Database schema migration ">
-    Infisical relies a relational database, which means that database schemas need to be migrated before the instance can become operational. 
+    Infisical relies on a relational database, which means that database schemas need to be migrated before the instance can become operational. 
     
     To automate this process, the chart includes a option named `infisical.autoDatabaseSchemaMigration`.
     When this option is enabled, a deployment/upgrade will only occur _after_ a successful schema migration.
@@ -166,10 +175,10 @@ description: "Use Helm chart to install Infisical on your Kubernetes cluster"
   <Step title="Access Infisical">
     After deployment, please wait for 2-5 minutes for all pods to reach a running state. Once a significant number of pods are operational, access the IP address revealed through Ingress by your load balancer. 
     You can find the IP address/hostname by executing the command `kubectl get ingress`.
-    ![infisical-selfhost](images/self-hosting/applicable-to-all/selfhost-signup.png)
+    ![infisical-selfhost](/images/self-hosting/applicable-to-all/selfhost-signup.png)
   </Step>
   <Step title="Upgrade your instance">
-    To upgrade your instance of Infisical simply update the docker image tag in your Halm values and rerun the command below.
+    To upgrade your instance of Infisical simply update the docker image tag in your Helm values and rerun the command below.
 
     ```bash
     helm upgrade --install infisical infisical-helm-charts/infisical-standalone --values /path/to/values.yaml

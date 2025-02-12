@@ -5,7 +5,6 @@ import { createTransport } from "nodemailer";
 
 import { formatSmtpConfig, getConfig } from "@app/lib/config/env";
 import { logger } from "@app/lib/logger";
-import { getTlsOption } from "@app/services/smtp/smtp-service";
 import { getServerCfg } from "@app/services/super-admin/super-admin-service";
 
 type BootstrapOpt = {
@@ -44,13 +43,13 @@ export const bootstrapCheck = async ({ db }: BootstrapOpt) => {
   console.info("Testing smtp connection");
 
   const smtpCfg = formatSmtpConfig();
-  await createTransport({ ...smtpCfg, ...getTlsOption(smtpCfg.host, smtpCfg.secure) })
+  await createTransport(smtpCfg)
     .verify()
     .then(async () => {
-      console.info("SMTP successfully connected");
+      console.info(`SMTP - Verified connection to ${appCfg.SMTP_HOST}:${appCfg.SMTP_PORT}`);
     })
-    .catch((err) => {
-      console.error(`SMTP - Failed to connect to ${appCfg.SMTP_HOST}:${appCfg.SMTP_PORT}`);
+    .catch((err: Error) => {
+      console.error(`SMTP - Failed to connect to ${appCfg.SMTP_HOST}:${appCfg.SMTP_PORT} - ${err.message}`);
       logger.error(err);
     });
 

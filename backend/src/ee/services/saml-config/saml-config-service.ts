@@ -1,27 +1,25 @@
 import { ForbiddenError } from "@casl/ability";
 import jwt from "jsonwebtoken";
 
-import {
-  OrgMembershipRole,
-  OrgMembershipStatus,
-  SecretKeyEncoding,
-  TSamlConfigs,
-  TSamlConfigsUpdate
-} from "@app/db/schemas";
+import { OrgMembershipStatus, TableName, TSamlConfigs, TSamlConfigsUpdate, TUsers } from "@app/db/schemas";
 import { getConfig } from "@app/lib/config/env";
-import {
-  decryptSymmetric,
-  encryptSymmetric,
-  generateAsymmetricKeyPair,
-  generateSymmetricKey,
-  infisicalSymmetricDecrypt,
-  infisicalSymmetricEncypt
-} from "@app/lib/crypto/encryption";
-import { BadRequestError } from "@app/lib/errors";
-import { AuthMethod, AuthTokenType } from "@app/services/auth/auth-type";
-import { TOrgBotDALFactory } from "@app/services/org/org-bot-dal";
+import { BadRequestError, ForbiddenRequestError, NotFoundError } from "@app/lib/errors";
+import { AuthTokenType } from "@app/services/auth/auth-type";
+import { TAuthTokenServiceFactory } from "@app/services/auth-token/auth-token-service";
+import { TokenType } from "@app/services/auth-token/auth-token-types";
+import { TIdentityMetadataDALFactory } from "@app/services/identity/identity-metadata-dal";
+import { TKmsServiceFactory } from "@app/services/kms/kms-service";
+import { KmsDataKey } from "@app/services/kms/kms-types";
 import { TOrgDALFactory } from "@app/services/org/org-dal";
+import { getDefaultOrgMembershipRole } from "@app/services/org/org-role-fns";
+import { TOrgMembershipDALFactory } from "@app/services/org-membership/org-membership-dal";
+import { SmtpTemplates, TSmtpService } from "@app/services/smtp/smtp-service";
+import { getServerCfg } from "@app/services/super-admin/super-admin-service";
+import { LoginMethod } from "@app/services/super-admin/super-admin-types";
 import { TUserDALFactory } from "@app/services/user/user-dal";
+import { normalizeUsername } from "@app/services/user/user-fns";
+import { TUserAliasDALFactory } from "@app/services/user-alias/user-alias-dal";
+import { UserAliasType } from "@app/services/user-alias/user-alias-types";
 
 import { TLicenseServiceFactory } from "../license/license-service";
 import { OrgPermissionActions, OrgPermissionSubjects } from "../permission/org-permission";
@@ -30,30 +28,44 @@ import { TSamlConfigDALFactory } from "./saml-config-dal";
 import { TCreateSamlCfgDTO, TGetSamlCfgDTO, TSamlLoginDTO, TUpdateSamlCfgDTO } from "./saml-config-types";
 
 type TSamlConfigServiceFactoryDep = {
-  samlConfigDAL: TSamlConfigDALFactory;
-  userDAL: Pick<TUserDALFactory, "create" | "findUserByEmail" | "transaction" | "updateById">;
+  samlConfigDAL: Pick<TSamlConfigDALFactory, "create" | "findOne" | "update" | "findById">;
+  userDAL: Pick<
+    TUserDALFactory,
+    "create" | "findOne" | "transaction" | "updateById" | "findById" | "findUserEncKeyByUserId"
+  >;
+  userAliasDAL: Pick<TUserAliasDALFactory, "create" | "findOne">;
   orgDAL: Pick<
     TOrgDALFactory,
     "createMembership" | "updateMembershipById" | "findMembership" | "findOrgById" | "findOne" | "updateById"
   >;
-  orgBotDAL: Pick<TOrgBotDALFactory, "findOne" | "create" | "transaction">;
+  identityMetadataDAL: Pick<TIdentityMetadataDALFactory, "delete" | "insertMany" | "transaction">;
+  orgMembershipDAL: Pick<TOrgMembershipDALFactory, "create">;
   permissionService: Pick<TPermissionServiceFactory, "getOrgPermission">;
-  licenseService: Pick<TLicenseServiceFactory, "getPlan">;
+  licenseService: Pick<TLicenseServiceFactory, "getPlan" | "updateSubscriptionOrgMemberCount">;
+  tokenService: Pick<TAuthTokenServiceFactory, "createTokenForUser">;
+  smtpService: Pick<TSmtpService, "sendMail">;
+  kmsService: Pick<TKmsServiceFactory, "createCipherPairWithDataKey">;
 };
 
 export type TSamlConfigServiceFactory = ReturnType<typeof samlConfigServiceFactory>;
 
 export const samlConfigServiceFactory = ({
   samlConfigDAL,
-  orgBotDAL,
   orgDAL,
+  orgMembershipDAL,
   userDAL,
+  userAliasDAL,
   permissionService,
-  licenseService
+  licenseService,
+  tokenService,
+  smtpService,
+  identityMetadataDAL,
+  kmsService
 }: TSamlConfigServiceFactoryDep) => {
   const createSamlCfg = async ({
     cert,
     actor,
+    actorAuthMethod,
     actorOrgId,
     orgId,
     issuer,
@@ -62,81 +74,28 @@ export const samlConfigServiceFactory = ({
     entryPoint,
     authProvider
   }: TCreateSamlCfgDTO) => {
-    const { permission } = await permissionService.getOrgPermission(actor, actorId, orgId, actorOrgId);
+    const { permission } = await permissionService.getOrgPermission(actor, actorId, orgId, actorAuthMethod, actorOrgId);
     ForbiddenError.from(permission).throwUnlessCan(OrgPermissionActions.Create, OrgPermissionSubjects.Sso);
 
     const plan = await licenseService.getPlan(orgId);
     if (!plan.samlSSO)
       throw new BadRequestError({
         message:
-          "Failed to update SAML SSO configuration due to plan restriction. Upgrade plan to update SSO configuration."
+          "Failed to create SAML SSO configuration due to plan restriction. Upgrade plan to create SSO configuration."
       });
 
-    const orgBot = await orgBotDAL.transaction(async (tx) => {
-      const doc = await orgBotDAL.findOne({ orgId }, tx);
-      if (doc) return doc;
-
-      const { privateKey, publicKey } = generateAsymmetricKeyPair();
-      const key = generateSymmetricKey();
-      const {
-        ciphertext: encryptedPrivateKey,
-        iv: privateKeyIV,
-        tag: privateKeyTag,
-        encoding: privateKeyKeyEncoding,
-        algorithm: privateKeyAlgorithm
-      } = infisicalSymmetricEncypt(privateKey);
-      const {
-        ciphertext: encryptedSymmetricKey,
-        iv: symmetricKeyIV,
-        tag: symmetricKeyTag,
-        encoding: symmetricKeyKeyEncoding,
-        algorithm: symmetricKeyAlgorithm
-      } = infisicalSymmetricEncypt(key);
-
-      return orgBotDAL.create(
-        {
-          name: "Infisical org bot",
-          publicKey,
-          privateKeyIV,
-          encryptedPrivateKey,
-          symmetricKeyIV,
-          symmetricKeyTag,
-          encryptedSymmetricKey,
-          symmetricKeyAlgorithm,
-          orgId,
-          privateKeyTag,
-          privateKeyAlgorithm,
-          privateKeyKeyEncoding,
-          symmetricKeyKeyEncoding
-        },
-        tx
-      );
+    const { encryptor } = await kmsService.createCipherPairWithDataKey({
+      type: KmsDataKey.Organization,
+      orgId
     });
 
-    const key = infisicalSymmetricDecrypt({
-      ciphertext: orgBot.encryptedSymmetricKey,
-      iv: orgBot.symmetricKeyIV,
-      tag: orgBot.symmetricKeyTag,
-      keyEncoding: orgBot.symmetricKeyKeyEncoding as SecretKeyEncoding
-    });
-
-    const { ciphertext: encryptedEntryPoint, iv: entryPointIV, tag: entryPointTag } = encryptSymmetric(entryPoint, key);
-    const { ciphertext: encryptedIssuer, iv: issuerIV, tag: issuerTag } = encryptSymmetric(issuer, key);
-
-    const { ciphertext: encryptedCert, iv: certIV, tag: certTag } = encryptSymmetric(cert, key);
     const samlConfig = await samlConfigDAL.create({
       orgId,
       authProvider,
       isActive,
-      encryptedEntryPoint,
-      entryPointIV,
-      entryPointTag,
-      encryptedIssuer,
-      issuerIV,
-      issuerTag,
-      encryptedCert,
-      certIV,
-      certTag
+      encryptedSamlIssuer: encryptor({ plainText: Buffer.from(issuer) }).cipherTextBlob,
+      encryptedSamlEntryPoint: encryptor({ plainText: Buffer.from(entryPoint) }).cipherTextBlob,
+      encryptedSamlCertificate: encryptor({ plainText: Buffer.from(cert) }).cipherTextBlob
     });
 
     return samlConfig;
@@ -146,6 +105,7 @@ export const samlConfigServiceFactory = ({
     orgId,
     actor,
     actorOrgId,
+    actorAuthMethod,
     cert,
     actorId,
     issuer,
@@ -153,7 +113,7 @@ export const samlConfigServiceFactory = ({
     entryPoint,
     authProvider
   }: TUpdateSamlCfgDTO) => {
-    const { permission } = await permissionService.getOrgPermission(actor, actorId, orgId, actorOrgId);
+    const { permission } = await permissionService.getOrgPermission(actor, actorId, orgId, actorAuthMethod, actorOrgId);
     ForbiddenError.from(permission).throwUnlessCan(OrgPermissionActions.Edit, OrgPermissionSubjects.Sso);
     const plan = await licenseService.getPlan(orgId);
     if (!plan.samlSSO)
@@ -163,37 +123,23 @@ export const samlConfigServiceFactory = ({
       });
 
     const updateQuery: TSamlConfigsUpdate = { authProvider, isActive, lastUsed: null };
-    const orgBot = await orgBotDAL.findOne({ orgId });
-    if (!orgBot) throw new BadRequestError({ message: "Org bot not found", name: "OrgBotNotFound" });
-    const key = infisicalSymmetricDecrypt({
-      ciphertext: orgBot.encryptedSymmetricKey,
-      iv: orgBot.symmetricKeyIV,
-      tag: orgBot.symmetricKeyTag,
-      keyEncoding: orgBot.symmetricKeyKeyEncoding as SecretKeyEncoding
+    const { encryptor } = await kmsService.createCipherPairWithDataKey({
+      type: KmsDataKey.Organization,
+      orgId
     });
 
-    if (entryPoint) {
-      const {
-        ciphertext: encryptedEntryPoint,
-        iv: entryPointIV,
-        tag: entryPointTag
-      } = encryptSymmetric(entryPoint, key);
-      updateQuery.encryptedEntryPoint = encryptedEntryPoint;
-      updateQuery.entryPointIV = entryPointIV;
-      updateQuery.entryPointTag = entryPointTag;
+    if (entryPoint !== undefined) {
+      updateQuery.encryptedSamlEntryPoint = encryptor({ plainText: Buffer.from(entryPoint) }).cipherTextBlob;
     }
-    if (issuer) {
-      const { ciphertext: encryptedIssuer, iv: issuerIV, tag: issuerTag } = encryptSymmetric(issuer, key);
-      updateQuery.encryptedIssuer = encryptedIssuer;
-      updateQuery.issuerIV = issuerIV;
-      updateQuery.issuerTag = issuerTag;
+
+    if (issuer !== undefined) {
+      updateQuery.encryptedSamlIssuer = encryptor({ plainText: Buffer.from(issuer) }).cipherTextBlob;
     }
-    if (cert) {
-      const { ciphertext: encryptedCert, iv: certIV, tag: certTag } = encryptSymmetric(cert, key);
-      updateQuery.encryptedCert = encryptedCert;
-      updateQuery.certIV = certIV;
-      updateQuery.certTag = certTag;
+
+    if (cert !== undefined) {
+      updateQuery.encryptedSamlCertificate = encryptor({ plainText: Buffer.from(cert) }).cipherTextBlob;
     }
+
     const [ssoConfig] = await samlConfigDAL.update({ orgId }, updateQuery);
     await orgDAL.updateById(orgId, { authEnforced: false, scimEnabled: false });
 
@@ -201,14 +147,14 @@ export const samlConfigServiceFactory = ({
   };
 
   const getSaml = async (dto: TGetSamlCfgDTO) => {
-    let ssoConfig: TSamlConfigs | undefined;
+    let samlConfig: TSamlConfigs | undefined;
     if (dto.type === "org") {
-      ssoConfig = await samlConfigDAL.findOne({ orgId: dto.orgId });
-      if (!ssoConfig) return;
+      samlConfig = await samlConfigDAL.findOne({ orgId: dto.orgId });
+      if (!samlConfig) return;
     } else if (dto.type === "orgSlug") {
       const org = await orgDAL.findOne({ slug: dto.orgSlug });
       if (!org) return;
-      ssoConfig = await samlConfigDAL.findOne({ orgId: org.id });
+      samlConfig = await samlConfigDAL.findOne({ orgId: org.id });
     } else if (dto.type === "ssoId") {
       // TODO:
       // We made this change because saml config ids were not moved over during the migration
@@ -227,101 +173,110 @@ export const samlConfigServiceFactory = ({
 
       const id = UUIDToMongoId[dto.id] ?? dto.id;
 
-      ssoConfig = await samlConfigDAL.findById(id);
+      samlConfig = await samlConfigDAL.findById(id);
     }
-    if (!ssoConfig) throw new BadRequestError({ message: "Failed to find organization SSO data" });
+    if (!samlConfig) throw new NotFoundError({ message: `Failed to find SSO data` });
 
     // when dto is type id means it's internally used
     if (dto.type === "org") {
       const { permission } = await permissionService.getOrgPermission(
         dto.actor,
         dto.actorId,
-        ssoConfig.orgId,
+        samlConfig.orgId,
+        dto.actorAuthMethod,
         dto.actorOrgId
       );
       ForbiddenError.from(permission).throwUnlessCan(OrgPermissionActions.Read, OrgPermissionSubjects.Sso);
     }
-    const {
-      entryPointTag,
-      entryPointIV,
-      encryptedEntryPoint,
-      certTag,
-      certIV,
-      encryptedCert,
-      issuerTag,
-      issuerIV,
-      encryptedIssuer
-    } = ssoConfig;
-
-    const orgBot = await orgBotDAL.findOne({ orgId: ssoConfig.orgId });
-    if (!orgBot) throw new BadRequestError({ message: "Org bot not found", name: "OrgBotNotFound" });
-    const key = infisicalSymmetricDecrypt({
-      ciphertext: orgBot.encryptedSymmetricKey,
-      iv: orgBot.symmetricKeyIV,
-      tag: orgBot.symmetricKeyTag,
-      keyEncoding: orgBot.symmetricKeyKeyEncoding as SecretKeyEncoding
+    const { decryptor } = await kmsService.createCipherPairWithDataKey({
+      type: KmsDataKey.Organization,
+      orgId: samlConfig.orgId
     });
 
     let entryPoint = "";
-    if (encryptedEntryPoint && entryPointIV && entryPointTag) {
-      entryPoint = decryptSymmetric({
-        ciphertext: encryptedEntryPoint,
-        key,
-        tag: entryPointTag,
-        iv: entryPointIV
-      });
+    if (samlConfig.encryptedSamlEntryPoint) {
+      entryPoint = decryptor({ cipherTextBlob: samlConfig.encryptedSamlEntryPoint }).toString();
     }
 
     let issuer = "";
-    if (encryptedIssuer && issuerTag && issuerIV) {
-      issuer = decryptSymmetric({
-        key,
-        tag: issuerTag,
-        iv: issuerIV,
-        ciphertext: encryptedIssuer
-      });
+    if (samlConfig.encryptedSamlIssuer) {
+      issuer = decryptor({ cipherTextBlob: samlConfig.encryptedSamlIssuer }).toString();
     }
 
     let cert = "";
-    if (encryptedCert && certTag && certIV) {
-      cert = decryptSymmetric({ key, tag: certTag, iv: certIV, ciphertext: encryptedCert });
+    if (samlConfig.encryptedSamlCertificate) {
+      cert = decryptor({ cipherTextBlob: samlConfig.encryptedSamlCertificate }).toString();
     }
 
     return {
-      id: ssoConfig.id,
-      organization: ssoConfig.orgId,
-      orgId: ssoConfig.orgId,
-      authProvider: ssoConfig.authProvider,
-      isActive: ssoConfig.isActive,
+      id: samlConfig.id,
+      organization: samlConfig.orgId,
+      orgId: samlConfig.orgId,
+      authProvider: samlConfig.authProvider,
+      isActive: samlConfig.isActive,
       entryPoint,
       issuer,
       cert,
-      lastUsed: ssoConfig.lastUsed
+      lastUsed: samlConfig.lastUsed
     };
   };
 
-  const samlLogin = async ({ firstName, email, lastName, authProvider, orgId, relayState }: TSamlLoginDTO) => {
+  const samlLogin = async ({
+    externalId,
+    email,
+    firstName,
+    lastName,
+    authProvider,
+    orgId,
+    relayState,
+    metadata
+  }: TSamlLoginDTO) => {
     const appCfg = getConfig();
-    let user = await userDAL.findUserByEmail(email);
+    const serverCfg = await getServerCfg();
+
+    if (serverCfg.enabledLoginMethods && !serverCfg.enabledLoginMethods.includes(LoginMethod.SAML)) {
+      throw new ForbiddenRequestError({
+        message: "Login with SAML is disabled by administrator."
+      });
+    }
+
+    const userAlias = await userAliasDAL.findOne({
+      externalId,
+      orgId,
+      aliasType: UserAliasType.SAML
+    });
 
     const organization = await orgDAL.findOrgById(orgId);
-    if (!organization) throw new BadRequestError({ message: "Org not found" });
+    if (!organization) throw new NotFoundError({ message: `Organization with ID '${orgId}' not found` });
 
-    if (user) {
-      await userDAL.transaction(async (tx) => {
-        const [orgMembership] = await orgDAL.findMembership({ userId: user.id, orgId }, { tx });
+    let user: TUsers;
+    if (userAlias) {
+      user = await userDAL.transaction(async (tx) => {
+        const foundUser = await userDAL.findById(userAlias.userId, tx);
+        const [orgMembership] = await orgDAL.findMembership(
+          {
+            [`${TableName.OrgMembership}.userId` as "userId"]: foundUser.id,
+            [`${TableName.OrgMembership}.orgId` as "id"]: orgId
+          },
+          { tx }
+        );
         if (!orgMembership) {
-          await orgDAL.createMembership(
+          const { role, roleId } = await getDefaultOrgMembershipRole(organization.defaultMembershipRole);
+
+          await orgMembershipDAL.create(
             {
-              userId: user.id,
-              orgId,
+              userId: userAlias.userId,
               inviteEmail: email,
-              role: OrgMembershipRole.Member,
-              status: OrgMembershipStatus.Accepted
+              orgId,
+              role,
+              roleId,
+              status: foundUser.isAccepted ? OrgMembershipStatus.Accepted : OrgMembershipStatus.Invited, // if user is fully completed, then set status to accepted, otherwise set it to invited so we can update it later
+              isActive: true
             },
             tx
           );
-        } else if (orgMembership.status === OrgMembershipStatus.Invited) {
+          // Only update the membership to Accepted if the user account is already completed.
+        } else if (orgMembership.status === OrgMembershipStatus.Invited && foundUser.isAccepted) {
           await orgDAL.updateMembershipById(
             orgMembership.id,
             {
@@ -330,39 +285,148 @@ export const samlConfigServiceFactory = ({
             tx
           );
         }
+
+        if (metadata && foundUser.id) {
+          await identityMetadataDAL.delete({ userId: foundUser.id, orgId }, tx);
+          if (metadata.length) {
+            await identityMetadataDAL.insertMany(
+              metadata.map(({ key, value }) => ({
+                userId: foundUser.id,
+                orgId,
+                key,
+                value
+              })),
+              tx
+            );
+          }
+        }
+
+        return foundUser;
       });
     } else {
+      const plan = await licenseService.getPlan(orgId);
+      if (plan?.slug !== "enterprise" && plan?.memberLimit && plan.membersUsed >= plan.memberLimit) {
+        // limit imposed on number of members allowed / number of members used exceeds the number of members allowed
+        throw new BadRequestError({
+          message: "Failed to create new member via SAML due to member limit reached. Upgrade plan to add more members."
+        });
+      }
+
+      if (plan?.slug !== "enterprise" && plan?.identityLimit && plan.identitiesUsed >= plan.identityLimit) {
+        // limit imposed on number of identities allowed / number of identities used exceeds the number of identities allowed
+        throw new BadRequestError({
+          message: "Failed to create new member via SAML due to member limit reached. Upgrade plan to add more members."
+        });
+      }
+
       user = await userDAL.transaction(async (tx) => {
-        const newUser = await userDAL.create(
+        let newUser: TUsers | undefined;
+        if (serverCfg.trustSamlEmails) {
+          newUser = await userDAL.findOne(
+            {
+              email,
+              isEmailVerified: true
+            },
+            tx
+          );
+        }
+
+        if (!newUser) {
+          const uniqueUsername = await normalizeUsername(`${firstName ?? ""}-${lastName ?? ""}`, userDAL);
+          newUser = await userDAL.create(
+            {
+              username: serverCfg.trustSamlEmails ? email : uniqueUsername,
+              email,
+              isEmailVerified: serverCfg.trustSamlEmails,
+              firstName,
+              lastName,
+              authMethods: [],
+              isGhost: false
+            },
+            tx
+          );
+        }
+
+        await userAliasDAL.create(
           {
-            email,
-            firstName,
-            lastName,
-            authMethods: [AuthMethod.EMAIL],
-            isGhost: false
+            userId: newUser.id,
+            aliasType: UserAliasType.SAML,
+            externalId,
+            emails: email ? [email] : [],
+            orgId
           },
           tx
         );
-        await orgDAL.createMembership({
-          inviteEmail: email,
-          orgId,
-          role: OrgMembershipRole.Member,
-          status: OrgMembershipStatus.Invited
-        });
+
+        const [orgMembership] = await orgDAL.findMembership(
+          {
+            [`${TableName.OrgMembership}.userId` as "userId"]: newUser.id,
+            [`${TableName.OrgMembership}.orgId` as "id"]: orgId
+          },
+          { tx }
+        );
+
+        if (!orgMembership) {
+          const { role, roleId } = await getDefaultOrgMembershipRole(organization.defaultMembershipRole);
+
+          await orgMembershipDAL.create(
+            {
+              userId: newUser.id,
+              inviteEmail: email,
+              orgId,
+              role,
+              roleId,
+              status: newUser.isAccepted ? OrgMembershipStatus.Accepted : OrgMembershipStatus.Invited, // if user is fully completed, then set status to accepted, otherwise set it to invited so we can update it later
+              isActive: true
+            },
+            tx
+          );
+          // Only update the membership to Accepted if the user account is already completed.
+        } else if (orgMembership.status === OrgMembershipStatus.Invited && newUser.isAccepted) {
+          await orgDAL.updateMembershipById(
+            orgMembership.id,
+            {
+              status: OrgMembershipStatus.Accepted
+            },
+            tx
+          );
+        }
+
+        if (metadata && newUser.id) {
+          await identityMetadataDAL.delete({ userId: newUser.id, orgId }, tx);
+          if (metadata.length) {
+            await identityMetadataDAL.insertMany(
+              metadata.map(({ key, value }) => ({
+                userId: newUser?.id,
+                orgId,
+                key,
+                value
+              })),
+              tx
+            );
+          }
+        }
         return newUser;
       });
     }
+    await licenseService.updateSubscriptionOrgMemberCount(organization.id);
+
     const isUserCompleted = Boolean(user.isAccepted);
+    const userEnc = await userDAL.findUserEncKeyByUserId(user.id);
     const providerAuthToken = jwt.sign(
       {
         authTokenType: AuthTokenType.PROVIDER_TOKEN,
         userId: user.id,
-        email: user.email,
+        username: user.username,
+        ...(user.email && { email: user.email, isEmailVerified: user.isEmailVerified }),
         firstName,
         lastName,
         organizationName: organization.name,
         organizationId: organization.id,
+        organizationSlug: organization.slug,
         authMethod: authProvider,
+        hasExchangedPrivateKey: Boolean(userEnc?.serverEncryptedPrivateKey),
+        authType: UserAliasType.SAML,
         isUserCompleted,
         ...(relayState
           ? {
@@ -377,6 +441,22 @@ export const samlConfigServiceFactory = ({
     );
 
     await samlConfigDAL.update({ orgId }, { lastUsed: new Date() });
+
+    if (user.email && !user.isEmailVerified) {
+      const token = await tokenService.createTokenForUser({
+        type: TokenType.TOKEN_EMAIL_VERIFICATION,
+        userId: user.id
+      });
+
+      await smtpService.sendMail({
+        template: SmtpTemplates.EmailVerification,
+        subjectLine: "Infisical confirmation code",
+        recipients: [user.email],
+        substitutions: {
+          code: token
+        }
+      });
+    }
 
     return { isUserCompleted, providerAuthToken };
   };

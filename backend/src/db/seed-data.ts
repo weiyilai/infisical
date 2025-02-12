@@ -21,6 +21,7 @@ export let userPublicKey: string | undefined;
 
 export const seedData1 = {
   id: "3dafd81d-4388-432b-a4c5-f735616868c1",
+  username: process.env.TEST_USER_USERNAME || "test@localhost.local",
   email: process.env.TEST_USER_EMAIL || "test@localhost.local",
   password: process.env.TEST_USER_PASSWORD || "testInfisical@1",
   organization: {
@@ -31,6 +32,11 @@ export const seedData1 = {
     id: "77fa7aed-9288-401e-a4c9-3a9430be62a0",
     name: "first project",
     slug: "first-project"
+  },
+  projectV3: {
+    id: "77fa7aed-9288-401e-a4c9-3a9430be62a4",
+    name: "first project v2",
+    slug: "first-project-v2"
   },
   environment: {
     name: "Development",

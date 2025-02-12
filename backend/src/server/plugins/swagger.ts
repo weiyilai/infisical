@@ -15,12 +15,16 @@ export const fastifySwagger = fp(async (fastify) => {
       },
       servers: [
         {
-          url: "http://localhost:8080",
-          description: "Local server"
+          url: "https://us.infisical.com",
+          description: "Production server (US)"
         },
         {
-          url: "https://app.infisical.com",
-          description: "Production server"
+          url: "https://eu.infisical.com",
+          description: "Production server (EU)"
+        },
+        {
+          url: "http://localhost:8080",
+          description: "Local server"
         }
       ],
       components: {
@@ -30,12 +34,6 @@ export const fastifySwagger = fp(async (fastify) => {
             scheme: "bearer",
             bearerFormat: "JWT",
             description: "An access token in Infisical"
-          },
-          apiKeyAuth: {
-            type: "apiKey",
-            in: "header",
-            name: "X-API-Key",
-            description: "An API Key in Infisical"
           }
         }
       }

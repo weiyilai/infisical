@@ -12,7 +12,8 @@ export enum PostHogEventTypes {
   ProjectCreated = "Project Created",
   IntegrationCreated = "Integration Created",
   MachineIdentityCreated = "Machine Identity Created",
-  UserOrgInvitation = "User Org Invitation"
+  UserOrgInvitation = "User Org Invitation",
+  TelemetryInstanceStats = "Self Hosted Instance Stats"
 }
 
 export type TSecretModifiedEvent = {
@@ -36,6 +37,7 @@ export type TSecretModifiedEvent = {
 export type TAdminInitEvent = {
   event: PostHogEventTypes.AdminInit;
   properties: {
+    username: string;
     email: string;
     firstName: string;
     lastName: string;
@@ -45,6 +47,7 @@ export type TAdminInitEvent = {
 export type TUserSignedUpEvent = {
   event: PostHogEventTypes.UserSignedUp;
   properties: {
+    username: string;
     email: string;
     attributionSource?: string;
   };
@@ -97,7 +100,23 @@ export type TIntegrationCreatedEvent = {
 export type TUserOrgInvitedEvent = {
   event: PostHogEventTypes.UserOrgInvitation;
   properties: {
-    inviteeEmail: string;
+    inviteeEmails: string[];
+    projectIds?: string[];
+    organizationRoleSlug?: string;
+  };
+};
+
+export type TTelemetryInstanceStatsEvent = {
+  event: PostHogEventTypes.TelemetryInstanceStats;
+  properties: {
+    users: number;
+    identities: number;
+    projects: number;
+    secrets: number;
+    organizations: number;
+    organizationNames: number;
+    numberOfSecretOperationsMade: number;
+    numberOfSecretProcessed: number;
   };
 };
 
@@ -110,4 +129,5 @@ export type TPostHogEvent = { distinctId: string } & (
   | TMachineIdentityCreatedEvent
   | TIntegrationCreatedEvent
   | TProjectCreateEvent
+  | TTelemetryInstanceStatsEvent
 );

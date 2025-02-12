@@ -1,5 +1,6 @@
 import { ForbiddenError } from "@casl/ability";
 
+import { ActionProjectType } from "@app/db/schemas";
 import { TPermissionServiceFactory } from "@app/ee/services/permission/permission-service";
 import { ProjectPermissionActions, ProjectPermissionSub } from "@app/ee/services/permission/project-permission";
 import { BadRequestError } from "@app/lib/errors";
@@ -26,11 +27,19 @@ export const projectKeyServiceFactory = ({
     actor,
     actorId,
     actorOrgId,
+    actorAuthMethod,
     projectId,
     nonce,
     encryptedKey
   }: TUploadProjectKeyDTO) => {
-    const { permission } = await permissionService.getProjectPermission(actor, actorId, projectId, actorOrgId);
+    const { permission } = await permissionService.getProjectPermission({
+      actor,
+      actorId,
+      projectId,
+      actorAuthMethod,
+      actorOrgId,
+      actionProjectType: ActionProjectType.Any
+    });
     ForbiddenError.from(permission).throwUnlessCan(ProjectPermissionActions.Edit, ProjectPermissionSub.Member);
 
     const receiverMembership = await projectMembershipDAL.findOne({
@@ -46,14 +55,40 @@ export const projectKeyServiceFactory = ({
     await projectKeyDAL.create({ projectId, receiverId, encryptedKey, nonce, senderId: actorId });
   };
 
-  const getLatestProjectKey = async ({ actorId, projectId, actor, actorOrgId }: TGetLatestProjectKeyDTO) => {
-    await permissionService.getProjectPermission(actor, actorId, projectId, actorOrgId);
+  const getLatestProjectKey = async ({
+    actorId,
+    projectId,
+    actor,
+    actorOrgId,
+    actorAuthMethod
+  }: TGetLatestProjectKeyDTO) => {
+    await permissionService.getProjectPermission({
+      actor,
+      actorId,
+      projectId,
+      actorAuthMethod,
+      actorOrgId,
+      actionProjectType: ActionProjectType.Any
+    });
     const latestKey = await projectKeyDAL.findLatestProjectKey(actorId, projectId);
     return latestKey;
   };
 
-  const getProjectPublicKeys = async ({ actor, actorId, actorOrgId, projectId }: TGetLatestProjectKeyDTO) => {
-    const { permission } = await permissionService.getProjectPermission(actor, actorId, projectId, actorOrgId);
+  const getProjectPublicKeys = async ({
+    actor,
+    actorId,
+    actorOrgId,
+    actorAuthMethod,
+    projectId
+  }: TGetLatestProjectKeyDTO) => {
+    const { permission } = await permissionService.getProjectPermission({
+      actor,
+      actorId,
+      projectId,
+      actorAuthMethod,
+      actorOrgId,
+      actionProjectType: ActionProjectType.Any
+    });
     ForbiddenError.from(permission).throwUnlessCan(ProjectPermissionActions.Read, ProjectPermissionSub.Member);
     return projectKeyDAL.findAllProjectUserPubKeys(projectId);
   };
