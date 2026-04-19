@@ -11,7 +11,7 @@ import {
   Field,
   FieldContent,
   FieldLabel,
-  UnstableInput
+  Input
 } from "@app/components/v3";
 import { useToggle } from "@app/hooks";
 
@@ -76,7 +76,7 @@ export const MigrationConfigDeleteDialog = ({
               Type <span className="font-bold">{deleteKey}</span> to perform this action
             </FieldLabel>
             <FieldContent>
-              <UnstableInput
+              <Input
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}
                 placeholder={`Type ${deleteKey} here`}

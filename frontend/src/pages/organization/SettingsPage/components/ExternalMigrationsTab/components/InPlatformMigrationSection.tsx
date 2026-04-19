@@ -4,22 +4,22 @@ import { Edit, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { createNotification } from "@app/components/notifications";
 import {
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+  IconButton,
   Skeleton,
-  UnstableDropdownMenu,
-  UnstableDropdownMenuContent,
-  UnstableDropdownMenuItem,
-  UnstableDropdownMenuTrigger,
-  UnstableEmpty,
-  UnstableEmptyDescription,
-  UnstableEmptyHeader,
-  UnstableEmptyTitle,
-  UnstableIconButton,
-  UnstableTable,
-  UnstableTableBody,
-  UnstableTableCell,
-  UnstableTableHead,
-  UnstableTableHeader,
-  UnstableTableRow
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@app/components/v3";
 import {
   getInPlatformMigrationProviderMeta,
@@ -114,62 +114,62 @@ export const InPlatformMigrationSection = () => {
   const renderTable = () => {
     if (isLoading) {
       return (
-        <UnstableTable>
-          <UnstableTableHeader>
-            <UnstableTableRow>
-              <UnstableTableHead>Platform</UnstableTableHead>
-              <UnstableTableHead>Connection</UnstableTableHead>
-              <UnstableTableHead className="w-12 text-right" />
-            </UnstableTableRow>
-          </UnstableTableHeader>
-          <UnstableTableBody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Platform</TableHead>
+              <TableHead>Connection</TableHead>
+              <TableHead className="w-12 text-right" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {SKELETON_ROW_KEYS.map((key) => (
-              <UnstableTableRow key={key}>
-                <UnstableTableCell>
+              <TableRow key={key}>
+                <TableCell>
                   <Skeleton className="h-4 w-36" />
-                </UnstableTableCell>
-                <UnstableTableCell>
+                </TableCell>
+                <TableCell>
                   <Skeleton className="h-4 w-32" />
-                </UnstableTableCell>
-                <UnstableTableCell className="text-right">
+                </TableCell>
+                <TableCell className="text-right">
                   <Skeleton className="ml-auto size-7 shrink-0 rounded-md" />
-                </UnstableTableCell>
-              </UnstableTableRow>
+                </TableCell>
+              </TableRow>
             ))}
-          </UnstableTableBody>
-        </UnstableTable>
+          </TableBody>
+        </Table>
       );
     }
     if (mergedRows.length === 0) {
       return (
-        <UnstableEmpty>
-          <UnstableEmptyHeader>
-            <UnstableEmptyTitle>No migration configurations</UnstableEmptyTitle>
-            <UnstableEmptyDescription>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>No migration configurations</EmptyTitle>
+            <EmptyDescription>
               Add a platform configuration to enable in-platform migration features.
-            </UnstableEmptyDescription>
-          </UnstableEmptyHeader>
-        </UnstableEmpty>
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       );
     }
     return (
-      <UnstableTable>
-        <UnstableTableHeader>
-          <UnstableTableRow>
-            <UnstableTableHead>Platform</UnstableTableHead>
-            <UnstableTableHead>Connection</UnstableTableHead>
-            <UnstableTableHead className="w-12 text-right" />
-          </UnstableTableRow>
-        </UnstableTableHeader>
-        <UnstableTableBody>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Platform</TableHead>
+            <TableHead>Connection</TableHead>
+            <TableHead className="w-12 text-right" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {mergedRows.map((config) => {
             const app = providerApp(config);
             const { name, imageFileName } = getInPlatformMigrationProviderMeta(app);
             const isDoppler = config.provider === ExternalMigrationProviders.Doppler;
 
             return (
-              <UnstableTableRow key={config.id}>
-                <UnstableTableCell>
+              <TableRow key={config.id}>
+                <TableCell>
                   <div className="flex items-center gap-2">
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-bunker-500 p-1">
                       <img
@@ -184,22 +184,22 @@ export const InPlatformMigrationSection = () => {
                     </div>
                     <span className="text-sm text-mineshaft-200">{name}</span>
                   </div>
-                </UnstableTableCell>
-                <UnstableTableCell>{getConnectionName(config.connectionId)}</UnstableTableCell>
-                <UnstableTableCell className="text-right">
-                  <UnstableDropdownMenu>
-                    <UnstableDropdownMenuTrigger asChild>
-                      <UnstableIconButton
+                </TableCell>
+                <TableCell>{getConnectionName(config.connectionId)}</TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <IconButton
                         variant="ghost"
                         size="xs"
                         aria-label="Row actions"
                         className="text-mineshaft-300"
                       >
                         <MoreVertical className="size-4" />
-                      </UnstableIconButton>
-                    </UnstableDropdownMenuTrigger>
-                    <UnstableDropdownMenuContent align="end" className="min-w-40">
-                      <UnstableDropdownMenuItem
+                      </IconButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-40">
+                      <DropdownMenuItem
                         onClick={() => {
                           if (isDoppler) {
                             setDopplerEditConfig(config);
@@ -212,8 +212,8 @@ export const InPlatformMigrationSection = () => {
                       >
                         <Edit />
                         Edit
-                      </UnstableDropdownMenuItem>
-                      <UnstableDropdownMenuItem
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         variant="danger"
                         onClick={() => {
                           setConfigToDelete(config);
@@ -222,15 +222,15 @@ export const InPlatformMigrationSection = () => {
                       >
                         <Trash2 />
                         Delete
-                      </UnstableDropdownMenuItem>
-                    </UnstableDropdownMenuContent>
-                  </UnstableDropdownMenu>
-                </UnstableTableCell>
-              </UnstableTableRow>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </UnstableTableBody>
-      </UnstableTable>
+        </TableBody>
+      </Table>
     );
   };
 
