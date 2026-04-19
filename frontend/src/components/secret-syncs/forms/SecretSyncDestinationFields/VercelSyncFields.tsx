@@ -411,7 +411,7 @@ export const VercelSyncFields = () => {
                       }}
                     >
                       <p className="w-fit">
-                        Secrets as Sensitive in Vercel{" "}
+                        Mark Secrets as Sensitive in Vercel{" "}
                         <Tooltip
                           className="max-w-md"
                           content={
