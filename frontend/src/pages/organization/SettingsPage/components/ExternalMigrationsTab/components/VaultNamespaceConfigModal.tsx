@@ -17,10 +17,10 @@ import {
   FieldContent,
   FieldError,
   FieldLabel,
+  Input,
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
-  UnstableInput
+  TooltipTrigger
 } from "@app/components/v3";
 import { FilterableSelect } from "@app/components/v3/generic/ReactSelect";
 import { AppConnection } from "@app/hooks/api/appConnections/enums";
@@ -149,7 +149,7 @@ export const VaultNamespaceConfigModal = ({ isOpen, onOpenChange, editConfig }: 
               <Field>
                 <FieldLabel>Namespace</FieldLabel>
                 <FieldContent>
-                  <UnstableInput
+                  <Input
                     {...field}
                     placeholder="e.g., admin, dev, prod"
                     autoComplete="off"

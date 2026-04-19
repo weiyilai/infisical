@@ -8,11 +8,15 @@ import { z } from "zod";
 import { createNotification } from "@app/components/notifications";
 import { OrgPermissionCan } from "@app/components/permissions";
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   Field,
   FieldContent,
   FieldError,
   FieldLabel,
+  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -20,11 +24,7 @@ import {
   SelectValue,
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
-  UnstableAlert,
-  UnstableAlertDescription,
-  UnstableAlertTitle,
-  UnstableInput
+  TooltipTrigger
 } from "@app/components/v3";
 import {
   OrgGatewayPermissionActions,
@@ -201,9 +201,9 @@ export const VaultPlatformModal = ({ onClose }: Props) => {
 
   return (
     <div>
-      <UnstableAlert variant="info" className="mb-4">
-        <UnstableAlertTitle>Vault KV Secret Engine Import</UnstableAlertTitle>
-        <UnstableAlertDescription>
+      <Alert variant="info" className="mb-4">
+        <AlertTitle>Vault KV Secret Engine Import</AlertTitle>
+        <AlertDescription>
           <p>
             The Vault migration currently supports importing static secrets from Vault
             Dedicated/Self-Hosted.
@@ -211,8 +211,8 @@ export const VaultPlatformModal = ({ onClose }: Props) => {
           <p className="mt-2 text-xs opacity-80">
             Currently only KV Secret Engine is supported for Vault migrations.
           </p>
-        </UnstableAlertDescription>
-      </UnstableAlert>
+        </AlertDescription>
+      </Alert>
       <form onSubmit={handleSubmit(onSubmit)} autoComplete="off" className="space-y-4">
         <div className="w-full flex-1">
           <OrgPermissionCan
@@ -255,7 +255,7 @@ export const VaultPlatformModal = ({ onClose }: Props) => {
             <Field>
               <FieldLabel>Vault URL</FieldLabel>
               <FieldContent>
-                <UnstableInput placeholder="" {...field} isError={Boolean(error)} />
+                <Input placeholder="" {...field} isError={Boolean(error)} />
               </FieldContent>
               <FieldError>{error?.message}</FieldError>
             </Field>
@@ -268,7 +268,7 @@ export const VaultPlatformModal = ({ onClose }: Props) => {
             <Field>
               <FieldLabel>Vault Namespace</FieldLabel>
               <FieldContent>
-                <UnstableInput type="text" placeholder="" {...field} isError={Boolean(error)} />
+                <Input type="text" placeholder="" {...field} isError={Boolean(error)} />
               </FieldContent>
               <FieldError>{error?.message}</FieldError>
             </Field>
@@ -281,7 +281,7 @@ export const VaultPlatformModal = ({ onClose }: Props) => {
             <Field>
               <FieldLabel>Vault Access Token</FieldLabel>
               <FieldContent>
-                <UnstableInput type="password" placeholder="" {...field} isError={Boolean(error)} />
+                <Input type="password" placeholder="" {...field} isError={Boolean(error)} />
               </FieldContent>
               <FieldError>{error?.message}</FieldError>
             </Field>

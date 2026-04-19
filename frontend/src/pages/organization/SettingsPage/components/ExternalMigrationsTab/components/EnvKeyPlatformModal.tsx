@@ -4,14 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { createNotification } from "@app/components/notifications";
-import {
-  Button,
-  Field,
-  FieldContent,
-  FieldError,
-  FieldLabel,
-  UnstableInput
-} from "@app/components/v3";
+import { Button, Field, FieldContent, FieldError, FieldLabel, Input } from "@app/components/v3";
 import { useImportEnvKey } from "@app/hooks/api/migration/mutations";
 
 import { GenericDropzone } from "./GenericDropzone";
@@ -91,7 +84,7 @@ export const EnvKeyPlatformModal = ({ onClose }: Props) => {
           <Field>
             <FieldLabel>Encryption key</FieldLabel>
             <FieldContent>
-              <UnstableInput type="password" placeholder="" {...field} isError={Boolean(error)} />
+              <Input type="password" placeholder="" {...field} isError={Boolean(error)} />
             </FieldContent>
             <FieldError>{error?.message}</FieldError>
           </Field>

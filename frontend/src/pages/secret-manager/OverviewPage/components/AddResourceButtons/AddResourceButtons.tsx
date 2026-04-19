@@ -232,7 +232,7 @@ export function AddResourceButtons({
                   open={!isAllowed || !isOrgAdmin || !isSingleEnvSelected ? undefined : false}
                 >
                   <TooltipTrigger className="block w-full">
-                    <UnstableDropdownMenuItem
+                    <DropdownMenuItem
                       onClick={onImportFromDoppler}
                       isDisabled={!isAllowed || !isOrgAdmin || !isSingleEnvSelected}
                     >
@@ -244,7 +244,7 @@ export function AddResourceButtons({
                         />
                       </div>
                       Add from Doppler
-                    </UnstableDropdownMenuItem>
+                    </DropdownMenuItem>
                   </TooltipTrigger>
                   <TooltipContent side="left">
                     {getInPlatformImportTooltip("Doppler")}
