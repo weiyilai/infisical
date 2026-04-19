@@ -228,7 +228,7 @@ const createSecret = async (
       {
         key,
         value: secretMap[key].value,
-        type: "encrypted",
+        type: destinationConfig.sensitive ? "sensitive" : "encrypted",
         target: isVercelDefaultEnvType(destinationConfig.env) ? [destinationConfig.env] : [],
         customEnvironmentIds: !isVercelDefaultEnvType(destinationConfig.env) ? [destinationConfig.env] : [],
         ...(destinationConfig.env === VercelEnvironmentType.Preview && destinationConfig.branch
@@ -451,6 +451,21 @@ const createTeamSharedEnvVar = async (
     });
   }
 
+  // Vercel does not support sensitive env vars in the Development environment, so strip it
+  // from the target list when sensitive is enabled.
+  const effectiveTargetEnvironments = destinationConfig.sensitive
+    ? destinationConfig.targetEnvironments?.filter((env) => env !== VercelEnvironmentType.Development)
+    : destinationConfig.targetEnvironments;
+
+  if (destinationConfig.sensitive && (!effectiveTargetEnvironments || effectiveTargetEnvironments.length === 0)) {
+    throw new SecretSyncError({
+      message:
+        "Marking secrets as sensitive in Vercel is not supported for development environments. Add another target environment or disable Sensitive.",
+      secretKey: key,
+      shouldRetry: false
+    });
+  }
+
   try {
     const { data: createResponse } = await request.post<{
       created: VercelSharedEnvVar[];
@@ -459,8 +474,8 @@ const createTeamSharedEnvVar = async (
       `${IntegrationUrls.VERCEL_API_URL}/v1/env?teamId=${destinationConfig.teamId}`,
       {
         evs: [{ key, value }],
-        type: "encrypted",
-        ...(destinationConfig.targetEnvironments?.length ? { target: destinationConfig.targetEnvironments } : {}),
+        type: destinationConfig.sensitive ? "sensitive" : "encrypted",
+        ...(effectiveTargetEnvironments?.length ? { target: effectiveTargetEnvironments } : {}),
         ...(destinationConfig.targetProjects !== undefined ? { projectId: destinationConfig.targetProjects } : {})
       },
       {
@@ -508,6 +523,24 @@ const updateTeamSharedEnvVar = async (
     });
   }
 
+  const isExistingSensitive = envVar.type === "sensitive";
+  const effectiveTargetEnvironments =
+    destinationConfig.sensitive || isExistingSensitive
+      ? destinationConfig.targetEnvironments?.filter((env) => env !== VercelEnvironmentType.Development)
+      : destinationConfig.targetEnvironments;
+
+  if (
+    (destinationConfig.sensitive || isExistingSensitive) &&
+    (!effectiveTargetEnvironments || effectiveTargetEnvironments.length === 0)
+  ) {
+    throw new SecretSyncError({
+      message:
+        "Marking secrets as sensitive in Vercel is not supported for development environments. Add another target environment or disable Sensitive.",
+      secretKey: envVar.key,
+      shouldRetry: false
+    });
+  }
+
   try {
     const { data: updateResponse } = await request.patch<{
       updated: VercelSharedEnvVar[];
@@ -518,7 +551,7 @@ const updateTeamSharedEnvVar = async (
         updates: {
           [envVar.id]: {
             value,
-            ...(destinationConfig.targetEnvironments?.length ? { target: destinationConfig.targetEnvironments } : {}),
+            ...(effectiveTargetEnvironments?.length ? { target: effectiveTargetEnvironments } : {}),
             ...(destinationConfig.targetProjects !== undefined ? { projectId: destinationConfig.targetProjects } : {})
           }
         }
@@ -602,7 +635,7 @@ export const VercelSyncFns = {
       const sharedEnvVars = await getTeamSharedEnvVars(secretSync);
       const sharedEnvVarsMap = new Map(sharedEnvVars.map((s) => [s.key, s]));
 
-      const { targetEnvironments, targetProjects } = secretSync.destinationConfig;
+      const { targetEnvironments, targetProjects, sensitive } = secretSync.destinationConfig;
 
       for await (const key of Object.keys(secretMap)) {
         const existingVar = sharedEnvVarsMap.get(key);
@@ -612,9 +645,16 @@ export const VercelSyncFns = {
         } else {
           const hasValueChanged = existingVar.value !== secretMap[key].value;
 
-          const hasTargetChanged = targetEnvironments?.length
-            ? existingVar.target.length !== targetEnvironments.length ||
-              !targetEnvironments.every((env) => existingVar.target.includes(env))
+          // Sensitive secrets cannot target Development in Vercel, so compare against
+          // the effective targets that will actually be sent.
+          const isSensitive = sensitive || existingVar.type === "sensitive";
+          const effectiveTargets = isSensitive
+            ? targetEnvironments?.filter((env) => env !== VercelEnvironmentType.Development)
+            : targetEnvironments;
+
+          const hasTargetChanged = effectiveTargets?.length
+            ? existingVar.target.length !== effectiveTargets.length ||
+              !effectiveTargets.every((env) => existingVar.target.includes(env))
             : false;
 
           const hasProjectsChanged = targetProjects
