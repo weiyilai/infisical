@@ -15,16 +15,16 @@ import attemptLogin from "@app/components/utilities/attemptLogin";
 import {
   Badge,
   Button,
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  IconButton,
+  Input,
   InputGroup,
   InputGroupAddon,
-  InputGroupInput,
-  UnstableCard,
-  UnstableCardAction,
-  UnstableCardContent,
-  UnstableCardHeader,
-  UnstableCardTitle,
-  UnstableIconButton,
-  UnstableInput
+  InputGroupInput
 } from "@app/components/v3";
 import { envConfig } from "@app/config/env";
 import { useServerConfig } from "@app/context";
@@ -190,10 +190,6 @@ export const InitialStep = ({ setSection, isAdmin }: Props) => {
       if (isLoginSuccessful) {
         saveLastLogin({ method: LoginMethod.EMAIL });
         navigateToSelectOrganization(callbackPort || undefined, isAdmin);
-        createNotification({
-          text: "Successfully logged in",
-          type: "success"
-        });
       } else {
         handleLoginFailure();
       }
@@ -212,24 +208,24 @@ export const InitialStep = ({ setSection, isAdmin }: Props) => {
         onSubmit={handleSubmit(handleEmailLogin)}
         className="mx-auto flex w-full flex-col items-center justify-center"
       >
-        <UnstableCard className="mx-auto w-full max-w-sm items-stretch gap-0 p-6">
-          <UnstableCardHeader className="mb-8 gap-2">
-            <UnstableCardTitle className="bg-linear-to-b from-white to-bunker-200 bg-clip-text text-[1.7rem] font-medium text-transparent">
+        <Card className="mx-auto w-full max-w-sm items-stretch gap-0 p-6">
+          <CardHeader className="mb-8 gap-2">
+            <CardTitle className="bg-linear-to-b from-white to-bunker-200 bg-clip-text text-[1.7rem] font-medium text-transparent">
               Log in to Infisical
-            </UnstableCardTitle>
-            <UnstableCardAction className="-mr-2">
+            </CardTitle>
+            <CardAction className="-mr-2">
               <RegionSelect compact />
-            </UnstableCardAction>
-          </UnstableCardHeader>
-          <UnstableCardContent>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
             {config.defaultAuthOrgAuthMethod === AuthMethod.SAML && (
               <OrgLoginButton label="Continue with SAML" onClick={handleSaml} />
             )}
             {config.defaultAuthOrgAuthMethod === AuthMethod.OIDC && (
               <OrgLoginButton label="Continue with OIDC" onClick={handleOidc} className="mt-2" />
             )}
-          </UnstableCardContent>
-        </UnstableCard>
+          </CardContent>
+        </Card>
       </form>
     );
   }
@@ -239,22 +235,23 @@ export const InitialStep = ({ setSection, isAdmin }: Props) => {
       onSubmit={handleSubmit(handleEmailLogin)}
       className="mx-auto flex w-full flex-col items-center justify-center"
     >
-      <UnstableCard className="mx-auto w-full max-w-sm items-stretch gap-0 p-6">
-        <UnstableCardHeader className="mb-4 gap-4">
-          <UnstableCardTitle className="ml-0.5 bg-linear-to-b from-white to-bunker-200 bg-clip-text text-[1.65rem] font-medium text-transparent">
+      <Card className="mx-auto w-full max-w-sm items-stretch gap-0 p-6">
+        <CardHeader className="mb-4 gap-4">
+          <CardTitle className="ml-0.5 bg-linear-to-b from-white to-bunker-200 bg-clip-text text-[1.65rem] font-medium text-transparent">
             Log in to Infisical
-          </UnstableCardTitle>
-          <UnstableCardAction className="-mr-2">
+          </CardTitle>
+          <CardAction className="-mr-2">
             <RegionSelect compact />
-          </UnstableCardAction>
-        </UnstableCardHeader>
-        <UnstableCardContent>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
           {shouldDisplayLoginMethod(LoginMethod.EMAIL) && (
             <>
               <div className="w-full">
-                <UnstableInput
+                <Input
                   {...register("email")}
                   type="email"
+                  id="email"
                   placeholder="Enter your email..."
                   autoComplete="username"
                   className="h-10"
@@ -273,14 +270,14 @@ export const InitialStep = ({ setSection, isAdmin }: Props) => {
                     id="current-password"
                   />
                   <InputGroupAddon align="inline-end">
-                    <UnstableIconButton
+                    <IconButton
                       variant="ghost"
                       size="xs"
                       onClick={() => setShowPassword((prev) => !prev)}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff /> : <Eye />}
-                    </UnstableIconButton>
+                    </IconButton>
                   </InputGroupAddon>
                 </InputGroup>
                 {errors.password && (
@@ -408,8 +405,8 @@ export const InitialStep = ({ setSection, isAdmin }: Props) => {
               </Link>
             </div>
           )}
-        </UnstableCardContent>
-      </UnstableCard>
+        </CardContent>
+      </Card>
     </form>
   );
 };

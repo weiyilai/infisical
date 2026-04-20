@@ -239,9 +239,11 @@ export enum TableName {
   PamAccountDependency = "pam_account_dependencies",
   PamResourceRotationRule = "pam_resource_rotation_rules",
   PamResourceFavorite = "pam_resource_favorites",
+  PamDomain = "pam_domains",
   PamAccountPolicy = "pam_account_policies",
 
   VaultExternalMigrationConfig = "vault_external_migration_configs",
+  ExternalMigrationConfig = "external_migration_configs",
 
   // PKI ACME
   PkiAcmeAccount = "pki_acme_accounts",
