@@ -273,11 +273,11 @@ export const secretRotationQueueFactory = ({
         if (variables.creds.length === 2) {
           const deleteCycleCred = variables.creds.pop();
           if (deleteCycleCred && provider.template.functions.remove) {
-            const deleteCycleVar = { inputs: variables.inputs, ...deleteCycleCred };
             await secretRotationHttpFn();
           }
         }
       }
+
 
       // insert the new variables to start
       // encrypt the data - save it
