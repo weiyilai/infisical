@@ -18,6 +18,7 @@ type UseWebAccessSessionOptions = {
   resourceName: string;
   accountName: string;
   resourceType: string;
+  reason?: string;
   onSessionEnd?: () => void;
 };
 
@@ -28,6 +29,7 @@ export const useWebAccessSession = ({
   resourceName,
   accountName,
   resourceType,
+  reason,
   onSessionEnd
 }: UseWebAccessSessionOptions) => {
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
@@ -237,7 +239,7 @@ export const useWebAccessSession = ({
     try {
       const { data } = await apiRequest.post<{ ticket: string }>(
         `/api/v1/pam/accounts/${accountId}/web-access-ticket`,
-        { projectId }
+        { projectId, reason }
       );
       if (containerEl) {
         containerEl.style.width = "";
@@ -329,7 +331,7 @@ export const useWebAccessSession = ({
           terminal.reset();
           const { data: retryData } = await apiRequest.post<{ ticket: string }>(
             `/api/v1/pam/accounts/${accountId}/web-access-ticket`,
-            { projectId, mfaSessionId }
+            { projectId, mfaSessionId, reason }
           );
           openWebSocket(terminal, retryData.ticket);
         } catch {
@@ -400,7 +402,7 @@ export const useWebAccessSession = ({
 
       terminal.write("\r\nFailed to connect. Please close and try again.\r\n");
     }
-  }, [accountId, projectId, orgId, resourceName, accountName, containerEl, openWebSocket]);
+  }, [accountId, projectId, orgId, resourceName, accountName, reason, containerEl, openWebSocket]);
 
   const disconnect = useCallback(() => {
     const ws = wsRef.current;

@@ -632,7 +632,8 @@ export const pamAccountServiceFactory = ({
       actorName,
       actorUserAgent,
       duration,
-      mfaSessionId
+      mfaSessionId,
+      reason
     }: TAccessAccountDTO,
     actor: OrgServiceActor
   ) => {
@@ -653,6 +654,19 @@ export const pamAccountServiceFactory = ({
       throw new NotFoundError({
         message: `Account with name '${inputAccountName}' not found for resource '${inputResourceName}'`
       });
+    }
+
+    const trimmedReason = reason?.trim() || null;
+
+    if (account.policyId) {
+      const policy = await pamAccountPolicyDAL.findById(account.policyId);
+      const policyRules = (policy?.rules ?? {}) as TPolicyRules;
+      if (policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason] && !trimmedReason) {
+        throw new BadRequestError({
+          message: "A reason is required to access this account",
+          name: "PAM_REASON_REQUIRED"
+        });
+      }
     }
 
     const fac = APPROVAL_POLICY_FACTORY_MAP[ApprovalPolicyType.PamAccess](ApprovalPolicyType.PamAccess);
@@ -819,7 +833,8 @@ export const pamAccountServiceFactory = ({
         resourceId: resource.id,
         userId: actor.id,
         expiresAt,
-        startedAt: new Date()
+        startedAt: new Date(),
+        reason: trimmedReason
       });
 
       // Schedule session expiration job to run at expiresAt
@@ -853,7 +868,8 @@ export const pamAccountServiceFactory = ({
       accountId: account.id,
       resourceId: resource.id,
       userId: actor.id,
-      expiresAt: new Date(Date.now() + duration)
+      expiresAt: new Date(Date.now() + duration),
+      reason: trimmedReason
     });
 
     if (!gatewayId) {
@@ -1045,13 +1061,17 @@ export const pamAccountServiceFactory = ({
       const policy = await pamAccountPolicyDAL.findById(account.policyId);
       if (policy && policy.isActive) {
         const rules = (policy.rules ?? {}) as TPolicyRules;
-        for (const ruleType of Object.values(PamAccountPolicyRuleType)) {
+
+        const gatewayRuleTypes = [
+          PamAccountPolicyRuleType.CommandBlocking,
+          PamAccountPolicyRuleType.SessionLogMasking
+        ] as const;
+        for (const ruleType of gatewayRuleTypes) {
           const ruleConfig = rules[ruleType];
-          if (ruleConfig) {
-            const supported = PAM_ACCOUNT_POLICY_RULE_SUPPORTED_RESOURCES[ruleType];
-            if (supported === "all" || supported.includes(resource.resourceType as PamResource)) {
-              policyRules[ruleType] = ruleConfig;
-            }
+          const supported = PAM_ACCOUNT_POLICY_RULE_SUPPORTED_RESOURCES[ruleType];
+          const isSupported = supported === "all" || supported.includes(resource.resourceType as PamResource);
+          if (ruleConfig && isSupported) {
+            policyRules[ruleType] = ruleConfig;
           }
         }
       }

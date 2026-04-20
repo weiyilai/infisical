@@ -4923,6 +4923,7 @@ interface PamAccountAccessEvent {
     resourceName: string;
     accountName: string;
     duration?: string;
+    reason?: string;
   };
 }
 
