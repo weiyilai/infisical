@@ -19,6 +19,17 @@ const travisCIApiHeaders = (apiToken: string) => ({
   "Accept-Encoding": "application/json"
 });
 
+type TravisCIPaginationMeta = {
+  is_last?: boolean;
+  next?: { "@href": string } | null;
+};
+
+const resolveNextTravisCIUrl = (pagination: TravisCIPaginationMeta | undefined): string | undefined => {
+  const nextHref = pagination?.next?.["@href"];
+  if (pagination?.is_last || !nextHref) return undefined;
+  return nextHref.startsWith("http") ? nextHref : `${IntegrationUrls.TRAVISCI_API_URL}${nextHref}`;
+};
+
 export const getTravisCIConnectionListItem = () => {
   return {
     name: "Travis CI" as const,
@@ -56,13 +67,28 @@ export const listTravisCIRepositories = async (appConnection: TTravisCIConnectio
   } = appConnection;
 
   try {
-    const { data } = await request.get<{
-      repositories: { id: string | number; slug: string }[];
-    }>(`${IntegrationUrls.TRAVISCI_API_URL}/repos?limit=100`, {
-      headers: travisCIApiHeaders(apiToken)
-    });
+    type TravisCIRepositoriesResponse = {
+      "@pagination"?: TravisCIPaginationMeta;
+      repositories?: { id: string | number; slug: string }[];
+    };
 
-    return (data?.repositories ?? []).map((repo) => ({
+    const allRepos: { id: string | number; slug: string }[] = [];
+    let nextUrl: string | undefined = `${IntegrationUrls.TRAVISCI_API_URL}/repos`;
+
+    while (nextUrl) {
+      // eslint-disable-next-line no-await-in-loop
+      const { data }: { data: TravisCIRepositoriesResponse } = await request.get(nextUrl, {
+        headers: travisCIApiHeaders(apiToken)
+      });
+
+      if (Array.isArray(data.repositories)) {
+        allRepos.push(...data.repositories);
+      }
+
+      nextUrl = resolveNextTravisCIUrl(data["@pagination"]);
+    }
+
+    return allRepos.map((repo) => ({
       id: String(repo.id),
       slug: repo.slug,
       name: repo.slug?.split("/")[1] ?? repo.slug
@@ -88,13 +114,29 @@ export const listTravisCIBranches = async (
   } = appConnection;
 
   try {
-    const { data } = await request.get<{
-      branches: { name: string; default_branch?: boolean }[];
-    }>(`${IntegrationUrls.TRAVISCI_API_URL}/repo/${encodeURIComponent(repositoryId)}/branches?limit=100`, {
-      headers: travisCIApiHeaders(apiToken)
-    });
+    type TravisCIBranchesResponse = {
+      "@pagination"?: TravisCIPaginationMeta;
+      branches?: { name: string; default_branch?: boolean }[];
+    };
 
-    return (data?.branches ?? []).map((branch) => ({
+    const allBranches: { name: string; default_branch?: boolean }[] = [];
+    let nextUrl: string | undefined =
+      `${IntegrationUrls.TRAVISCI_API_URL}/repo/${encodeURIComponent(repositoryId)}/branches`;
+
+    while (nextUrl) {
+      // eslint-disable-next-line no-await-in-loop
+      const { data }: { data: TravisCIBranchesResponse } = await request.get(nextUrl, {
+        headers: travisCIApiHeaders(apiToken)
+      });
+
+      if (Array.isArray(data.branches)) {
+        allBranches.push(...data.branches);
+      }
+
+      nextUrl = resolveNextTravisCIUrl(data["@pagination"]);
+    }
+
+    return allBranches.map((branch) => ({
       name: branch.name,
       isDefault: Boolean(branch.default_branch)
     }));
