@@ -278,7 +278,6 @@ export const secretRotationQueueFactory = ({
         }
       }
 
-
       // insert the new variables to start
       // encrypt the data - save it
       variables.creds.unshift({
