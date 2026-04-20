@@ -126,7 +126,10 @@ export const CreateOrgModal: FC<CreateOrgModalProps> = ({ isOpen, onClose }) => 
               <button
                 type="button"
                 className="text-sm text-mineshaft-400 underline-offset-4 hover:text-mineshaft-200 hover:underline"
-                onClick={() => logout.mutate()}
+                onClick={async () => {
+                  await logout.mutateAsync();
+                  navigate({ to: "/login" });
+                }}
               >
                 Log out
               </button>
