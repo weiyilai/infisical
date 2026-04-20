@@ -203,6 +203,7 @@ export const TravisCISyncFns = {
           )
         );
       } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 404) continue;
         throw new SecretSyncError({ error, secretKey: envVar.name });
       }
     }
