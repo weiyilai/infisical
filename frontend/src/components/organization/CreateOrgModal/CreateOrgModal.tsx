@@ -31,9 +31,10 @@ export type FormData = z.infer<typeof schema>;
 interface CreateOrgModalProps {
   isOpen: boolean;
   onClose?: () => void;
+  logoutOnClose?: boolean;
 }
 
-export const CreateOrgModal: FC<CreateOrgModalProps> = ({ isOpen, onClose }) => {
+export const CreateOrgModal: FC<CreateOrgModalProps> = ({ isOpen, onClose, logoutOnClose }) => {
   const navigate = useNavigate();
 
   const {
@@ -75,16 +76,20 @@ export const CreateOrgModal: FC<CreateOrgModalProps> = ({ isOpen, onClose }) => 
     onClose?.();
   };
 
+  const handleOpenChange = async (open: boolean) => {
+    if (!open) {
+      reset();
+      if (logoutOnClose) {
+        await logout.mutateAsync();
+        navigate({ to: "/login" });
+      } else {
+        onClose?.();
+      }
+    }
+  };
+
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          reset();
-          onClose?.();
-        }
-      }}
-    >
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create Organization</DialogTitle>
@@ -121,20 +126,6 @@ export const CreateOrgModal: FC<CreateOrgModalProps> = ({ isOpen, onClose }) => 
               Create
             </Button>
           </DialogFooter>
-          {!onClose && (
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                className="text-sm text-mineshaft-400 underline-offset-4 hover:text-mineshaft-200 hover:underline"
-                onClick={async () => {
-                  await logout.mutateAsync();
-                  navigate({ to: "/login" });
-                }}
-              >
-                Log out
-              </button>
-            </div>
-          )}
         </form>
       </DialogContent>
     </Dialog>
