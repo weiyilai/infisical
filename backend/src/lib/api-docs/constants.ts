@@ -2640,6 +2640,9 @@ export const AppConnections = {
     VERCEL: {
       apiToken: "The API token used to authenticate with Vercel."
     },
+    TRAVISCI: {
+      apiToken: "The API token used to authenticate with Travis CI."
+    },
     CAMUNDA: {
       clientId: "The client ID used to authenticate with Camunda.",
       clientSecret: "The client secret used to authenticate with Camunda."
@@ -3078,6 +3081,12 @@ export const SecretSyncs = {
       projectId: "The ID of the project on the external Infisical instance to sync secrets to.",
       environment: "The environment slug on the external Infisical instance to sync secrets to.",
       secretPath: "The secret path on the external Infisical instance to sync secrets to."
+    },
+    TRAVIS_CI: {
+      repositoryId: "The ID of the Travis CI repository to sync secrets to.",
+      repositorySlug: "The slug (owner/repo) of the Travis CI repository to sync secrets to.",
+      branch:
+        "The branch of the Travis CI repository to sync secrets to. If omitted, secrets sync to the repository-level scope."
     }
   }
 };

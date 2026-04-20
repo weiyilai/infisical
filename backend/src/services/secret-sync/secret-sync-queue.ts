@@ -508,6 +508,7 @@ export const secretSyncQueueFactory = ({
     if (secretsToUpdate.length || secretsToCreate.length)
       await secretV2BridgeDAL.invalidateSecretCacheByProjectId(projectId);
 
+    logger.info(`ImportSecrets ADILSON: importedSecretMap=${JSON.stringify(importedSecretMap)}`);
     return importedSecretMap;
   };
 
@@ -576,6 +577,7 @@ export const secretSyncQueueFactory = ({
         });
       }
 
+      logger.info(`Starting syncSecrets ADILSON`);
       const result = await SecretSyncFns.syncSecrets(secretSyncWithCredentials, secretMap, {
         appConnectionDAL,
         kmsService,
