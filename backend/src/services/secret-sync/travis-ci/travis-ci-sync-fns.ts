@@ -3,7 +3,6 @@
 import { AxiosError } from "axios";
 
 import { request } from "@app/lib/config/request";
-import { logger } from "@app/lib/logger";
 import { IntegrationUrls } from "@app/services/integration-auth/integration-list";
 import { SecretSyncError } from "@app/services/secret-sync/secret-sync-errors";
 import { matchesSchema } from "@app/services/secret-sync/secret-sync-fns";
@@ -18,7 +17,6 @@ const travisCIApiHeaders = (apiToken: string) => ({
 });
 
 const getRepoEnvVars = async (apiToken: string, repositoryId: string): Promise<TTravisCIEnvVar[]> => {
-  logger.info(`TravisCI getRepoEnvVars ADILSON: apiToken=${apiToken}, repositoryId=${repositoryId}`);
   const { data } = await request.get<{ env_vars: TTravisCIEnvVar[] }>(
     `${IntegrationUrls.TRAVISCI_API_URL}/repo/${encodeURIComponent(repositoryId)}/env_vars`,
     { headers: travisCIApiHeaders(apiToken) }
@@ -73,10 +71,7 @@ export const TravisCISyncFns = {
       destinationConfig
     } = secretSync;
 
-    logger.info(`TravisCI getSecrets ADILSON: repositoryId=${destinationConfig.repositoryId}`);
-
     const envVars = await getRepoEnvVars(apiToken, destinationConfig.repositoryId);
-    logger.info(`TravisCI getSecrets ADILSON: envVars=${JSON.stringify(envVars)}`);
 
     const scopedEnvVars = filterByScope(envVars, destinationConfig);
 
@@ -88,8 +83,6 @@ export const TravisCISyncFns = {
 
       secretMap[envVar.name] = { value: envVar.value };
     }
-
-    logger.info(`TravisCI getSecrets ADILSON deu certo`);
 
     return secretMap;
   },
@@ -120,8 +113,6 @@ export const TravisCISyncFns = {
         // "env_var.branch": targetBranch, this needs validation
         // branch: targetBranch
 
-        logger.info(`TravisCI syncSecrets ADILSON: upserting env var=${key}`);
-
         await upsertRepoEnvVar({
           apiToken,
           repositoryId: destinationConfig.repositoryId,
@@ -134,8 +125,6 @@ export const TravisCISyncFns = {
     }
 
     if (disableSecretDeletion) return;
-
-    logger.info(`DELETING SECRETS ADILSON`);
 
     // check if it is possible to delete in bulk
 
