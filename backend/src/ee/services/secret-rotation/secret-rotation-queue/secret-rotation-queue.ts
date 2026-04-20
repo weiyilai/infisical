@@ -267,14 +267,13 @@ export const secretRotationQueueFactory = ({
         if (provider.template.functions.set?.pre) {
           secretRotationPreSetFn(provider.template.functions.set.pre, newCredential);
         }
-        await secretRotationHttpSetFn(provider.template.functions.set, newCredential);
+        await secretRotationHttpSetFn();
         // now test
-        await secretRotationHttpFn(provider.template.functions.test, newCredential);
+        await secretRotationHttpFn();
         if (variables.creds.length === 2) {
           const deleteCycleCred = variables.creds.pop();
           if (deleteCycleCred && provider.template.functions.remove) {
-            const deleteCycleVar = { inputs: variables.inputs, ...deleteCycleCred };
-            await secretRotationHttpFn(provider.template.functions.remove, deleteCycleVar);
+            await secretRotationHttpFn();
           }
         }
       }
