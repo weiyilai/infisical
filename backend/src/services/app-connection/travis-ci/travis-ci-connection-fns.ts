@@ -16,7 +16,7 @@ import {
 const travisCIApiHeaders = (apiToken: string) => ({
   Authorization: `token ${apiToken}`,
   "Travis-API-Version": "3",
-  "Accept-Encoding": "application/json"
+  Accept: "application/json"
 });
 
 type TravisCIPaginationMeta = {

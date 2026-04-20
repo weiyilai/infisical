@@ -50,7 +50,7 @@ const makeRequestWithRetry = async <T>(throttle: Throttle, requestFn: () => Prom
 const travisCIApiHeaders = (apiToken: string) => ({
   Authorization: `token ${apiToken}`,
   "Travis-API-Version": "3",
-  "Accept-Encoding": "application/json"
+  Accept: "application/json"
 });
 
 const getRepoEnvVars = async (
