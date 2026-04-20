@@ -17,7 +17,7 @@ import {
   FieldLabel,
   Input
 } from "@app/components/v3";
-import { useCreateOrg, useSelectOrganization } from "@app/hooks/api";
+import { useCreateOrg, useLogoutUser, useSelectOrganization } from "@app/hooks/api";
 import { GenericResourceNameSchema } from "@app/lib/schemas";
 
 const schema = z
@@ -52,6 +52,7 @@ export const CreateOrgModal: FC<CreateOrgModalProps> = ({ isOpen, onClose }) => 
     invalidate: false
   });
   const { mutateAsync: selectOrg } = useSelectOrganization();
+  const logout = useLogoutUser();
 
   const onFormSubmit = async ({ name }: FormData) => {
     const organization = await createOrg({ name });
@@ -120,6 +121,17 @@ export const CreateOrgModal: FC<CreateOrgModalProps> = ({ isOpen, onClose }) => 
               Create
             </Button>
           </DialogFooter>
+          {!onClose && (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                className="text-sm text-mineshaft-400 underline-offset-4 hover:text-mineshaft-200 hover:underline"
+                onClick={() => logout.mutate()}
+              >
+                Log out
+              </button>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>
