@@ -4,14 +4,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-param-reassign */
-import axios from "axios";
-import jmespath from "jmespath";
 import knex from "knex";
 
 import { alphaNumericNanoId } from "@app/lib/nanoid";
 
 import { verifyHostInputValidity } from "../../dynamic-secret/dynamic-secret-fns";
-import { TAssignOp, TDbProviderClients, TDirectAssignOp, THttpProviderFunction } from "../templates/types";
+import { TDbProviderClients, TDirectAssignOp } from "../templates/types";
 import { TSecretRotationData, TSecretRotationDbFn } from "./secret-rotation-queue-types";
 
 const EXTERNAL_REQUEST_TIMEOUT = 10 * 1000;
@@ -86,21 +84,7 @@ const getInterpolationValue = (variables: TSecretRotationData) => (key: string) 
   return variables[type as keyof TSecretRotationData][keyName];
 };
 
-export const secretRotationHttpFn = async (func: THttpProviderFunction, variables: TSecretRotationData) => {
-  // string interpolation
-  const headers = interpolate(func.header, getInterpolationValue(variables));
-  const url = interpolate(func.url, getInterpolationValue(variables));
-  const body = interpolate(func.body, getInterpolationValue(variables));
-  // axios will automatically throw error if req status is not between 2xx range
-  return axios({
-    method: func.method,
-    url,
-    headers,
-    data: body,
-    timeout: EXTERNAL_REQUEST_TIMEOUT,
-    signal: AbortSignal.timeout(EXTERNAL_REQUEST_TIMEOUT)
-  });
-};
+export const secretRotationHttpFn = async () => {};
 
 export const secretRotationDbFn = async ({
   ca,
@@ -142,19 +126,7 @@ export const secretRotationPreSetFn = (op: Record<string, TDirectAssignOp>, vari
   });
 };
 
-export const secretRotationHttpSetFn = async (func: THttpProviderFunction, variables: TSecretRotationData) => {
-  const getValFn = getInterpolationValue(variables);
-  // http setter
-  const res = await secretRotationHttpFn(func, variables);
-  Object.entries(func.setter || {}).forEach(([key, assignFn]) => {
-    const [type, keyName] = key.split(".") as [keyof TSecretRotationData, string];
-    if (assignFn.assign === TAssignOp.JmesPath) {
-      variables[type][keyName] = jmespath.search(res.data, assignFn.path);
-    } else if (assignFn.value) {
-      variables[type][keyName] = interpolate(assignFn.value, getValFn);
-    }
-  });
-};
+export const secretRotationHttpSetFn = async () => {};
 
 export const getDbSetQuery = (db: TDbProviderClients, variables: { username: string; password: string }) => {
   if (db === TDbProviderClients.Pg) {
