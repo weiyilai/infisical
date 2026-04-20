@@ -1,15 +1,15 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 
 import {
-  UnstableEmpty,
-  UnstableEmptyHeader,
-  UnstableEmptyTitle,
-  UnstableTable,
-  UnstableTableBody,
-  UnstableTableCell,
-  UnstableTableHead,
-  UnstableTableHeader,
-  UnstableTableRow
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@app/components/v3";
 import { useOrganization } from "@app/context";
 import { PAM_RESOURCE_TYPE_MAP, PamResourceType } from "@app/hooks/api/pam";
@@ -46,37 +46,37 @@ export const PamDomainRelatedResourcesSection = ({ domain }: Props) => {
         </p>
       </div>
       <div className="p-4">
-        <UnstableTable>
-          <UnstableTableHeader>
-            <UnstableTableRow>
-              <UnstableTableHead>Resource</UnstableTableHead>
-              <UnstableTableHead>Type</UnstableTableHead>
-            </UnstableTableRow>
-          </UnstableTableHeader>
-          <UnstableTableBody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Resource</TableHead>
+              <TableHead>Type</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {isPending && (
-              <UnstableTableRow>
-                <UnstableTableCell colSpan={2} className="text-center text-muted">
+              <TableRow>
+                <TableCell colSpan={2} className="text-center text-muted">
                   Loading resources...
-                </UnstableTableCell>
-              </UnstableTableRow>
+                </TableCell>
+              </TableRow>
             )}
             {!isPending && resources.length === 0 && (
-              <UnstableTableRow>
-                <UnstableTableCell colSpan={2}>
-                  <UnstableEmpty className="border-0 bg-transparent py-8 shadow-none">
-                    <UnstableEmptyHeader>
-                      <UnstableEmptyTitle>No domain resources found</UnstableEmptyTitle>
-                    </UnstableEmptyHeader>
-                  </UnstableEmpty>
-                </UnstableTableCell>
-              </UnstableTableRow>
+              <TableRow>
+                <TableCell colSpan={2}>
+                  <Empty className="border-0 bg-transparent py-8 shadow-none">
+                    <EmptyHeader>
+                      <EmptyTitle>No domain resources found</EmptyTitle>
+                    </EmptyHeader>
+                  </Empty>
+                </TableCell>
+              </TableRow>
             )}
             {!isPending &&
               resources.map((resource) => {
                 const typeInfo = PAM_RESOURCE_TYPE_MAP[resource.resourceType as PamResourceType];
                 return (
-                  <UnstableTableRow
+                  <TableRow
                     key={resource.id}
                     className="group cursor-pointer"
                     onClick={() =>
@@ -91,7 +91,7 @@ export const PamDomainRelatedResourcesSection = ({ domain }: Props) => {
                       })
                     }
                   >
-                    <UnstableTableCell>
+                    <TableCell>
                       <div className="flex items-center gap-3">
                         {typeInfo?.image && (
                           <img
@@ -102,15 +102,15 @@ export const PamDomainRelatedResourcesSection = ({ domain }: Props) => {
                         )}
                         <span className="font-medium">{resource.name}</span>
                       </div>
-                    </UnstableTableCell>
-                    <UnstableTableCell className="text-muted">
+                    </TableCell>
+                    <TableCell className="text-muted">
                       {typeInfo?.name || resource.resourceType}
-                    </UnstableTableCell>
-                  </UnstableTableRow>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-          </UnstableTableBody>
-        </UnstableTable>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

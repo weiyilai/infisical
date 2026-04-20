@@ -10,14 +10,14 @@ import { ProjectPermissionCan } from "@app/components/permissions";
 import { DeleteActionModal, Tab, TabList, TabPanel, Tabs } from "@app/components/v2";
 import {
   Button,
-  UnstableDropdownMenu,
-  UnstableDropdownMenuContent,
-  UnstableDropdownMenuItem,
-  UnstableDropdownMenuTrigger,
-  UnstableEmpty,
-  UnstableEmptyHeader,
-  UnstableEmptyTitle,
-  UnstablePageLoader
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  PageLoader
 } from "@app/components/v3";
 import { ProjectPermissionActions, ProjectPermissionSub, useOrganization } from "@app/context";
 import {
@@ -67,20 +67,20 @@ const PageContent = () => {
   const deleteDomain = useDeletePamDomain();
 
   if (isPending) {
-    return <UnstablePageLoader />;
+    return <PageLoader />;
   }
 
   if (!domain) {
     return (
       <div className="flex h-full w-full items-center justify-center px-20">
-        <UnstableEmpty className="max-w-2xl">
-          <UnstableEmptyHeader>
+        <Empty className="max-w-2xl">
+          <EmptyHeader>
             <BanIcon className="size-8 text-muted" />
-            <UnstableEmptyTitle className="text-muted">
+            <EmptyTitle className="text-muted">
               Could not find PAM Domain with ID {domainId}
-            </UnstableEmptyTitle>
-          </UnstableEmptyHeader>
-        </UnstableEmpty>
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }
@@ -142,24 +142,24 @@ const PageContent = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <UnstableDropdownMenu>
-            <UnstableDropdownMenuTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <EllipsisVerticalIcon />
               </Button>
-            </UnstableDropdownMenuTrigger>
-            <UnstableDropdownMenuContent align="end" sideOffset={2}>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={2}>
               <ProjectPermissionCan
                 I={ProjectPermissionActions.Edit}
                 a={ProjectPermissionSub.PamDomains}
               >
                 {(isAllowed) => (
-                  <UnstableDropdownMenuItem
+                  <DropdownMenuItem
                     onClick={() => setIsEditModalOpen(true)}
                     isDisabled={!isAllowed}
                   >
                     Edit Domain
-                  </UnstableDropdownMenuItem>
+                  </DropdownMenuItem>
                 )}
               </ProjectPermissionCan>
               <ProjectPermissionCan
@@ -167,17 +167,17 @@ const PageContent = () => {
                 a={ProjectPermissionSub.PamDomains}
               >
                 {(isAllowed) => (
-                  <UnstableDropdownMenuItem
+                  <DropdownMenuItem
                     onClick={() => setIsDeleteModalOpen(true)}
                     variant="danger"
                     isDisabled={!isAllowed}
                   >
                     Delete Domain
-                  </UnstableDropdownMenuItem>
+                  </DropdownMenuItem>
                 )}
               </ProjectPermissionCan>
-            </UnstableDropdownMenuContent>
-          </UnstableDropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckIcon, LockIcon, PencilIcon, UnlockIcon } from "lucide-react";
 
 import { ProjectPermissionCan } from "@app/components/permissions";
-import { Detail, DetailLabel, DetailValue, UnstableIconButton } from "@app/components/v3";
+import { Detail, DetailLabel, DetailValue, IconButton } from "@app/components/v3";
 import { ProjectPermissionActions, ProjectPermissionSub } from "@app/context";
 import { gatewaysQueryKeys } from "@app/hooks/api";
 import { PamResourceType, TPamResource } from "@app/hooks/api/pam";
@@ -214,9 +214,9 @@ export const PamResourceConnectionSection = ({
           a={ProjectPermissionSub.PamResources}
         >
           {(isAllowed) => (
-            <UnstableIconButton variant="ghost" size="xs" onClick={onEdit} isDisabled={!isAllowed}>
+            <IconButton variant="ghost" size="xs" onClick={onEdit} isDisabled={!isAllowed}>
               <PencilIcon />
-            </UnstableIconButton>
+            </IconButton>
           )}
         </ProjectPermissionCan>
       </div>

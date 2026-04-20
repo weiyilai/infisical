@@ -17,14 +17,14 @@ import { createNotification } from "@app/components/notifications";
 import { ProjectPermissionCan } from "@app/components/permissions";
 import {
   Button,
-  UnstableDropdownMenu,
-  UnstableDropdownMenuContent,
-  UnstableDropdownMenuItem,
-  UnstableDropdownMenuTrigger,
-  UnstableEmpty,
-  UnstableEmptyHeader,
-  UnstableEmptyTitle,
-  UnstablePageLoader
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  PageLoader
 } from "@app/components/v3";
 import { ProjectPermissionSub, useOrganization } from "@app/context";
 import { ProjectPermissionPamAccountActions } from "@app/context/ProjectPermissionContext/types";
@@ -90,20 +90,20 @@ const PageContent = () => {
   const { data: account, isPending } = useGetPamAccountById(accountId);
 
   if (isPending) {
-    return <UnstablePageLoader />;
+    return <PageLoader />;
   }
 
   if (!account) {
     return (
       <div className="flex h-full w-full items-center justify-center px-20">
-        <UnstableEmpty className="max-w-2xl">
-          <UnstableEmptyHeader>
+        <Empty className="max-w-2xl">
+          <EmptyHeader>
             <BanIcon className="size-8 text-muted" />
-            <UnstableEmptyTitle className="text-muted">
+            <EmptyTitle className="text-muted">
               Could not find PAM Account with ID {accountId}
-            </UnstableEmptyTitle>
-          </UnstableEmptyHeader>
-        </UnstableEmpty>
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }
@@ -243,25 +243,25 @@ const PageContent = () => {
               </Button>
             </ProjectPermissionCan>
           )}
-          <UnstableDropdownMenu>
-            <UnstableDropdownMenuTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <EllipsisVerticalIcon />
               </Button>
-            </UnstableDropdownMenuTrigger>
-            <UnstableDropdownMenuContent align="end" sideOffset={2}>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={2}>
               <ProjectPermissionCan
                 I={ProjectPermissionPamAccountActions.Edit}
                 a={ProjectPermissionSub.PamAccounts}
               >
                 {(isAllowed) => (
-                  <UnstableDropdownMenuItem
+                  <DropdownMenuItem
                     onClick={() => setIsEditModalOpen(true)}
                     isDisabled={!isAllowed}
                   >
                     <PencilIcon className="size-3.5" />
                     Edit Account
-                  </UnstableDropdownMenuItem>
+                  </DropdownMenuItem>
                 )}
               </ProjectPermissionCan>
               {account.resource?.rotationCredentialsConfigured && (
@@ -270,7 +270,7 @@ const PageContent = () => {
                   a={ProjectPermissionSub.PamAccounts}
                 >
                   {(isAllowed) => (
-                    <UnstableDropdownMenuItem
+                    <DropdownMenuItem
                       onClick={handleRotate}
                       isDisabled={
                         !isAllowed || account.rotationStatus === PamAccountRotationStatus.Rotating
@@ -278,7 +278,7 @@ const PageContent = () => {
                     >
                       <RefreshCwIcon className="size-3.5" />
                       Rotate Account
-                    </UnstableDropdownMenuItem>
+                    </DropdownMenuItem>
                   )}
                 </ProjectPermissionCan>
               )}
@@ -287,18 +287,18 @@ const PageContent = () => {
                 a={ProjectPermissionSub.PamAccounts}
               >
                 {(isAllowed) => (
-                  <UnstableDropdownMenuItem
+                  <DropdownMenuItem
                     onClick={() => handlePopUpOpen("deleteAccount", account)}
                     variant="danger"
                     isDisabled={!isAllowed}
                   >
                     <Trash2Icon className="size-3.5" />
                     Delete Account
-                  </UnstableDropdownMenuItem>
+                  </DropdownMenuItem>
                 )}
               </ProjectPermissionCan>
-            </UnstableDropdownMenuContent>
-          </UnstableDropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

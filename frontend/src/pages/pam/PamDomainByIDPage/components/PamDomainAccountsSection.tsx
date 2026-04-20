@@ -18,20 +18,20 @@ import { Input as V2Input } from "@app/components/v2";
 import {
   Badge,
   Button,
-  UnstableDropdownMenu,
-  UnstableDropdownMenuContent,
-  UnstableDropdownMenuItem,
-  UnstableDropdownMenuTrigger,
-  UnstableEmpty,
-  UnstableEmptyHeader,
-  UnstableEmptyTitle,
-  UnstableIconButton,
-  UnstableTable,
-  UnstableTableBody,
-  UnstableTableCell,
-  UnstableTableHead,
-  UnstableTableHeader,
-  UnstableTableRow
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@app/components/v3";
 import { ProjectPermissionSub, useOrganization } from "@app/context";
 import { ProjectPermissionPamAccountActions } from "@app/context/ProjectPermissionContext/types";
@@ -133,35 +133,33 @@ export const PamDomainAccountsSection = ({ domain }: Props) => {
           />
         </div>
 
-        <UnstableTable>
-          <UnstableTableHeader>
-            <UnstableTableRow>
-              <UnstableTableHead>Account Name</UnstableTableHead>
-              <UnstableTableHead>Type</UnstableTableHead>
-              <UnstableTableHead>Created</UnstableTableHead>
-              <UnstableTableHead className="w-5" />
-            </UnstableTableRow>
-          </UnstableTableHeader>
-          <UnstableTableBody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Account Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="w-5" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {isPending && (
-              <UnstableTableRow>
-                <UnstableTableCell colSpan={4} className="text-center text-muted">
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted">
                   Loading accounts...
-                </UnstableTableCell>
-              </UnstableTableRow>
+                </TableCell>
+              </TableRow>
             )}
             {!isPending && accounts.length === 0 && (
-              <UnstableTableRow>
-                <UnstableTableCell colSpan={4}>
-                  <UnstableEmpty className="border-0 bg-transparent py-8 shadow-none">
-                    <UnstableEmptyHeader>
-                      <UnstableEmptyTitle>
-                        {search ? "No accounts match search" : "No accounts"}
-                      </UnstableEmptyTitle>
-                    </UnstableEmptyHeader>
-                  </UnstableEmpty>
-                </UnstableTableCell>
-              </UnstableTableRow>
+              <TableRow>
+                <TableCell colSpan={4}>
+                  <Empty className="border-0 bg-transparent py-8 shadow-none">
+                    <EmptyHeader>
+                      <EmptyTitle>{search ? "No accounts match search" : "No accounts"}</EmptyTitle>
+                    </EmptyHeader>
+                  </Empty>
+                </TableCell>
+              </TableRow>
             )}
             {!isPending &&
               accounts.map((account) => {
@@ -169,12 +167,12 @@ export const PamDomainAccountsSection = ({ domain }: Props) => {
                   | Record<string, string>
                   | undefined;
                 return (
-                  <UnstableTableRow
+                  <TableRow
                     key={account.id}
                     className="group cursor-pointer"
                     onClick={() => handleAccountClick(account.id)}
                   >
-                    <UnstableTableCell>
+                    <TableCell>
                       <div className="flex items-center gap-3">
                         <span className="font-medium">{account.name}</span>
                         {!account.credentialsConfigured && (
@@ -184,26 +182,26 @@ export const PamDomainAccountsSection = ({ domain }: Props) => {
                           </Badge>
                         )}
                       </div>
-                    </UnstableTableCell>
-                    <UnstableTableCell className="text-muted capitalize">
+                    </TableCell>
+                    <TableCell className="text-muted capitalize">
                       {internalMeta?.accountType || "-"}
-                    </UnstableTableCell>
-                    <UnstableTableCell className="text-muted">
+                    </TableCell>
+                    <TableCell className="text-muted">
                       {new Date(account.createdAt).toLocaleDateString()}
-                    </UnstableTableCell>
-                    <UnstableTableCell>
-                      <UnstableDropdownMenu>
-                        <UnstableDropdownMenuTrigger asChild>
-                          <UnstableIconButton
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <IconButton
                             variant="ghost"
                             size="xs"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <EllipsisVerticalIcon />
-                          </UnstableIconButton>
-                        </UnstableDropdownMenuTrigger>
-                        <UnstableDropdownMenuContent sideOffset={2} align="end">
-                          <UnstableDropdownMenuItem
+                          </IconButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent sideOffset={2} align="end">
+                          <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCopyId(account.id);
@@ -215,13 +213,13 @@ export const PamDomainAccountsSection = ({ domain }: Props) => {
                               <CopyIcon className="size-4" />
                             )}
                             Copy Account ID
-                          </UnstableDropdownMenuItem>
+                          </DropdownMenuItem>
                           <ProjectPermissionCan
                             I={ProjectPermissionPamAccountActions.Edit}
                             a={ProjectPermissionSub.PamAccounts}
                           >
                             {(isAllowed: boolean) => (
-                              <UnstableDropdownMenuItem
+                              <DropdownMenuItem
                                 isDisabled={!isAllowed}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -230,7 +228,7 @@ export const PamDomainAccountsSection = ({ domain }: Props) => {
                               >
                                 <PencilIcon className="size-4" />
                                 Edit Account
-                              </UnstableDropdownMenuItem>
+                              </DropdownMenuItem>
                             )}
                           </ProjectPermissionCan>
                           <ProjectPermissionCan
@@ -238,7 +236,7 @@ export const PamDomainAccountsSection = ({ domain }: Props) => {
                             a={ProjectPermissionSub.PamAccounts}
                           >
                             {(isAllowed: boolean) => (
-                              <UnstableDropdownMenuItem
+                              <DropdownMenuItem
                                 isDisabled={!isAllowed}
                                 variant="danger"
                                 onClick={(e) => {
@@ -248,17 +246,17 @@ export const PamDomainAccountsSection = ({ domain }: Props) => {
                               >
                                 <TrashIcon className="size-4" />
                                 Delete Account
-                              </UnstableDropdownMenuItem>
+                              </DropdownMenuItem>
                             )}
                           </ProjectPermissionCan>
-                        </UnstableDropdownMenuContent>
-                      </UnstableDropdownMenu>
-                    </UnstableTableCell>
-                  </UnstableTableRow>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-          </UnstableTableBody>
-        </UnstableTable>
+          </TableBody>
+        </Table>
       </div>
 
       <PamAddDomainAccountModal

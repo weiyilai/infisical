@@ -9,21 +9,21 @@ import { ProjectPermissionCan } from "@app/components/permissions";
 import { DeleteActionModal, Input } from "@app/components/v2";
 import {
   Button,
-  UnstableDropdownMenu,
-  UnstableDropdownMenuContent,
-  UnstableDropdownMenuItem,
-  UnstableDropdownMenuTrigger,
-  UnstableEmpty,
-  UnstableEmptyHeader,
-  UnstableEmptyTitle,
-  UnstableIconButton,
-  UnstablePagination,
-  UnstableTable,
-  UnstableTableBody,
-  UnstableTableCell,
-  UnstableTableHead,
-  UnstableTableHeader,
-  UnstableTableRow
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  IconButton,
+  Pagination,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@app/components/v3";
 import { ProjectPermissionActions, ProjectPermissionSub, useOrganization } from "@app/context";
 import { usePagination, usePopUp, useResetPageHelper } from "@app/hooks";
@@ -110,42 +110,40 @@ export const PamDomainsTable = ({ projectId }: Props) => {
       </div>
 
       <div className="mt-4">
-        <UnstableTable>
-          <UnstableTableHeader>
-            <UnstableTableRow>
-              <UnstableTableHead>Name</UnstableTableHead>
-              <UnstableTableHead>Type</UnstableTableHead>
-              <UnstableTableHead>Created</UnstableTableHead>
-              <UnstableTableHead className="w-5" />
-            </UnstableTableRow>
-          </UnstableTableHeader>
-          <UnstableTableBody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="w-5" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {isPending && (
-              <UnstableTableRow>
-                <UnstableTableCell colSpan={4} className="text-center text-muted">
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted">
                   Loading domains...
-                </UnstableTableCell>
-              </UnstableTableRow>
+                </TableCell>
+              </TableRow>
             )}
             {!isPending && domains.length === 0 && (
-              <UnstableTableRow>
-                <UnstableTableCell colSpan={4}>
-                  <UnstableEmpty className="border-0 bg-transparent py-8 shadow-none">
-                    <UnstableEmptyHeader>
-                      <UnstableEmptyTitle>
-                        {search ? "No domains match search" : "No domains"}
-                      </UnstableEmptyTitle>
-                    </UnstableEmptyHeader>
-                  </UnstableEmpty>
-                </UnstableTableCell>
-              </UnstableTableRow>
+              <TableRow>
+                <TableCell colSpan={4}>
+                  <Empty className="border-0 bg-transparent py-8 shadow-none">
+                    <EmptyHeader>
+                      <EmptyTitle>{search ? "No domains match search" : "No domains"}</EmptyTitle>
+                    </EmptyHeader>
+                  </Empty>
+                </TableCell>
+              </TableRow>
             )}
             {!isPending &&
               domains.map((domain) => {
                 const typeInfo =
                   PAM_DOMAIN_TYPE_MAP[domain.domainType as keyof typeof PAM_DOMAIN_TYPE_MAP];
                 return (
-                  <UnstableTableRow
+                  <TableRow
                     key={domain.id}
                     className="group cursor-pointer"
                     onClick={() =>
@@ -160,7 +158,7 @@ export const PamDomainsTable = ({ projectId }: Props) => {
                       })
                     }
                   >
-                    <UnstableTableCell>
+                    <TableCell>
                       <div className="flex items-center gap-3">
                         {typeInfo?.image && (
                           <img
@@ -171,31 +169,31 @@ export const PamDomainsTable = ({ projectId }: Props) => {
                         )}
                         <span className="font-medium">{domain.name}</span>
                       </div>
-                    </UnstableTableCell>
-                    <UnstableTableCell className="text-muted">
+                    </TableCell>
+                    <TableCell className="text-muted">
                       {typeInfo?.name || domain.domainType}
-                    </UnstableTableCell>
-                    <UnstableTableCell className="text-muted">
+                    </TableCell>
+                    <TableCell className="text-muted">
                       {format(new Date(domain.createdAt), "MMM d, yyyy HH:mm")}
-                    </UnstableTableCell>
-                    <UnstableTableCell>
-                      <UnstableDropdownMenu>
-                        <UnstableDropdownMenuTrigger asChild>
-                          <UnstableIconButton
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <IconButton
                             variant="ghost"
                             size="xs"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <EllipsisVerticalIcon />
-                          </UnstableIconButton>
-                        </UnstableDropdownMenuTrigger>
-                        <UnstableDropdownMenuContent sideOffset={2} align="end">
+                          </IconButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent sideOffset={2} align="end">
                           <ProjectPermissionCan
                             I={ProjectPermissionActions.Delete}
                             a={ProjectPermissionSub.PamDomains}
                           >
                             {(isAllowed) => (
-                              <UnstableDropdownMenuItem
+                              <DropdownMenuItem
                                 isDisabled={!isAllowed}
                                 variant="danger"
                                 onClick={(e) => {
@@ -205,19 +203,19 @@ export const PamDomainsTable = ({ projectId }: Props) => {
                               >
                                 <TrashIcon className="size-4" />
                                 Delete
-                              </UnstableDropdownMenuItem>
+                              </DropdownMenuItem>
                             )}
                           </ProjectPermissionCan>
-                        </UnstableDropdownMenuContent>
-                      </UnstableDropdownMenu>
-                    </UnstableTableCell>
-                  </UnstableTableRow>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-          </UnstableTableBody>
-        </UnstableTable>
+          </TableBody>
+        </Table>
         {Boolean(totalCount) && !isPending && (
-          <UnstablePagination
+          <Pagination
             count={totalCount}
             page={page}
             perPage={perPage}
