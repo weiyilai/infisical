@@ -1,9 +1,10 @@
 import { resolve4, Resolver } from "node:dns/promises";
 
-import axios, { AxiosError } from "axios";
+import { AxiosError, isAxiosError } from "axios";
 
 import { TPkiAcmeChallenges } from "@app/db/schemas/pki-acme-challenges";
 import { getConfig } from "@app/lib/config/env";
+import { request } from "@app/lib/config/request";
 import { crypto } from "@app/lib/crypto/cryptography";
 import { BadRequestError, NotFoundError } from "@app/lib/errors";
 import { isValidIp } from "@app/lib/ip";
@@ -96,7 +97,7 @@ export const pkiAcmeChallengeServiceFactory = ({
     // Notice: well, we are in a transaction, ideally we should not hold transaction and perform
     //         a long running operation for long time. But assuming we are not performing a tons of
     //         challenge validation at the same time, it should be fine.
-    const challengeResponse = await axios.get<string>(challengeUrl.toString(), {
+    const challengeResponse = await request.get<string>(challengeUrl.toString(), {
       // In case if we override the host in the development mode, still provide the original host in the header
       // to help the upstream server to validate the request
       headers: {
@@ -175,7 +176,7 @@ export const pkiAcmeChallengeServiceFactory = ({
 
     try {
       // Properly type and inspect the error
-      if (axios.isAxiosError(exp)) {
+      if (isAxiosError(exp)) {
         const axiosError = exp as AxiosError;
         const errorCode = axiosError.code;
         const errorMessage = axiosError.message;
