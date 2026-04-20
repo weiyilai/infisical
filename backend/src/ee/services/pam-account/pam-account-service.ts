@@ -609,9 +609,19 @@ export const pamAccountServiceFactory = ({
 
     const decryptedAccount = await decryptAccount(accountWithResource, accountWithResource.projectId, kmsService);
 
+    // Resolve whether the policy enforces a reason at access time so the UI can
+    // gate the access flow without needing pam-account-policy:read permission.
+    let requireReason = false;
+    if (accountWithResource.policyId) {
+      const policy = await pamAccountPolicyDAL.findById(accountWithResource.policyId);
+      const policyRules = (policy?.rules ?? {}) as TPolicyRules;
+      requireReason = Boolean(policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason]);
+    }
+
     return {
       ...decryptedAccount,
       metadata: accountMetadata,
+      requireReason,
       resourceType: accountWithResource.resource.resourceType,
       resource: {
         id: accountWithResource.resource.id,
@@ -657,17 +667,6 @@ export const pamAccountServiceFactory = ({
     }
 
     const trimmedReason = reason?.trim() || null;
-
-    if (account.policyId) {
-      const policy = await pamAccountPolicyDAL.findById(account.policyId);
-      const policyRules = (policy?.rules ?? {}) as TPolicyRules;
-      if (policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason] && !trimmedReason) {
-        throw new BadRequestError({
-          message: "A reason is required to access this account",
-          name: "PAM_REASON_REQUIRED"
-        });
-      }
-    }
 
     const fac = APPROVAL_POLICY_FACTORY_MAP[ApprovalPolicyType.PamAccess](ApprovalPolicyType.PamAccess);
 
@@ -715,6 +714,19 @@ export const pamAccountServiceFactory = ({
           metadata: accountMeta[account.id] || []
         })
       );
+    }
+
+    // Reason check is intentionally placed after the approval/permission gates so
+    // its distinct error code does not leak policy configuration to unauthorized actors.
+    if (account.policyId) {
+      const policy = await pamAccountPolicyDAL.findById(account.policyId);
+      const policyRules = (policy?.rules ?? {}) as TPolicyRules;
+      if (policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason] && !trimmedReason) {
+        throw new BadRequestError({
+          message: "A reason is required to access this account",
+          name: "PAM_REASON_REQUIRED"
+        });
+      }
     }
 
     const project = await projectDAL.findById(account.projectId);

@@ -73,7 +73,8 @@ const SanitizedAccountSchema = z
   .and(
     z.object({
       credentialsConfigured: z.boolean(),
-      dependencyCount: z.number().default(0)
+      dependencyCount: z.number().default(0),
+      requireReason: z.boolean().default(false)
     })
   );
 

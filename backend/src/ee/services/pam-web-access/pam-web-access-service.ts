@@ -181,17 +181,6 @@ export const pamWebAccessServiceFactory = ({
 
     const trimmedReason = reason?.trim() || null;
 
-    if (account.policyId) {
-      const policy = await pamAccountPolicyDAL.findById(account.policyId);
-      const policyRules = (policy?.rules ?? {}) as TPolicyRules;
-      if (policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason] && !trimmedReason) {
-        throw new BadRequestError({
-          message: "A reason is required to access this account",
-          name: "PAM_REASON_REQUIRED"
-        });
-      }
-    }
-
     const resource = await pamResourceDAL.findById(account.resourceId);
 
     if (!resource) {
@@ -255,6 +244,19 @@ export const pamWebAccessServiceFactory = ({
           metadata: accountMeta[account.id] || []
         })
       );
+    }
+
+    // Reason check is intentionally placed after the approval/permission gates so
+    // its distinct error code does not leak policy configuration to unauthorized actors.
+    if (account.policyId) {
+      const policy = await pamAccountPolicyDAL.findById(account.policyId);
+      const policyRules = (policy?.rules ?? {}) as TPolicyRules;
+      if (policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason] && !trimmedReason) {
+        throw new BadRequestError({
+          message: "A reason is required to access this account",
+          name: "PAM_REASON_REQUIRED"
+        });
+      }
     }
 
     // MFA check

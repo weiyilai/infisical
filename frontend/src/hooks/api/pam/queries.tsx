@@ -60,7 +60,6 @@ export const pamKeys = {
     projectId,
     { search }
   ],
-  getAccountPolicy: (policyId: string) => [...pamKeys.accountPolicy(), "get", policyId],
   getSession: (sessionId: string) => [...pamKeys.session(), "get", sessionId],
   getSessionLogs: (sessionId: string) => [...pamKeys.session(), "logs", sessionId],
   listSessions: (projectId: string) => [...pamKeys.session(), "list", projectId],
@@ -484,32 +483,6 @@ export const useListPamAccountPolicies = (
 
       return data.policies;
     },
-    ...options
-  });
-};
-
-export const useGetPamAccountPolicy = (
-  policyId: string | null | undefined,
-  options?: Omit<
-    UseQueryOptions<
-      TPamAccountPolicy,
-      unknown,
-      TPamAccountPolicy,
-      ReturnType<typeof pamKeys.getAccountPolicy>
-    >,
-    "queryKey" | "queryFn" | "enabled"
-  >
-) => {
-  return useQuery({
-    queryKey: pamKeys.getAccountPolicy(policyId ?? ""),
-    queryFn: async () => {
-      const { data } = await apiRequest.get<{ policy: TPamAccountPolicy }>(
-        `/api/v1/pam/account-policies/${policyId}`
-      );
-
-      return data.policy;
-    },
-    enabled: Boolean(policyId),
     ...options
   });
 };
