@@ -54,37 +54,29 @@ const getAuthHeaders = (secretSync: TOnaSyncWithCredentials) => ({
   "Content-Type": "application/json"
 });
 
-const makeUserIdResolver = (secretSync: TOnaSyncWithCredentials) => {
-  let cached: string | undefined;
-  return async (): Promise<string> => {
-    if (cached) return cached;
-    const { data } = await withOnaRetry(() =>
-      request.post<TOnaAuthenticatedIdentityResponse>(
-        `${IntegrationUrls.ONA_API_URL}${ONA_GET_AUTHENTICATED_IDENTITY_PATH}`,
-        {},
-        { headers: getAuthHeaders(secretSync) }
-      )
-    );
-    const userId = data?.identity?.subject?.id ?? data?.userId;
-    if (!userId) {
-      throw new SecretSyncError({
-        message: "Unable to resolve authenticated Ona user ID for user-scoped sync.",
-        shouldRetry: false
-      });
-    }
-    cached = userId;
-    return cached;
-  };
+const resolveUserId = async (secretSync: TOnaSyncWithCredentials): Promise<string> => {
+  const { data } = await withOnaRetry(() =>
+    request.post<TOnaAuthenticatedIdentityResponse>(
+      `${IntegrationUrls.ONA_API_URL}${ONA_GET_AUTHENTICATED_IDENTITY_PATH}`,
+      {},
+      { headers: getAuthHeaders(secretSync) }
+    )
+  );
+  const userId = data?.subject?.id;
+  if (!userId) {
+    throw new SecretSyncError({
+      message: "Unable to resolve authenticated Ona user ID for user-scoped sync.",
+      shouldRetry: false
+    });
+  }
+  return userId;
 };
 
-const buildScopeFilter = async (
-  secretSync: TOnaSyncWithCredentials,
-  resolveUserId: () => Promise<string>
-): Promise<TOnaScopeFilter> => {
+const buildScopeFilter = async (secretSync: TOnaSyncWithCredentials): Promise<TOnaScopeFilter> => {
   if (secretSync.destinationConfig.scope === OnaSyncScope.Project) {
     return { projectId: secretSync.destinationConfig.projectId };
   }
-  return { userId: await resolveUserId() };
+  return { userId: await resolveUserId(secretSync) };
 };
 
 const listEnvVarSecrets = async (
@@ -177,8 +169,7 @@ const wrapApiError = (error: unknown, secretKey: string): never => {
 
 export const OnaSyncFns = {
   syncSecrets: async (secretSync: TOnaSyncWithCredentials, secretMap: TSecretMap) => {
-    const resolveUserId = makeUserIdResolver(secretSync);
-    const scope = await buildScopeFilter(secretSync, resolveUserId);
+    const scope = await buildScopeFilter(secretSync);
 
     const existingSecrets = await listEnvVarSecrets(secretSync, scope);
     const existingByName = new Map(existingSecrets.map((s) => [s.name, s]));
@@ -226,8 +217,7 @@ export const OnaSyncFns = {
   },
 
   removeSecrets: async (secretSync: TOnaSyncWithCredentials, secretMap: TSecretMap) => {
-    const resolveUserId = makeUserIdResolver(secretSync);
-    const scope = await buildScopeFilter(secretSync, resolveUserId);
+    const scope = await buildScopeFilter(secretSync);
     const existingSecrets = await listEnvVarSecrets(secretSync, scope);
 
     for (const existing of existingSecrets) {

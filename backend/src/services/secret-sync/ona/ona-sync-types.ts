@@ -43,11 +43,8 @@ export type TOnaGetSecretValueResponse = {
 };
 
 export type TOnaAuthenticatedIdentityResponse = {
-  identity?: {
-    subject?: {
-      id?: string;
-      principal?: string;
-    };
+  subject?: {
+    id?: string;
+    principal?: string;
   };
-  userId?: string;
 };
