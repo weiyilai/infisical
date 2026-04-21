@@ -2432,6 +2432,7 @@ const OverviewPageContent = () => {
                   />
                 )}
                 <ResourceSearchInput
+                  key={secretPath}
                   value={searchFilter}
                   tags={tags}
                   onChange={setSearchFilter}
