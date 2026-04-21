@@ -697,7 +697,6 @@ export const registerRoutes = async (
   });
 
   const assumePrivilegeService = assumePrivilegeServiceFactory({
-    projectDAL,
     permissionService
   });
 
@@ -877,7 +876,6 @@ export const registerRoutes = async (
   });
   const groupProjectService = groupProjectServiceFactory({
     groupDAL,
-    projectDAL,
     permissionService
   });
 
@@ -1587,7 +1585,6 @@ export const registerRoutes = async (
     projectEnvDAL,
     keyStore,
     licenseService,
-    projectDAL,
     folderDAL,
     accessApprovalPolicyEnvironmentDAL,
     secretApprovalPolicyEnvironmentDAL: sapEnvironmentDAL
@@ -2298,7 +2295,6 @@ export const registerRoutes = async (
     appConnectionService,
     kmsService,
     permissionService,
-    projectDAL,
     orgDAL,
     folderDAL,
     secretSyncQueue,
@@ -2320,7 +2316,6 @@ export const registerRoutes = async (
   const kmipOperationService = kmipOperationServiceFactory({
     kmsService,
     kmsDAL,
-    projectDAL,
     kmipClientDAL,
     permissionService
   });

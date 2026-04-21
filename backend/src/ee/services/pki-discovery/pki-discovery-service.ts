@@ -8,6 +8,8 @@ import {
   ProjectPermissionSub
 } from "@app/ee/services/permission/project-permission";
 import { BadRequestError, DatabaseError, ForbiddenRequestError, NotFoundError } from "@app/lib/errors";
+import { requestMemoKeys } from "@app/lib/request-context/memo-keys";
+import { requestMemoize } from "@app/lib/request-context/request-memoizer";
 import { TProjectDALFactory } from "@app/services/project/project-dal";
 
 import { TGatewayV2DALFactory } from "../gateway-v2/gateway-v2-dal";
@@ -103,11 +105,6 @@ export const pkiDiscoveryServiceFactory = ({
       ProjectPermissionPkiDiscoveryActions.Create,
       ProjectPermissionSub.PkiDiscovery
     );
-
-    const project = await projectDAL.findById(projectId);
-    if (!project) {
-      throw new NotFoundError({ message: `Project with ID '${projectId}' not found` });
-    }
 
     const existingCount = await pkiDiscoveryConfigDAL.countByProjectId(projectId);
     if (existingCount >= MAX_DISCOVERIES_PER_PROJECT) {

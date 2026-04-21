@@ -17,6 +17,8 @@ import { extractX509CertFromChain } from "@app/lib/certificates/extract-certific
 import { getConfig } from "@app/lib/config/env";
 import { crypto } from "@app/lib/crypto/cryptography";
 import { BadRequestError, ForbiddenRequestError, NotFoundError } from "@app/lib/errors";
+import { requestMemoKeys } from "@app/lib/request-context/memo-keys";
+import { requestMemoize } from "@app/lib/request-context/request-memoizer";
 
 import { ActorAuthMethod, ActorType } from "../auth/auth-type";
 import { TCertificateBodyDALFactory } from "../certificate/certificate-body-dal";
@@ -326,11 +328,6 @@ export const certificateProfileServiceFactory = ({
         slug: data.slug
       })
     );
-
-    const project = await projectDAL.findById(projectId);
-    if (!project) {
-      throw new NotFoundError({ message: "Project not found" });
-    }
 
     // Validate that certificate policy exists and belongs to the same project
     if (data.certificatePolicyId) {
