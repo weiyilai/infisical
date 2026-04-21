@@ -683,7 +683,6 @@ export const authLoginServiceFactory = ({
     const appCfg = getConfig();
     const user = await userDAL.findById(userId);
 
-    // Recovery codes are allowed regardless of required MFA method (they're for TOTP recovery)
     if (mfaMethod !== requiredMfaMethod) {
       throw new BadRequestError({
         message: `Invalid MFA method. ${requiredMfaMethod} verification is required.`
