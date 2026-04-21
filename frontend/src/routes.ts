@@ -394,6 +394,13 @@ const pamRoutes = route("/organizations/$orgId/projects/pam/$projectId", [
         route("/accounts/$accountId", [index("pam/PamAccountByIDPage/route.tsx")])
       ])
     ]),
+    route("/domains", [
+      index("pam/PamDomainsPage/route.tsx"),
+      route("/$domainType/$domainId", [
+        index("pam/PamDomainByIDPage/route.tsx"),
+        route("/accounts/$accountId", [index("pam/PamDomainAccountByIDPage/route.tsx")])
+      ])
+    ]),
     route("/discovery", [
       index("pam/PamDiscoveryPage/route.tsx"),
       route("/$discoveryType/$discoverySourceId", "pam/PamDiscoveryDetailPage/route.tsx")
@@ -447,7 +454,6 @@ export const routes = rootRoute("root.tsx", [
   route("/shared/secret/$secretId", "public/ViewSharedSecretByIDPage/route.tsx"),
   route("/secret-request/secret/$secretRequestId", "public/ViewSecretRequestByIDPage/route.tsx"),
   route("/share-secret", "public/ShareSecretPage/route.tsx"),
-  route("/upgrade-path", "public/UpgradePathPage/route.tsx"),
   route("/cli-redirect", "auth/CliRedirectPage/route.tsx"),
   middleware("restrict-login-signup.tsx", [
     route("/admin/signup", "admin/SignUpPage/route.tsx"),

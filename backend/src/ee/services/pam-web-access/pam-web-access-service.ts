@@ -181,6 +181,10 @@ export const pamWebAccessServiceFactory = ({
 
     const trimmedReason = reason?.trim() || null;
 
+    if (!account.resourceId) {
+      throw new BadRequestError({ message: "Web access is only available for resource-backed accounts" });
+    }
+
     const resource = await pamResourceDAL.findById(account.resourceId);
 
     if (!resource) {
@@ -442,6 +446,10 @@ export const pamWebAccessServiceFactory = ({
       const account = await pamAccountDAL.findById(accountId);
       if (!account || account.projectId !== projectId) {
         throw new BadRequestError({ message: "Invalid account or project" });
+      }
+
+      if (!account.resourceId) {
+        throw new BadRequestError({ message: "Web access is only available for resource-backed accounts" });
       }
 
       const resource = await pamResourceDAL.findById(account.resourceId);

@@ -25,9 +25,9 @@ const TerminalContent = ({
     accountId: account.id,
     projectId,
     orgId,
-    resourceName: account.resource.name,
-    accountName: account.name,
-    resourceType: account.resource.resourceType,
+    resourceName: account?.resource?.name ?? "",
+    accountName: account?.name ?? "",
+    resourceType: account?.resource?.resourceType ?? "",
     reason,
     onSessionEnd: () => setSessionEnded(true)
   });
@@ -81,7 +81,7 @@ const TerminalContent = ({
         <div className="flex items-center gap-4">
           <span>
             <span className="text-mineshaft-400">Resource:</span>{" "}
-            <span className="text-mineshaft-300">{account.resource.name}</span>
+            <span className="text-mineshaft-300">{account.resource?.name}</span>
           </span>
           <span className="text-mineshaft-500">|</span>
           <span>
@@ -127,7 +127,7 @@ const PageContent = () => {
   return (
     <ReasonGate account={account}>
       {(reason) => {
-        if (account.resource.resourceType === PamResourceType.Postgres) {
+        if (account.resource?.resourceType === PamResourceType.Postgres) {
           return <PamDataExplorerPage reason={reason} />;
         }
         return (

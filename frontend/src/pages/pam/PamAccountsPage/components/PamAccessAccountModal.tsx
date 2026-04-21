@@ -68,12 +68,12 @@ export const PamAccessAccountModal = ({ isOpen, onOpenChange, account, projectId
   }, [duration]);
 
   const command = useMemo(() => {
-    if (!account) return "";
-
+    if (!account?.resource) return "";
+    const { resource } = account;
     const base = (verb: string) =>
-      `infisical pam ${verb} access --resource ${account.resource.name} --account ${account.name} --project-id ${projectId} --duration ${cliDuration} --domain ${siteURL}`;
+      `infisical pam ${verb} access --resource ${resource.name} --account ${account.name} --project-id ${projectId} --duration ${cliDuration} --domain ${siteURL}`;
 
-    switch (account.resource.resourceType) {
+    switch (resource.resourceType) {
       case PamResourceType.Postgres:
       case PamResourceType.MySQL:
       case PamResourceType.MsSQL:
@@ -93,9 +93,9 @@ export const PamAccessAccountModal = ({ isOpen, onOpenChange, account, projectId
   if (!account) return null;
 
   const showWebAccess =
-    account.resource.resourceType === PamResourceType.Postgres ||
-    account.resource.resourceType === PamResourceType.SSH ||
-    account.resource.resourceType === PamResourceType.Redis;
+    account.resource?.resourceType === PamResourceType.Postgres ||
+    account.resource?.resourceType === PamResourceType.SSH ||
+    account.resource?.resourceType === PamResourceType.Redis;
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
@@ -169,8 +169,8 @@ export const PamAccessAccountModal = ({ isOpen, onOpenChange, account, projectId
                   params={{
                     orgId: currentOrg.id,
                     projectId,
-                    resourceType: account.resource.resourceType,
-                    resourceId: account.resource.id,
+                    resourceType: account.resource?.resourceType ?? "",
+                    resourceId: account.resource?.id ?? "",
                     accountId: account.id
                   }}
                   target="_blank"
