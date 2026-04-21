@@ -47,12 +47,7 @@ export const TravisCISyncFields = () => {
         name="destinationConfig.repositoryId"
         control={control}
         render={({ field: { value, onChange }, fieldState: { error } }) => (
-          <FormControl
-            isError={Boolean(error)}
-            errorText={error?.message}
-            label="Repository"
-            helperText="Environment variables marked as private on Travis CI cannot be imported because their values are not exposed by the API."
-          >
+          <FormControl isError={Boolean(error)} errorText={error?.message} label="Repository">
             <FilterableSelect
               menuPlacement="top"
               isLoading={isRepositoriesPending && Boolean(connectionId)}

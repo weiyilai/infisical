@@ -55,10 +55,8 @@ Infisical's Travis CI Sync keeps your Travis CI repository environment variables
 
                 - **Initial Sync Behavior**: Determines how Infisical should resolve the initial sync.
                     - **Overwrite Destination Secrets**: Removes any environment variables at the destination not present in Infisical.
-                    - **Import Secrets (Prioritize Infisical)**: Imports public environment variables from Travis CI before syncing, prioritizing Infisical values when keys conflict.
-                    - **Import Secrets (Prioritize Travis CI)**: Imports public environment variables from Travis CI before syncing, prioritizing Travis CI values when keys conflict.
                 <Note>
-                    Private environment variables (`public: false`) on Travis CI are not returned by the v3 API and therefore cannot be imported. Only public environment variables will appear in Infisical after an import. If `Disable Secret Deletion` is not enabled, any private environment variables that fall within the sync's scope will be deleted.
+                    Travis CI does not support importing secrets.
                 </Note>
                 - **Key Schema**: Template that determines how secret names are transformed when syncing, using `{{secretKey}}` as a placeholder for the original secret name and `{{environment}}` for the environment.
                 <Note>

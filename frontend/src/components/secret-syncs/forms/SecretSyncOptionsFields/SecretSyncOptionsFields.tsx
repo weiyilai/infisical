@@ -26,30 +26,6 @@ type Props = {
   hideInitialSync?: boolean;
 };
 
-type SyncOptionsValue = TSecretSyncForm["syncOptions"];
-
-const DESTINATION_INITIAL_SYNC_WARNINGS: Partial<
-  Record<SecretSync, (syncOptions: SyncOptionsValue) => ReactNode>
-> = {
-  [SecretSync.TravisCI]: (syncOptions) => {
-    const isImporting =
-      syncOptions?.initialSyncBehavior === SecretSyncInitialSyncBehavior.ImportPrioritizeSource ||
-      syncOptions?.initialSyncBehavior ===
-        SecretSyncInitialSyncBehavior.ImportPrioritizeDestination;
-
-    if (!isImporting) return null;
-
-    return (
-      <>
-        Only public Travis CI variables will be imported into Infisical. Private variables cannot be
-        read via the Travis CI API.
-        {!syncOptions?.disableSecretDeletion &&
-          " Because private variables are not imported, they will be deleted from Travis CI during sync. Enable Disable Secret Deletion below to keep them."}
-      </>
-    );
-  }
-};
-
 export const SecretSyncOptionsFields = ({ hideInitialSync }: Props) => {
   const { control, watch, setValue } = useFormContext<TSecretSyncForm>();
 
@@ -63,9 +39,6 @@ export const SecretSyncOptionsFields = ({ hideInitialSync }: Props) => {
   const destinationName = SECRET_SYNC_MAP[destination].name;
 
   const { syncOption } = useSecretSyncOption(destination);
-
-  const destinationInitialSyncWarning =
-    DESTINATION_INITIAL_SYNC_WARNINGS[destination]?.(currentSyncOption);
 
   // Vercel "sensitive" secrets cannot be read back, so importing destination secrets is impossible.
   // Force the initial sync behavior to OverwriteDestination whenever sensitive is enabled.
@@ -233,13 +206,6 @@ export const SecretSyncOptionsFields = ({ hideInitialSync }: Props) => {
                 or disable secret deletion below to have Infisical ignore these secrets.
               </p>
             )}
-
-          {destinationInitialSyncWarning && (
-            <p className="-mt-2.5 mb-2.5 text-xs text-yellow">
-              <FontAwesomeIcon className="mr-1" size="xs" icon={faTriangleExclamation} />
-              {destinationInitialSyncWarning}
-            </p>
-          )}
         </>
       )}
       {syncOption?.supportsKeySchema !== false && (

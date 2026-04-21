@@ -26,7 +26,7 @@ const TravisCISyncDestinationConfigSchema = z.object({
   branch: z.string().trim().min(1).optional().describe(SecretSyncs.DESTINATION_CONFIG.TRAVIS_CI.branch)
 });
 
-const TravisCISyncOptionsConfig: TSyncOptionsConfig = { canImportSecrets: true };
+const TravisCISyncOptionsConfig: TSyncOptionsConfig = { canImportSecrets: false };
 
 export const TravisCISyncSchema = BaseSecretSyncSchema(SecretSync.TravisCI, TravisCISyncOptionsConfig)
   .extend({
@@ -54,7 +54,7 @@ export const TravisCISyncListItemSchema = z
     name: z.literal("Travis CI"),
     connection: z.literal(AppConnection.TravisCI),
     destination: z.literal(SecretSync.TravisCI),
-    canImportSecrets: z.literal(true),
+    canImportSecrets: z.literal(false),
     canRemoveSecretsOnDeletion: z.literal(true)
   })
   .describe(JSON.stringify({ title: SECRET_SYNC_NAME_MAP[SecretSync.TravisCI] }));

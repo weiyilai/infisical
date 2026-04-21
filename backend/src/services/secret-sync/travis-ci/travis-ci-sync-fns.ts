@@ -8,6 +8,7 @@ import { SecretSyncError } from "@app/services/secret-sync/secret-sync-errors";
 import { matchesSchema } from "@app/services/secret-sync/secret-sync-fns";
 import { TSecretMap } from "@app/services/secret-sync/secret-sync-types";
 
+import { SECRET_SYNC_NAME_MAP } from "../secret-sync-maps";
 import { TTravisCIEnvVar, TTravisCISyncWithCredentials } from "./travis-ci-sync-types";
 
 const BASE_DELAY_MS = 100;
@@ -120,28 +121,7 @@ const upsertRepoEnvVar = async ({
 
 export const TravisCISyncFns = {
   async getSecrets(secretSync: TTravisCISyncWithCredentials): Promise<TSecretMap> {
-    const {
-      connection: {
-        credentials: { apiToken }
-      },
-      destinationConfig
-    } = secretSync;
-
-    const throttle = makeThrottle();
-    const envVars = await getRepoEnvVars(apiToken, destinationConfig.repositoryId, throttle);
-
-    const scopedEnvVars = filterByScope(envVars, destinationConfig);
-
-    const secretMap: TSecretMap = {};
-
-    for (const envVar of scopedEnvVars) {
-      // Travis CI does not return values for private (public === false) env vars; skip them.
-      if (!envVar.public || envVar.value === null || envVar.value === undefined) continue;
-
-      secretMap[envVar.name] = { value: envVar.value };
-    }
-
-    return secretMap;
+    throw new Error(`${SECRET_SYNC_NAME_MAP[secretSync.destination]} does not support importing secrets.`);
   },
 
   async syncSecrets(secretSync: TTravisCISyncWithCredentials, secretMap: TSecretMap): Promise<void> {

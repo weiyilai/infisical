@@ -7,5 +7,5 @@ export const TRAVIS_CI_SYNC_LIST_OPTION: TSecretSyncListItem = {
   destination: SecretSync.TravisCI,
   connection: AppConnection.TravisCI,
   canRemoveSecretsOnDeletion: true,
-  canImportSecrets: true
+  canImportSecrets: false
 };
