@@ -523,7 +523,7 @@ export const SecretSyncFns = {
         secretMap = await ExternalInfisicalSyncFns.getSecrets(secretSync);
         break;
       case SecretSync.Ona:
-        secretMap = await OnaSyncFns.getSecrets(secretSync);
+        secretMap = await OnaSyncFns.getSecrets();
         break;
       default:
         throw new Error(

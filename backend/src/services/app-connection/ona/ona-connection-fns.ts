@@ -49,8 +49,6 @@ export const validateOnaConnectionCredentials = async (config: TOnaConnectionCon
     });
   }
 
-  logger.info({ inputCredentials }, "Ona connection credentials validated successfully");
-
   return inputCredentials;
 };
 
