@@ -20,7 +20,9 @@ export const SecretValueAlreadySharedContainer = ({ brandingTheme }: Props) => {
   return (
     <Alert variant={brandingTheme ? "default" : "info"} style={panelStyle}>
       <KeyRoundIcon style={brandingTheme ? { color: brandingTheme.textMutedColor } : undefined} />
-      <AlertTitle>Secret Already Shared</AlertTitle>
+      <AlertTitle style={brandingTheme ? { color: brandingTheme.textColor } : undefined}>
+        Secret Already Shared
+      </AlertTitle>
       <AlertDescription style={brandingTheme ? { color: brandingTheme.textMutedColor } : undefined}>
         A secret value has already been shared for this secret request.
       </AlertDescription>

@@ -23,7 +23,9 @@ export const SecretRequestSuccessContainer = ({ brandingTheme, requesterUsername
       <CheckCircleIcon
         style={brandingTheme ? { color: brandingTheme.textMutedColor } : undefined}
       />
-      <AlertTitle>Secret Shared</AlertTitle>
+      <AlertTitle style={brandingTheme ? { color: brandingTheme.textColor } : undefined}>
+        Secret Shared
+      </AlertTitle>
       <AlertDescription style={brandingTheme ? { color: brandingTheme.textMutedColor } : undefined}>
         {requesterUsername} has now been notified of your shared secret, and will be able to access
         it shortly.

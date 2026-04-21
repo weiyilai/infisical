@@ -81,7 +81,7 @@ export const PasswordContainer = ({
                   className={twMerge(
                     "flex-1",
                     brandingTheme &&
-                      "border placeholder-[var(--muted-color)]/70 focus-visible:ring-[var(--muted-color)]/50"
+                      "border placeholder:text-[var(--muted-color)]/50 focus-visible:ring-[var(--muted-color)]/50"
                   )}
                   isError={Boolean(error) || isInvalidCredential}
                 />

@@ -23,7 +23,9 @@ export const SecretErrorContainer = ({ error, brandingTheme }: Props) => {
       <TriangleAlertIcon
         style={brandingTheme ? { color: brandingTheme.textMutedColor } : undefined}
       />
-      <AlertTitle>{error || "The secret you are looking for is missing or has expired"}</AlertTitle>
+      <AlertTitle style={brandingTheme ? { color: brandingTheme.textColor } : undefined}>
+        {error || "The secret you are looking for is missing or has expired"}
+      </AlertTitle>
     </Alert>
   );
 };
