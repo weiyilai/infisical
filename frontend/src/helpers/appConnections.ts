@@ -82,6 +82,7 @@ export const APP_CONNECTION_MAP: Record<
     size?: number;
     icon?: IconDefinition;
     enterprise?: boolean;
+    aliases?: string[];
   }
 > = {
   [AppConnection.AWS]: { name: "AWS", image: "Amazon Web Services.png" },
@@ -164,7 +165,7 @@ export const APP_CONNECTION_MAP: Record<
   [AppConnection.Doppler]: { name: "Doppler", image: "Doppler.png" },
   [AppConnection.NetScaler]: { name: "NetScaler", image: "NetScaler.png" },
   [AppConnection.Anthropic]: { name: "Anthropic", image: "Anthropic.png" },
-  [AppConnection.Ona]: { name: "Ona", image: "Ona.png" }
+  [AppConnection.Ona]: { name: "Ona", image: "Ona.png", aliases: ["gitpod"] }
 };
 
 export const getAppConnectionMethodDetails = (method: TAppConnection["method"]) => {
