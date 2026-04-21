@@ -408,8 +408,10 @@ const pamRoutes = route("/organizations/$orgId/projects/pam/$projectId", [
     route("/audit-logs", "project/AuditLogsPage/route-pam.tsx"),
     route("/settings", "pam/SettingsPage/route.tsx"),
     route("/account-policies", "pam/PamAccountPoliciesPage/route.tsx"),
-    route("/approvals", "pam/ApprovalsPage/route.tsx"),
-    route("/approval-requests/$approvalRequestId", "pam/ApprovalRequestDetailPage/route.tsx"),
+    route("/approvals", [
+      index("pam/ApprovalsPage/route.tsx"),
+      route("/$approvalRequestId", "pam/ApprovalRequestDetailPage/route.tsx")
+    ]),
 
     // Access Management
     route("/access-management", "project/AccessControlPage/route-pam.tsx"),
