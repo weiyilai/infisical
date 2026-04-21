@@ -25,10 +25,6 @@ export const getOnaConnectionListItem = () => {
 export const validateOnaConnectionCredentials = async (config: TOnaConnectionConfig) => {
   const { credentials: inputCredentials } = config;
 
-  const { personalAccessToken } = inputCredentials;
-
-  logger.info({ personalAccessToken }, "Validating Ona connection credentials adilson");
-
   try {
     await request.post(
       `${IntegrationUrls.ONA_API_URL}${GET_AUTHENTICATED_IDENTITY_PATH}`,
