@@ -22,7 +22,6 @@ const secretManagerRoutes = route("/organizations/$orgId/projects/secret-managem
     route("/secrets/$envSlug", "secret-manager/SecretDashboardPage/route.tsx"),
     route("/allowlist", "secret-manager/IPAllowlistPage/route.tsx"),
     route("/approval", "secret-manager/SecretApprovalsPage/route.tsx"),
-    route("/secret-rotation", "secret-manager/SecretRotationPage/route.tsx"),
     route("/insights", "secret-manager/InsightsPage/route.tsx"),
     route("/settings", "secret-manager/SettingsPage/route.tsx"),
     route("/commits/$environment/$folderId", [
@@ -394,6 +393,13 @@ const pamRoutes = route("/organizations/$orgId/projects/pam/$projectId", [
         route("/accounts/$accountId", [index("pam/PamAccountByIDPage/route.tsx")])
       ])
     ]),
+    route("/domains", [
+      index("pam/PamDomainsPage/route.tsx"),
+      route("/$domainType/$domainId", [
+        index("pam/PamDomainByIDPage/route.tsx"),
+        route("/accounts/$accountId", [index("pam/PamDomainAccountByIDPage/route.tsx")])
+      ])
+    ]),
     route("/discovery", [
       index("pam/PamDiscoveryPage/route.tsx"),
       route("/$discoveryType/$discoverySourceId", "pam/PamDiscoveryDetailPage/route.tsx")
@@ -401,8 +407,10 @@ const pamRoutes = route("/organizations/$orgId/projects/pam/$projectId", [
     route("/audit-logs", "project/AuditLogsPage/route-pam.tsx"),
     route("/settings", "pam/SettingsPage/route.tsx"),
     route("/account-policies", "pam/PamAccountPoliciesPage/route.tsx"),
-    route("/approvals", "pam/ApprovalsPage/route.tsx"),
-    route("/approval-requests/$approvalRequestId", "pam/ApprovalRequestDetailPage/route.tsx"),
+    route("/approvals", [
+      index("pam/ApprovalsPage/route.tsx"),
+      route("/$approvalRequestId", "pam/ApprovalRequestDetailPage/route.tsx")
+    ]),
 
     // Access Management
     route("/access-management", "project/AccessControlPage/route-pam.tsx"),
@@ -447,7 +455,6 @@ export const routes = rootRoute("root.tsx", [
   route("/shared/secret/$secretId", "public/ViewSharedSecretByIDPage/route.tsx"),
   route("/secret-request/secret/$secretRequestId", "public/ViewSecretRequestByIDPage/route.tsx"),
   route("/share-secret", "public/ShareSecretPage/route.tsx"),
-  route("/upgrade-path", "public/UpgradePathPage/route.tsx"),
   route("/cli-redirect", "auth/CliRedirectPage/route.tsx"),
   middleware("restrict-login-signup.tsx", [
     route("/admin/signup", "admin/SignUpPage/route.tsx"),

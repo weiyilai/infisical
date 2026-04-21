@@ -33,6 +33,7 @@ export enum TableName {
   PkiAcmeEnrollmentConfig = "pki_acme_enrollment_configs",
   PkiScepEnrollmentConfig = "pki_scep_enrollment_configs",
   PkiScepTransaction = "pki_scep_transactions",
+  PkiScepDynamicChallenge = "pki_scep_dynamic_challenges",
   PkiSubscriber = "pki_subscribers",
   PkiAlert = "pki_alerts",
   PkiAlertsV2 = "pki_alerts_v2",
@@ -130,8 +131,6 @@ export enum TableName {
   SecretApprovalRequestSecret = "secret_approval_requests_secrets",
   SecretApprovalRequestSecretTag = "secret_approval_request_secret_tags",
   SecretApprovalPolicyEnvironment = "secret_approval_policies_environments",
-  SecretRotation = "secret_rotations",
-  SecretRotationOutput = "secret_rotation_outputs",
   SamlConfig = "saml_configs",
   LdapConfig = "ldap_configs",
   OidcConfig = "oidc_configs",
@@ -162,7 +161,6 @@ export enum TableName {
   JnSecretTag = "secret_tag_junction",
   SecretVersionTag = "secret_version_tag_junction",
   SecretVersionV2Tag = "secret_version_v2_tag_junction",
-  SecretRotationOutputV2 = "secret_rotation_output_v2",
   // KMS Service
   KmsServerRootConfig = "kms_root_config",
   KmsKey = "kms_keys",
@@ -238,9 +236,11 @@ export enum TableName {
   PamAccountDependency = "pam_account_dependencies",
   PamResourceRotationRule = "pam_resource_rotation_rules",
   PamResourceFavorite = "pam_resource_favorites",
+  PamDomain = "pam_domains",
   PamAccountPolicy = "pam_account_policies",
 
   VaultExternalMigrationConfig = "vault_external_migration_configs",
+  ExternalMigrationConfig = "external_migration_configs",
 
   // PKI ACME
   PkiAcmeAccount = "pki_acme_accounts",
@@ -285,11 +285,14 @@ export enum TableName {
   PkiSigners = "pki_signers",
   PkiSigningOperations = "pki_signing_operations",
 
+  CaSigningConfig = "ca_signing_configs",
+  SecretValidationRule = "secret_validation_rules",
+
   // Deprecated - Not used anymore now that Redis is persistent
   DeprecatedDurableQueueJobs = "queue_jobs",
-
-  CaSigningConfig = "ca_signing_configs",
-  SecretValidationRule = "secret_validation_rules"
+  DeprecatedSecretRotationV1 = "secret_rotations",
+  DeprecatedSecretRotationOutput = "secret_rotation_outputs",
+  DeprecatedSecretRotationOutputV2 = "secret_rotation_output_v2"
 }
 
 export type TImmutableDBKeys = "id" | "createdAt" | "updatedAt" | "commitId";
