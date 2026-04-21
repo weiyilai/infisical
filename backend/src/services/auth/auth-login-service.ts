@@ -683,13 +683,13 @@ export const authLoginServiceFactory = ({
     const appCfg = getConfig();
     const user = await userDAL.findById(userId);
 
-    if (mfaMethod !== requiredMfaMethod) {
-      throw new BadRequestError({
-        message: `Invalid MFA method. ${requiredMfaMethod} verification is required.`
-      });
-    }
-
     try {
+      if (mfaMethod !== requiredMfaMethod) {
+        throw new BadRequestError({
+          message: `Invalid MFA method. ${requiredMfaMethod} verification is required.`
+        });
+      }
+
       enforceUserLockStatus(Boolean(user.isLocked), user.temporaryLockDateEnd);
       if (mfaMethod === MfaMethod.EMAIL) {
         await tokenService.validateTokenForUser({
