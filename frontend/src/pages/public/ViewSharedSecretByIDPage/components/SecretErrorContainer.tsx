@@ -1,5 +1,6 @@
 import { TriangleAlertIcon } from "lucide-react";
-import { twMerge } from "tailwind-merge";
+
+import { Alert, AlertTitle } from "@app/components/v3";
 
 import { BrandingTheme } from "../ViewSharedSecretByIDPage";
 
@@ -18,20 +19,11 @@ export const SecretErrorContainer = ({ error, brandingTheme }: Props) => {
     : undefined;
 
   return (
-    <div
-      className={twMerge(
-        "rounded-lg border p-6",
-        !brandingTheme && "border-border bg-card"
-      )}
-      style={panelStyle}
-    >
-      <div className="flex items-center gap-4">
-        <TriangleAlertIcon
-          className="shrink-0"
-          style={{ color: brandingTheme?.textMutedColor || "orangered" }}
-        />
-        <span>{error || "The secret you are looking for is missing or has expired"}</span>
-      </div>
-    </div>
+    <Alert variant={brandingTheme ? "default" : "danger"} style={panelStyle}>
+      <TriangleAlertIcon
+        style={brandingTheme ? { color: brandingTheme.textMutedColor } : undefined}
+      />
+      <AlertTitle>{error || "The secret you are looking for is missing or has expired"}</AlertTitle>
+    </Alert>
   );
 };

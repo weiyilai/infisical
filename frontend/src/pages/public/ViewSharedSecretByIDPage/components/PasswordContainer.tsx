@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { twMerge } from "tailwind-merge";
 import { z } from "zod";
 
-import { Button, Field, FieldError, FieldLabel,  Input } from "@app/components/v3";
+import { Button, Field, FieldError, FieldLabel, Input } from "@app/components/v3";
 
 import { BrandingTheme } from "../ViewSharedSecretByIDPage";
 
@@ -26,9 +26,11 @@ export const PasswordContainer = ({
   isInvalidCredential,
   brandingTheme
 }: Props) => {
-  const { control, handleSubmit } = useForm<FormData>({
+  const { control, handleSubmit, watch } = useForm<FormData>({
     resolver: zodResolver(formSchema)
   });
+
+  const currentPassword = watch("password");
 
   const onFormSubmit = async ({ password }: FormData) => {
     onPasswordSubmit(password);
@@ -101,6 +103,7 @@ export const PasswordContainer = ({
           onClick={handleSubmit(onFormSubmit)}
           style={inputStyle}
           isPending={isSubmitting}
+          isDisabled={!currentPassword}
         >
           View Secret
         </Button>
