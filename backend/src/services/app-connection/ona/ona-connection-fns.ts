@@ -13,7 +13,6 @@ import { TOnaConnection, TOnaConnectionConfig, TOnaProject, TOnaProjectListRespo
 const GET_AUTHENTICATED_IDENTITY_PATH = "/gitpod.v1.IdentityService/GetAuthenticatedIdentity";
 const ONA_LIST_PROJECTS_PATH = "/gitpod.v1.ProjectService/ListProjects";
 const ONA_PAGE_SIZE = 100;
-const ONA_MAX_PROJECTS = 1000;
 
 export const getOnaConnectionListItem = () => {
   return {
@@ -64,9 +63,10 @@ export const listOnaProjects = async (appConnection: TOnaConnection): Promise<TO
 
   const allProjects: TOnaProject[] = [];
   let token: string | undefined;
+  let hasMoreProjects = true;
 
   try {
-    do {
+    while (hasMoreProjects) {
       const body: { pagination: { pageSize: number; token?: string } } = {
         pagination: { pageSize: ONA_PAGE_SIZE, ...(token ? { token } : {}) }
       };
@@ -94,7 +94,8 @@ export const listOnaProjects = async (appConnection: TOnaConnection): Promise<TO
       }
 
       token = data?.pagination?.nextToken || undefined;
-    } while (token && allProjects.length < ONA_MAX_PROJECTS);
+      hasMoreProjects = Boolean(token);
+    }
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new BadRequestError({

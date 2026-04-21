@@ -21,6 +21,34 @@ const ONA_UPDATE_SECRET_VALUE_PATH = "/gitpod.v1.SecretService/UpdateSecretValue
 const ONA_DELETE_SECRET_PATH = "/gitpod.v1.SecretService/DeleteSecret";
 const ONA_GET_AUTHENTICATED_IDENTITY_PATH = "/gitpod.v1.IdentityService/GetAuthenticatedIdentity";
 
+const ONA_MAX_RETRIES = 3;
+const ONA_BASE_RETRY_DELAY_MS = 500;
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+const isRetryableOnaError = (error: unknown): boolean => {
+  if (!(error instanceof AxiosError)) return false;
+  if (!error.response) return true;
+  const { status } = error.response;
+  return status === 408 || status === 429;
+};
+
+const withOnaRetry = async <T>(fn: () => Promise<T>): Promise<T> => {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      return await fn();
+    } catch (error) {
+      if (attempt >= ONA_MAX_RETRIES || !isRetryableOnaError(error)) throw error;
+      // eslint-disable-next-line no-await-in-loop
+      await sleep(ONA_BASE_RETRY_DELAY_MS * 2 ** attempt);
+    }
+  }
+};
+
 const getAuthHeaders = (secretSync: TOnaSyncWithCredentials) => ({
   Authorization: `Bearer ${secretSync.connection.credentials.personalAccessToken}`,
   "Content-Type": "application/json"
@@ -30,10 +58,12 @@ const makeUserIdResolver = (secretSync: TOnaSyncWithCredentials) => {
   let cached: string | undefined;
   return async (): Promise<string> => {
     if (cached) return cached;
-    const { data } = await request.post<TOnaAuthenticatedIdentityResponse>(
-      `${IntegrationUrls.ONA_API_URL}${ONA_GET_AUTHENTICATED_IDENTITY_PATH}`,
-      {},
-      { headers: getAuthHeaders(secretSync) }
+    const { data } = await withOnaRetry(() =>
+      request.post<TOnaAuthenticatedIdentityResponse>(
+        `${IntegrationUrls.ONA_API_URL}${ONA_GET_AUTHENTICATED_IDENTITY_PATH}`,
+        {},
+        { headers: getAuthHeaders(secretSync) }
+      )
     );
     const userId = data?.identity?.subject?.id ?? data?.userId;
     if (!userId) {
@@ -61,16 +91,30 @@ const listEnvVarSecrets = async (
   secretSync: TOnaSyncWithCredentials,
   scope: TOnaScopeFilter
 ): Promise<TOnaSecret[]> => {
-  // Pagination handling beyond the first page is deferred to a future iteration per product spec.
-  const { data } = await request.post<TOnaListSecretsResponse>(
-    `${IntegrationUrls.ONA_API_URL}${ONA_LIST_SECRETS_PATH}`,
-    {
-      filter: { scope },
-      pagination: { pageSize: ONA_PAGE_SIZE }
-    },
-    { headers: getAuthHeaders(secretSync) }
-  );
-  return (data?.secrets ?? []).filter((secret) => secret.environmentVariable === true);
+  const all: TOnaSecret[] = [];
+  let token: string | undefined;
+  let hasMore = true;
+
+  while (hasMore) {
+    // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
+    const { data } = await withOnaRetry(() =>
+      request.post<TOnaListSecretsResponse>(
+        `${IntegrationUrls.ONA_API_URL}${ONA_LIST_SECRETS_PATH}`,
+        {
+          filter: { scope },
+          pagination: { pageSize: ONA_PAGE_SIZE, ...(token ? { token } : {}) }
+        },
+        { headers: getAuthHeaders(secretSync) }
+      )
+    );
+
+    if (data?.secrets?.length) all.push(...data.secrets);
+
+    token = data?.pagination?.nextToken || undefined;
+    hasMore = Boolean(token);
+  }
+
+  return all.filter((secret) => secret.environmentVariable === true);
 };
 
 const createEnvVarSecret = async (
@@ -79,15 +123,17 @@ const createEnvVarSecret = async (
   name: string,
   value: string
 ): Promise<void> => {
-  await request.post(
-    `${IntegrationUrls.ONA_API_URL}${ONA_CREATE_SECRET_PATH}`,
-    {
-      name,
-      value,
-      scope,
-      environmentVariable: true
-    },
-    { headers: getAuthHeaders(secretSync) }
+  await withOnaRetry(() =>
+    request.post(
+      `${IntegrationUrls.ONA_API_URL}${ONA_CREATE_SECRET_PATH}`,
+      {
+        name,
+        value,
+        scope,
+        environmentVariable: true
+      },
+      { headers: getAuthHeaders(secretSync) }
+    )
   );
 };
 
@@ -96,18 +142,22 @@ const updateSecretValue = async (
   secretId: string,
   value: string
 ): Promise<void> => {
-  await request.post(
-    `${IntegrationUrls.ONA_API_URL}${ONA_UPDATE_SECRET_VALUE_PATH}`,
-    { secretId, value },
-    { headers: getAuthHeaders(secretSync) }
+  await withOnaRetry(() =>
+    request.post(
+      `${IntegrationUrls.ONA_API_URL}${ONA_UPDATE_SECRET_VALUE_PATH}`,
+      { secretId, value },
+      { headers: getAuthHeaders(secretSync) }
+    )
   );
 };
 
 const deleteSecret = async (secretSync: TOnaSyncWithCredentials, secretId: string): Promise<void> => {
-  await request.post(
-    `${IntegrationUrls.ONA_API_URL}${ONA_DELETE_SECRET_PATH}`,
-    { secretId },
-    { headers: getAuthHeaders(secretSync) }
+  await withOnaRetry(() =>
+    request.post(
+      `${IntegrationUrls.ONA_API_URL}${ONA_DELETE_SECRET_PATH}`,
+      { secretId },
+      { headers: getAuthHeaders(secretSync) }
+    )
   );
 };
 
