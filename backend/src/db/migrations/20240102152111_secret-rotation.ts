@@ -38,7 +38,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
+  await dropOnUpdateTrigger(knex, TableName.DeprecatedSecretRotationV1);
   await knex.schema.dropTableIfExists(TableName.DeprecatedSecretRotationOutput);
   await knex.schema.dropTableIfExists(TableName.DeprecatedSecretRotationV1);
-  await dropOnUpdateTrigger(knex, TableName.DeprecatedSecretRotationV1);
 }

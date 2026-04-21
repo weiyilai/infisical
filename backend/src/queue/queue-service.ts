@@ -643,7 +643,7 @@ export const queueServiceFactory = (redisCfg: TRedisConfigKeys): TQueueServiceFa
 
   // Remove orphaned job schedulers left in Redis by the QueueInternalRecovery/QueueInternalReconciliation deleted queues.
   void (async () => {
-    const staleQueueNames = ["queue-internal-recovery", "queue-internal-reconciliation"];
+    const staleQueueNames = ["queue-internal-recovery", "queue-internal-reconciliation", "secret-rotation"];
     await Promise.allSettled(
       staleQueueNames.map(async (name) => {
         const staleQueue = new Queue(name, {
