@@ -379,9 +379,7 @@ export const SecretSyncFns = {
         // infinite sync loops where the prefixed key triggers another sync cycle.
         return ExternalInfisicalSyncFns.syncSecrets(secretSync, secretMap);
       default:
-        throw new Error(
-          `Unhandled sync destination for sync secrets fns: ${(secretSync as TSecretSyncWithCredentials).destination}`
-        );
+        throw new Error(`Unhandled sync destination for sync secrets fns: ${secretSync.destination}`);
     }
   },
   getSecrets: async (
@@ -519,9 +517,7 @@ export const SecretSyncFns = {
         secretMap = await ExternalInfisicalSyncFns.getSecrets(secretSync);
         break;
       default:
-        throw new Error(
-          `Unhandled sync destination for get secrets fns: ${(secretSync as TSecretSyncWithCredentials).destination}`
-        );
+        throw new Error(`Unhandled sync destination for get secrets fns: ${secretSync.destination}`);
     }
 
     const filtered = filterForSchema(secretMap, secretSync.environment?.slug || "", secretSync.syncOptions.keySchema);
@@ -628,9 +624,7 @@ export const SecretSyncFns = {
         // infinite sync loops where the prefixed key triggers another sync cycle.
         return ExternalInfisicalSyncFns.removeSecrets(secretSync, secretMap);
       default:
-        throw new Error(
-          `Unhandled sync destination for remove secrets fns: ${(secretSync as TSecretSyncWithCredentials).destination}`
-        );
+        throw new Error(`Unhandled sync destination for remove secrets fns: ${secretSync.destination}`);
     }
   }
 };

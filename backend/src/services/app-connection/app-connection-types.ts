@@ -253,6 +253,12 @@ import {
   TValidateOktaConnectionCredentialsSchema
 } from "./okta";
 import {
+  TOnaConnection,
+  TOnaConnectionConfig,
+  TOnaConnectionInput,
+  TValidateOnaConnectionCredentialsSchema
+} from "./ona";
+import {
   TOpenRouterConnection,
   TOpenRouterConnectionConfig,
   TOpenRouterConnectionInput,
@@ -394,6 +400,7 @@ export type TAppConnection = { id: string } & (
   | TDopplerConnection
   | TNetScalerConnection
   | TAnthropicConnection
+  | TOnaConnection
 );
 
 export type TAppConnectionRaw = NonNullable<Awaited<ReturnType<TAppConnectionDALFactory["findById"]>>>;
@@ -462,6 +469,7 @@ export type TAppConnectionInput = { id: string } & (
   | TDopplerConnectionInput
   | TNetScalerConnectionInput
   | TAnthropicConnectionInput
+  | TOnaConnectionInput
 );
 
 export type TSqlConnectionInput =
@@ -558,7 +566,8 @@ export type TAppConnectionConfig =
   | TExternalInfisicalConnectionConfig
   | TDopplerConnectionConfig
   | TNetScalerConnectionConfig
-  | TAnthropicConnectionConfig;
+  | TAnthropicConnectionConfig
+  | TOnaConnectionConfig;
 
 export type TValidateAppConnectionCredentialsSchema =
   | TValidateAwsConnectionCredentialsSchema
@@ -617,7 +626,8 @@ export type TValidateAppConnectionCredentialsSchema =
   | TValidateExternalInfisicalConnectionCredentialsSchema
   | TValidateDopplerConnectionCredentialsSchema
   | TValidateNetScalerConnectionCredentialsSchema
-  | TValidateAnthropicConnectionCredentialsSchema;
+  | TValidateAnthropicConnectionCredentialsSchema
+  | TValidateOnaConnectionCredentialsSchema;
 
 export type TListAwsConnectionKmsKeys = {
   connectionId: string;

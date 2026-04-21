@@ -42,6 +42,7 @@ import { TNorthflankConnection } from "./northflank-connection";
 import { TOCIConnection } from "./oci-connection";
 import { TOctopusDeployConnection } from "./octopus-deploy-connection";
 import { TOktaConnection } from "./okta-connection";
+import { TOnaConnection } from "./ona-connection";
 import { TOpenRouterConnection } from "./open-router-connection";
 import { TOracleDBConnection } from "./oracledb-connection";
 import { TPostgresConnection } from "./postgres-connection";
@@ -98,6 +99,7 @@ export * from "./northflank-connection";
 export * from "./oci-connection";
 export * from "./octopus-deploy-connection";
 export * from "./okta-connection";
+export * from "./ona-connection";
 export * from "./open-router-connection";
 export * from "./oracledb-connection";
 export * from "./postgres-connection";
@@ -171,7 +173,8 @@ export type TAppConnection =
   | TVenafiConnection
   | TExternalInfisicalConnection
   | TDopplerConnection
-  | TNetScalerConnection;
+  | TNetScalerConnection
+  | TOnaConnection;
 
 export type TAvailableAppConnection = Pick<TAppConnection, "name" | "id" | "projectId">;
 

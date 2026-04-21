@@ -135,6 +135,7 @@ import {
   SanitizedOctopusDeployConnectionSchema
 } from "@app/services/app-connection/octopus-deploy";
 import { OktaConnectionListItemSchema, SanitizedOktaConnectionSchema } from "@app/services/app-connection/okta";
+import { OnaConnectionListItemSchema, SanitizedOnaConnectionSchema } from "@app/services/app-connection/ona";
 import {
   OpenRouterConnectionListItemSchema,
   SanitizedOpenRouterConnectionSchema
@@ -233,7 +234,8 @@ const SanitizedAppConnectionSchema = z.union([
   ...SanitizedVenafiConnectionSchema.options,
   ...SanitizedExternalInfisicalConnectionSchema.options,
   ...SanitizedDopplerConnectionSchema.options,
-  ...SanitizedNetScalerConnectionSchema.options
+  ...SanitizedNetScalerConnectionSchema.options,
+  ...SanitizedOnaConnectionSchema.options
 ]);
 
 const AppConnectionOptionsSchema = z.discriminatedUnion("app", [
@@ -293,7 +295,8 @@ const AppConnectionOptionsSchema = z.discriminatedUnion("app", [
   ExternalInfisicalConnectionListItemSchema,
   DopplerConnectionListItemSchema,
   NetScalerConnectionListItemSchema,
-  AnthropicConnectionListItemSchema
+  AnthropicConnectionListItemSchema,
+  OnaConnectionListItemSchema
 ]);
 
 export const registerAppConnectionRouter = async (server: FastifyZodProvider) => {

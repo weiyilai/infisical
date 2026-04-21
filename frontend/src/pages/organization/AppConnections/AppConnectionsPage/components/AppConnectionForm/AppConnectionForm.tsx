@@ -56,6 +56,7 @@ import { NorthflankConnectionForm } from "./NorthflankConnectionForm";
 import { OCIConnectionForm } from "./OCIConnectionForm";
 import { OctopusDeployConnectionForm } from "./OctopusDeployConnectionForm";
 import { OktaConnectionForm } from "./OktaConnectionForm";
+import { OnaConnectionForm } from "./OnaConnectionForm";
 import { OpenRouterConnectionForm } from "./OpenRouterConnectionForm";
 import { OracleDBConnectionForm } from "./OracleDBConnectionForm";
 import { PostgresConnectionForm } from "./PostgresConnectionForm";
@@ -279,6 +280,8 @@ const CreateForm = ({ app, onComplete, projectId }: CreateFormProps) => {
         return <DopplerConnectionForm onSubmit={onSubmit} />;
       case AppConnection.NetScaler:
         return <NetScalerConnectionForm onSubmit={onSubmit} />;
+      case AppConnection.Ona:
+        return <OnaConnectionForm onSubmit={onSubmit} />;
       default:
         throw new Error(`Unhandled App ${app}`);
     }
@@ -492,6 +495,8 @@ const UpdateForm = ({ appConnection, onComplete }: UpdateFormProps) => {
         return <DopplerConnectionForm onSubmit={onSubmit} appConnection={appConnection} />;
       case AppConnection.NetScaler:
         return <NetScalerConnectionForm onSubmit={onSubmit} appConnection={appConnection} />;
+      case AppConnection.Ona:
+        return <OnaConnectionForm onSubmit={onSubmit} appConnection={appConnection} />;
       default:
         throw new Error(`Unhandled App ${(appConnection as TAppConnection).app}`);
     }

@@ -174,6 +174,7 @@ import {
   validateOctopusDeployConnectionCredentials
 } from "./octopus-deploy";
 import { getOktaConnectionListItem, OktaConnectionMethod, validateOktaConnectionCredentials } from "./okta";
+import { getOnaConnectionListItem, OnaConnectionMethod, validateOnaConnectionCredentials } from "./ona";
 import {
   getOpenRouterConnectionListItem,
   OpenRouterConnectionMethod,
@@ -294,7 +295,8 @@ export const listAppConnectionOptions = (projectType?: ProjectType) => {
     getVenafiConnectionListItem(),
     getExternalInfisicalConnectionListItem(),
     getDopplerConnectionListItem(),
-    getNetScalerConnectionListItem()
+    getNetScalerConnectionListItem(),
+    getOnaConnectionListItem()
   ]
     .filter((option) => {
       switch (projectType) {
@@ -441,6 +443,7 @@ export const validateAppConnectionCredentials = async (
     [AppConnection.AzureEntraId]: validateAzureEntraIdConnectionCredentials as TAppConnectionCredentialsValidator,
     [AppConnection.Venafi]: validateVenafiConnectionCredentials as TAppConnectionCredentialsValidator,
     [AppConnection.NetScaler]: validateNetScalerConnectionCredentials as TAppConnectionCredentialsValidator,
+    [AppConnection.Ona]: validateOnaConnectionCredentials as TAppConnectionCredentialsValidator,
     [AppConnection.ExternalInfisical]: ((config: TAppConnectionConfig) =>
       validateExternalInfisicalConnectionCredentials(
         config as TExternalInfisicalConnectionConfig,
@@ -458,6 +461,7 @@ export const getAppConnectionMethodName = (method: TAppConnection["method"]) => 
     case GitHubRadarConnectionMethod.App:
       return "GitHub App";
     case GitHubConnectionMethod.Pat:
+    case OnaConnectionMethod.PersonalAccessToken:
       return "Personal Access Token";
     case AzureKeyVaultConnectionMethod.OAuth:
     case AzureAppConfigurationConnectionMethod.OAuth:
@@ -653,7 +657,8 @@ export const TRANSITION_CONNECTION_CREDENTIALS_TO_PLATFORM: Record<
   [AppConnection.Venafi]: platformManagedCredentialsNotSupported,
   [AppConnection.ExternalInfisical]: platformManagedCredentialsNotSupported,
   [AppConnection.Doppler]: platformManagedCredentialsNotSupported,
-  [AppConnection.NetScaler]: platformManagedCredentialsNotSupported
+  [AppConnection.NetScaler]: platformManagedCredentialsNotSupported,
+  [AppConnection.Ona]: platformManagedCredentialsNotSupported
 };
 
 export const enterpriseAppCheck = async (
