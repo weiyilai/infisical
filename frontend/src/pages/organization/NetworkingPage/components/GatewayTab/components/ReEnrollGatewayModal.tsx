@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { faCopy } from "@fortawesome/free-solid-svg-icons";
+import { faCopy, faUpRightFromSquare } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { createNotification } from "@app/components/notifications";
@@ -140,6 +140,15 @@ export const ReEnrollGatewayModal = ({ isOpen, onOpenChange, gatewayData }: Prop
                 </div>
               </TabPanel>
             </Tabs>
+            <a
+              href="https://infisical.com/docs/cli/overview"
+              target="_blank"
+              className="mt-2 flex h-4 w-fit items-center gap-2 border-b border-mineshaft-400 text-sm text-mineshaft-400 transition-colors duration-100 hover:border-yellow-400 hover:text-yellow-400"
+              rel="noreferrer"
+            >
+              <span>Install the Infisical CLI</span>
+              <FontAwesomeIcon icon={faUpRightFromSquare} className="size-3" />
+            </a>
             <div className="mt-6 flex items-center">
               <ModalClose asChild>
                 <Button className="mr-4" size="sm" colorSchema="secondary">
