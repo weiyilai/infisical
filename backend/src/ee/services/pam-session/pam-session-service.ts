@@ -157,10 +157,10 @@ export const pamSessionServiceFactory = ({
       throw new BadRequestError({ message: "Cannot update logs for sessions with existing logs" });
     }
 
-    // PamSession.projectId is a FK to Project (ON DELETE CASCADE) — project is guaranteed to exist.
     const project = await requestMemoize(requestMemoKeys.projectFindById(session.projectId), () =>
       projectDAL.findById(session.projectId)
     );
+    if (!project) throw new NotFoundError({ message: `Project with ID '${session.projectId}' not found` });
 
     if (actor.type === ActorType.IDENTITY) {
       const { permission } = await permissionService.getOrgPermission({
@@ -210,10 +210,10 @@ export const pamSessionServiceFactory = ({
     const session = await pamSessionDAL.findById(sessionId);
     if (!session) throw new NotFoundError({ message: `Session with ID '${sessionId}' not found` });
 
-    // PamSession.projectId is a FK to Project (ON DELETE CASCADE) — project is guaranteed to exist.
     const project = await requestMemoize(requestMemoKeys.projectFindById(session.projectId), () =>
       projectDAL.findById(session.projectId)
     );
+    if (!project) throw new NotFoundError({ message: `Project with ID '${session.projectId}' not found` });
 
     if (actor.type === ActorType.IDENTITY) {
       const { permission } = await permissionService.getOrgPermission({
@@ -406,10 +406,10 @@ export const pamSessionServiceFactory = ({
     const session = await pamSessionDAL.findById(sessionId);
     if (!session) throw new NotFoundError({ message: `Session with ID '${sessionId}' not found` });
 
-    // PamSession.projectId is a FK to Project (ON DELETE CASCADE) — project is guaranteed to exist.
     const project = await requestMemoize(requestMemoKeys.projectFindById(session.projectId), () =>
       projectDAL.findById(session.projectId)
     );
+    if (!project) throw new NotFoundError({ message: `Project with ID '${session.projectId}' not found` });
 
     if (actor.type === ActorType.IDENTITY) {
       const { permission } = await permissionService.getOrgPermission({
@@ -448,7 +448,7 @@ export const pamSessionServiceFactory = ({
 
     const { wasInserted } = await pamSessionEventBatchDAL.upsertBatch(sessionId, startOffset, cipherTextBlob);
 
-    return { projectId: project.id, wasInserted };
+    return { projectId: session.projectId, wasInserted };
   };
 
   return { getById, list, getSessionLogs, updateLogsById, endSessionById, terminateSessionById, uploadEventBatch };

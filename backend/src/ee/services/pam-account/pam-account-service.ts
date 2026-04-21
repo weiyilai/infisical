@@ -783,6 +783,7 @@ export const pamAccountServiceFactory = ({
       const project = await requestMemoize(requestMemoKeys.projectFindById(account.projectId), () =>
         projectDAL.findById(account.projectId)
       );
+      if (!project) throw new NotFoundError({ message: `Project with ID '${account.projectId}' not found` });
       const org = await orgDAL.findOrgById(project.orgId);
       if (!org) throw new NotFoundError({ message: `Organization with ID '${project.orgId}' not found` });
 

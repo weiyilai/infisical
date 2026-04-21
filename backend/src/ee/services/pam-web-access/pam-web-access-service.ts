@@ -245,10 +245,10 @@ export const pamWebAccessServiceFactory = ({
 
     // MFA check
     if (account.requireMfa && !mfaSessionId) {
-      // PamAccount.projectId is a FK to Project (ON DELETE CASCADE) — project is guaranteed to exist.
       const project = await requestMemoize(requestMemoKeys.projectFindById(account.projectId), () =>
         projectDAL.findById(account.projectId)
       );
+      if (!project) throw new NotFoundError({ message: `Project with ID '${account.projectId}' not found` });
 
       const actorUser = await userDAL.findById(actor.id);
       if (!actorUser) throw new NotFoundError({ message: `User with ID '${actor.id}' not found` });
