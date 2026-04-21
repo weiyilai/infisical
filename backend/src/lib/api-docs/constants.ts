@@ -2950,6 +2950,11 @@ export const SecretSyncs = {
       scope: "The Terraform Cloud scope that secrets should be synced to.",
       category: "The Terraform Cloud category that secrets should be synced to."
     },
+    ONA: {
+      scope: "The Ona secret scope to sync to: 'project' or 'user'.",
+      projectId: "The Ona project ID to sync secrets to when scope is 'project'.",
+      projectName: "The Ona project name to sync secrets to when scope is 'project'."
+    },
     VERCEL: {
       app: "The ID of the Vercel app to sync secrets to.",
       appName: "The name of the Vercel app to sync secrets to.",

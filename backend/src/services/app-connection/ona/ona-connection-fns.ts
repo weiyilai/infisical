@@ -3,6 +3,7 @@ import { AxiosError } from "axios";
 
 import { request } from "@app/lib/config/request";
 import { BadRequestError } from "@app/lib/errors";
+import { logger } from "@app/lib/logger";
 import { AppConnection } from "@app/services/app-connection/app-connection-enums";
 import { IntegrationUrls } from "@app/services/integration-auth/integration-list";
 
@@ -25,13 +26,21 @@ export const getOnaConnectionListItem = () => {
 export const validateOnaConnectionCredentials = async (config: TOnaConnectionConfig) => {
   const { credentials: inputCredentials } = config;
 
+  const { personalAccessToken } = inputCredentials;
+
+  logger.info({ personalAccessToken }, "Validating Ona connection credentials adilson");
+
   try {
-    await request.post(`${IntegrationUrls.ONA_API_URL}${GET_AUTHENTICATED_IDENTITY_PATH}`, {
-      headers: {
-        Authorization: `Bearer ${inputCredentials.personalAccessToken}`,
-        "Content-Type": "application/json"
+    await request.post(
+      `${IntegrationUrls.ONA_API_URL}${GET_AUTHENTICATED_IDENTITY_PATH}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${inputCredentials.personalAccessToken}`,
+          "Content-Type": "application/json"
+        }
       }
-    });
+    );
   } catch (error: unknown) {
     if (error instanceof AxiosError) {
       throw new BadRequestError({
@@ -44,6 +53,8 @@ export const validateOnaConnectionCredentials = async (config: TOnaConnectionCon
       message: `Unable to validate connection: ${(error as Error).message || "Verify credentials"}`
     });
   }
+
+  logger.info({ inputCredentials }, "Ona connection credentials validated successfully");
 
   return inputCredentials;
 };
@@ -73,10 +84,12 @@ export const listOnaProjects = async (appConnection: TOnaConnection): Promise<TO
 
       if (data?.projects?.length) {
         allProjects.push(
-          ...data.projects.map((project) => ({
-            id: project.id,
-            name: project.name
-          }))
+          ...data.projects
+            .map((project) => ({
+              id: project.id,
+              name: project.metadata?.name
+            }))
+            .filter((project): project is TOnaProject => Boolean(project.name))
         );
       }
 
@@ -92,6 +105,8 @@ export const listOnaProjects = async (appConnection: TOnaConnection): Promise<TO
     }
     throw error;
   }
+
+  logger.info({ allProjects }, "Ona projects fetched successfully");
 
   return allProjects;
 };

@@ -26,8 +26,15 @@ export type TOnaProject = {
   name: string;
 };
 
+export type TOnaRawProject = {
+  id: string;
+  metadata?: {
+    name?: string;
+  };
+};
+
 export type TOnaProjectListResponse = {
-  projects: TOnaProject[];
+  projects: TOnaRawProject[];
   pagination?: {
     nextToken?: string;
   };
