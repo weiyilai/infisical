@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Helmet } from "react-helmet";
+import { DiVim } from "react-icons/di";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { AxiosError } from "axios";
 import { addSeconds, formatISO } from "date-fns";
@@ -204,7 +205,11 @@ export const ViewSharedSecretByIDPage = () => {
   }, [faviconUrl]);
 
   if (isLoading || isLoadingBrandingConfig) {
-    return <PageLoader />;
+    return (
+      <div className="h-screen w-screen bg-bunker-800">
+        <PageLoader lottieClassName="w-34" />;
+      </div>
+    );
   }
 
   const secretContent = (
