@@ -186,7 +186,7 @@ export const RequestSecretForm = () => {
     </form>
   ) : (
     <>
-      <div className="relative flex items-center justify-center rounded-lg border border-border bg-container p-4 pr-6 text-label">
+      <div className="relative flex items-center justify-between rounded-md border border-border bg-container p-2 pr-5 pl-3 text-base text-label">
         <p className="mr-4 break-all">{secretLink}</p>
         <IconButton
           aria-label="copy icon"

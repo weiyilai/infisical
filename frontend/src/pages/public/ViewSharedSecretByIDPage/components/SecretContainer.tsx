@@ -51,9 +51,7 @@ export const SecretContainer = ({ secret, brandingTheme }: Props) => {
         style={secretDisplayStyle}
       >
         <p className="break-all whitespace-pre-wrap">
-          {isVisible
-            ? `${secret.secretValue}fsdfdsfdsfdsfsdfdsfdsfsdfddfsdfdsfdsfsfdsfsdfsdfdsfsdfdsfsdfsdfdsfsdfsdfdsfdsfdsfsdfdsfdsfdsfs`
-            : hiddenSecret}
+          {isVisible ? secret.secretValue : hiddenSecret}
         </p>
         <div className="ml-1 flex">
           <IconButton

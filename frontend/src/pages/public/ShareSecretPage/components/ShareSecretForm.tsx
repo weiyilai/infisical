@@ -12,6 +12,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
+  Badge,
   Button,
   Field,
   FieldDescription,
@@ -485,6 +486,16 @@ export const ShareSecretForm = ({
           </AccordionItem>
         </Accordion>
         <div className="flex w-full justify-end">
+          {isPublic && (
+            <Badge variant="ghost" className="mt-auto mr-auto">
+              <img
+                src="/images/logotransparent_trimmed.png"
+                alt="Infisical"
+                className="mr-0.5 h-[8px]"
+              />
+              Powered by Infisical
+            </Badge>
+          )}
           <Button
             size="md"
             variant={isPublic ? "project" : "org"}
@@ -519,7 +530,7 @@ export const ShareSecretForm = ({
 
   return (
     <>
-      <div className="relative flex items-center justify-center rounded-lg border border-border bg-container p-4 pr-6 text-label">
+      <div className="relative flex items-center justify-between rounded-md border border-border bg-container p-2 pr-5 pl-3 text-base text-label">
         <p className="mr-4 break-all">{secretLink}</p>
         <IconButton
           aria-label="copy icon"
