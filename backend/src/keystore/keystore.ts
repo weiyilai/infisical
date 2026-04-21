@@ -116,7 +116,7 @@ export const KeyStoreTtls = {
   WebAuthnChallengeInSeconds: 300, // 5 minutes
   ProjectSSEConnectionTtlSeconds: 180, // Must be > heartbeat interval (60s) * 2
   TelemetryIdentifyIdentityInSeconds: 86400, // 24 hours
-  RefreshTokenGraceInSeconds: 30,
+  RefreshTokenGraceInSeconds: 10,
   InsightsCacheInSeconds: 300 // 5 minutes
 };
 
