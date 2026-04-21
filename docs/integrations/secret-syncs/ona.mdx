@@ -31,9 +31,6 @@ description: "Learn how to configure an Ona Sync for Infisical."
                 - **Environment**: The project environment to retrieve secrets from.
                 - **Secret Path**: The folder path to retrieve secrets from.
 
-                <Tip>
-                    If you need to sync secrets from multiple folder locations, check out [secret imports](/documentation/platform/secret-reference#secret-imports).
-                </Tip>
             </Step>
             <Step title="Configure destination">
                 Configure the **Destination** to where secrets should be deployed, then click **Next**.
@@ -50,7 +47,7 @@ description: "Learn how to configure an Ona Sync for Infisical."
 
                 ![Configure Sync Options](/images/secret-syncs/ona/ona-options.png)
 
-                - **Initial Sync Behavior**: Determines how Infisical should resolve the initial sync. Ona Sync only supports **Overwrite Destination Secrets** — any environment-variable secrets at the destination that are not present in Infisical will be removed on the first sync.
+                - **Initial Sync Behavior**: Determines how Infisical should resolve the initial sync. Ona Sync only supports **Overwrite Destination Secrets**. Any environment-variable secrets at the destination that are not present in Infisical will be removed on the first sync.
                 - **Key Schema**: Template that determines how secret names are transformed when syncing, using `{{secretKey}}` as a placeholder for the original secret name and `{{environment}}` for the environment.
                 <Note>
                     We highly recommend using a Key Schema to ensure that Infisical only manages the specific keys you intend, keeping everything else untouched.

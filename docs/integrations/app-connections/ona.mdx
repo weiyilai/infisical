@@ -3,21 +3,36 @@ title: "Ona Connection"
 description: "Learn how to configure an Ona Connection for Infisical."
 ---
 
-Infisical supports connecting to [Ona](https://www.gitpod.io/) — Gitpod's cloud development environment platform — using a Personal Access Token (PAT). The connection lets Infisical list your Ona projects and, together with an [Ona Sync](/integrations/secret-syncs/ona), manage environment-variable secrets at the project or user scope.
+Infisical supports connecting to [Ona](https://www.gitpod.io/) (Gitpod's cloud development environment platform) using a Personal Access Token (PAT).
 
 ## Create an Ona Personal Access Token
 
 <Steps>
-  <Step title="Generate a Personal Access Token in Ona">
-    Sign in to Ona and generate a Personal Access Token from your account's token settings. Refer to Gitpod's [Personal Access Token documentation](https://www.gitpod.io/docs/configure/user-settings/access-tokens) for the exact location and current steps.
+  <Step title="Open your user settings on Ona">
 
-    The token must have sufficient permissions to:
+  Navigate to your Ona user settings.
 
-    - List projects you want Infisical to sync secrets to.
-    - Create, update, and delete environment-variable secrets in the target project or user scope.
+
+  </Step>
+  <Step title="Select the Personal Access Tokens tab">
+    In the bottom left, click your name, then click the gear icon to access your user settings.
+    
+      ![Open Account setting](/images/app-connections/ona/ona-account-settings.png)
+  </Step>
+  <Step title="Create the token">
+    Click the **New Token** button and add a description for the token (eg, "infisical integration"). The token must have Read & Write access so that Infisical can apply changes in Ona.
+
+    <Note>
+     Personal access tokens have an expiration date, so you will need to manually rotate them before they expire to avoid integration downtime. Consider setting a calendar reminder for this task.
+    </Note>
+    
+    ![Open PAT section](/images/app-connections/ona/ona-pat-section.png)
+    ![New token modal](/images/app-connections/ona/ona-pat-creation-modal.png)
   </Step>
   <Step title="Copy the token">
-    Copy the generated token — you'll paste it into Infisical in the next section. Treat it like a password; Ona will only show it once.
+    Make sure to save the token, as it won't be shown again.
+
+    ![Copy Token](/images/app-connections/ona/ona-pat-copy.png)
   </Step>
 </Steps>
 
@@ -46,7 +61,7 @@ Infisical supports connecting to [Ona](https://www.gitpod.io/) — Gitpod's clou
         ![Ona Connection Modal](/images/app-connections/ona/ona-app-connection-form.png)
       </Step>
       <Step title="Connection created">
-        After submitting the form, your **Ona Connection** will be created and ready to use with an [Ona Sync](/integrations/secret-syncs/ona).
+        After submitting the form, your **Ona Connection** will be created.
 
         ![Ona Connection Created](/images/app-connections/ona/ona-app-connection-generated.png)
       </Step>
