@@ -2913,7 +2913,8 @@ export const registerRoutes = async (
     approvalPolicyDAL,
     pamSessionExpirationService,
     resourceMetadataDAL,
-    pamAccountDependenciesDAL
+    pamAccountDependenciesDAL,
+    keyStore
   });
 
   const pamAccountRotation = pamAccountRotationServiceFactory({
