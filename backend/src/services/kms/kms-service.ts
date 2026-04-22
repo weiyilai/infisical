@@ -953,6 +953,12 @@ export const kmsServiceFactory = ({
       });
     }
 
+    const kmsDoc = await kmsDAL.findByIdWithAssociatedKms(backupKmsKeyId);
+    if (kmsDoc.orgId !== project.orgId)
+      throw new ForbiddenRequestError({
+        message: "Backup does not belong to project"
+      });
+
     const kmsDecryptor = await decryptWithKmsKey({ kmsId: backupKmsKeyId });
     const dataKey = await kmsDecryptor({
       cipherTextBlob: Buffer.from(backupBase64EncryptedDataKey, "base64")

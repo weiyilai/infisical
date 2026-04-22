@@ -365,6 +365,14 @@ export const accessApprovalRequestServiceFactory = ({
       }
     }
 
+    if (policy.maxTimePeriod) {
+      if (ms(temporaryRange) > ms(policy.maxTimePeriod)) {
+        throw new BadRequestError({
+          message: `Requested access time range is limited to ${policy.maxTimePeriod} by policy`
+        });
+      }
+    }
+
     let envSlug = "unknown";
     let secretPath = "/";
     let accessTypes: string[] = [];

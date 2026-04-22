@@ -479,12 +479,6 @@ export const secretApprovalRequestServiceFactory = ({
     actorAuthMethod,
     actorOrgId
   }: TReviewRequestDTO) => {
-    const secretApprovalRequest = await secretApprovalRequestDAL.findById(approvalId);
-    if (!secretApprovalRequest) {
-      throw new NotFoundError({ message: `Secret approval request with ID '${approvalId}' not found` });
-    }
-    if (actor !== ActorType.USER) throw new BadRequestError({ message: "Must be a user" });
-
     const plan = await licenseService.getPlan(actorOrgId);
     if (!plan.secretApproval) {
       throw new BadRequestError({
@@ -492,6 +486,15 @@ export const secretApprovalRequestServiceFactory = ({
           "Failed to review secret approval request due to plan restriction. Upgrade plan to review secret approval request."
       });
     }
+
+    const secretApprovalRequest = await secretApprovalRequestDAL.findById(approvalId);
+    if (!secretApprovalRequest) {
+      throw new NotFoundError({ message: `Secret approval request with ID '${approvalId}' not found` });
+    }
+    if (actor !== ActorType.USER) throw new BadRequestError({ message: "Must be a user" });
+
+    if (secretApprovalRequest.status !== RequestState.Open)
+      throw new BadRequestError({ message: "You can only review open approval requests" });
 
     const { policy } = secretApprovalRequest;
     if (policy.deletedAt) {
@@ -637,6 +640,10 @@ export const secretApprovalRequestServiceFactory = ({
       });
     }
 
+    if (secretApprovalRequest.hasMerged) throw new BadRequestError({ message: "Approval request has been merged" });
+    if (secretApprovalRequest.status !== RequestState.Open)
+      throw new BadRequestError({ message: "You can only approve or reject open approval requests" });
+
     const { hasRole } = await permissionService.getProjectPermission({
       actor: ActorType.USER,
       actorId,
@@ -708,7 +715,7 @@ export const secretApprovalRequestServiceFactory = ({
       if (secretUpdationCommits.length) {
         const secrets = await secretV2BridgeDAL.findBySecretKeys(
           folderId,
-          secretCreationCommits.map((el) => ({
+          secretUpdationCommits.map((el) => ({
             key: el.key,
             type: SecretType.Shared
           }))
