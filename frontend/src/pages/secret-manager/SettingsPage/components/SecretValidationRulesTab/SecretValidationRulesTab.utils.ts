@@ -1,4 +1,11 @@
-import { HashIcon, LucideIcon, RulerIcon, TextCursorInputIcon, TextIcon } from "lucide-react";
+import {
+  HashIcon,
+  HistoryIcon,
+  LucideIcon,
+  RulerIcon,
+  TextCursorInputIcon,
+  TextIcon
+} from "lucide-react";
 import { z } from "zod";
 
 export enum ConstraintType {
@@ -6,7 +13,8 @@ export enum ConstraintType {
   MaxLength = "max-length",
   RegexPattern = "regex-pattern",
   RequiredPrefix = "required-prefix",
-  RequiredSuffix = "required-suffix"
+  RequiredSuffix = "required-suffix",
+  NoValueReuse = "no-value-reuse"
 }
 
 export enum ConstraintTarget {
@@ -18,8 +26,10 @@ export const CONSTRAINT_OPTIONS: {
   type: ConstraintType;
   label: string;
   description: string;
+  cardDescription?: string;
   placeholder: string | number;
   icon: LucideIcon;
+  allowedTargets?: ConstraintTarget[];
 }[] = [
   {
     type: ConstraintType.MinLength,
@@ -55,6 +65,16 @@ export const CONSTRAINT_OPTIONS: {
     description: "Must end with specific text",
     placeholder: "-SUFFIX",
     icon: TextIcon
+  },
+  {
+    type: ConstraintType.NoValueReuse,
+    label: "No Value Reuse",
+    description: "Prevent reusing previous secret values",
+    cardDescription:
+      "Prevents secrets from reusing previous values. When a secret is updated, its new value must differ from its most recent versions.",
+    placeholder: 10,
+    icon: HistoryIcon,
+    allowedTargets: [ConstraintTarget.SecretValue]
   }
 ];
 
@@ -63,7 +83,8 @@ export const CONSTRAINT_VALUE_LABELS: Record<ConstraintType, string> = {
   [ConstraintType.MaxLength]: "Characters",
   [ConstraintType.RegexPattern]: "Pattern",
   [ConstraintType.RequiredPrefix]: "Text",
-  [ConstraintType.RequiredSuffix]: "Text"
+  [ConstraintType.RequiredSuffix]: "Text",
+  [ConstraintType.NoValueReuse]: "Previous versions"
 };
 
 export const CONSTRAINT_TYPE_LABELS: Record<ConstraintType, string> = {
@@ -71,7 +92,8 @@ export const CONSTRAINT_TYPE_LABELS: Record<ConstraintType, string> = {
   [ConstraintType.MaxLength]: "Max Length",
   [ConstraintType.RegexPattern]: "Regex Pattern",
   [ConstraintType.RequiredPrefix]: "Required Prefix",
-  [ConstraintType.RequiredSuffix]: "Required Suffix"
+  [ConstraintType.RequiredSuffix]: "Required Suffix",
+  [ConstraintType.NoValueReuse]: "No Value Reuse"
 };
 
 export enum RuleType {
@@ -82,11 +104,29 @@ export const RULE_TYPE_LABELS: Record<RuleType, string> = {
   [RuleType.StaticSecrets]: "Static Secrets"
 };
 
-export const constraintSchema = z.object({
-  type: z.nativeEnum(ConstraintType),
-  appliesTo: z.nativeEnum(ConstraintTarget),
-  value: z.string().min(1, "Value is required")
-});
+const MAX_NO_REUSE_VERSIONS = 100;
+
+export const constraintSchema = z
+  .object({
+    type: z.nativeEnum(ConstraintType),
+    appliesTo: z.nativeEnum(ConstraintTarget),
+    value: z.string()
+  })
+  .refine((c) => c.type === ConstraintType.NoValueReuse || c.value.length > 0, {
+    message: "Value is required",
+    path: ["value"]
+  })
+  .refine(
+    (c) => {
+      if (c.type !== ConstraintType.NoValueReuse) return true;
+      const num = Number(c.value);
+      return !Number.isNaN(num) && num >= 1 && num <= MAX_NO_REUSE_VERSIONS;
+    },
+    {
+      message: `Must be a number between 1 and ${MAX_NO_REUSE_VERSIONS}`,
+      path: ["value"]
+    }
+  );
 
 const staticSecretsInputsSchema = z.object({
   constraints: z

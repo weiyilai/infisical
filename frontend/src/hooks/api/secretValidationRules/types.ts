@@ -7,7 +7,8 @@ export enum ConstraintType {
   MaxLength = "max-length",
   RegexPattern = "regex-pattern",
   RequiredPrefix = "required-prefix",
-  RequiredSuffix = "required-suffix"
+  RequiredSuffix = "required-suffix",
+  NoValueReuse = "no-value-reuse"
 }
 
 export enum ConstraintTarget {

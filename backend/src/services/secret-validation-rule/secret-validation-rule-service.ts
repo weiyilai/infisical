@@ -11,10 +11,13 @@ import { KmsDataKey } from "../kms/kms-types";
 import { TSecretFolderDALFactory } from "../secret-folder/secret-folder-dal";
 import { expandSecretReferencesFactory } from "../secret-v2-bridge/secret-reference-fns";
 import { TSecretV2BridgeDALFactory } from "../secret-v2-bridge/secret-v2-bridge-dal";
+import { TSecretVersionV2DALFactory } from "../secret-v2-bridge/secret-version-dal";
 import { TSecretValidationRuleDALFactory } from "./secret-validation-rule-dal";
 import { checkForOverlappingRules, enforceSecretValidationRules } from "./secret-validation-rule-fns";
 import { parseSecretValidationRuleInputs } from "./secret-validation-rule-schemas";
 import {
+  ConstraintTarget,
+  ConstraintType,
   SecretValidationRuleType,
   TCreateSecretValidationRuleDTO,
   TDeleteSecretValidationRuleDTO,
@@ -27,6 +30,7 @@ type TSecretValidationRuleServiceFactoryDep = {
   projectEnvDAL: Pick<TProjectEnvDALFactory, "findOne">;
   folderDAL: Pick<TSecretFolderDALFactory, "findBySecretPath">;
   secretDAL: TSecretV2BridgeDALFactory;
+  secretVersionV2BridgeDAL: Pick<TSecretVersionV2DALFactory, "find">;
   permissionService: Pick<TPermissionServiceFactory, "getProjectPermission">;
   kmsService: TKmsServiceFactory;
 };
@@ -38,6 +42,7 @@ export const secretValidationRuleServiceFactory = ({
   projectEnvDAL,
   folderDAL,
   secretDAL,
+  secretVersionV2BridgeDAL,
   permissionService,
   kmsService
 }: TSecretValidationRuleServiceFactoryDep) => {
@@ -321,7 +326,7 @@ export const secretValidationRuleServiceFactory = ({
     environment: string;
     envId: string;
     secretPath: string;
-    secrets: { key: string; value?: string }[];
+    secrets: { key: string; value?: string; secretId?: string }[];
   }) => {
     if (!secrets.length) return;
 
@@ -341,9 +346,56 @@ export const secretValidationRuleServiceFactory = ({
       canExpandValue: () => true
     });
 
-    let resolvedSecrets = secrets;
+    const { decryptor: ruleInputsDecryptor } = await kmsService.createCipherPairWithDataKey({
+      type: KmsDataKey.SecretManager,
+      projectId
+    });
 
-    resolvedSecrets = await Promise.all(
+    const parsedRules = rules.map((r) => ({
+      ...r,
+      inputs: parseSecretValidationRuleInputs(
+        r.type,
+        JSON.parse(ruleInputsDecryptor({ cipherTextBlob: r.encryptedInputs }).toString()) as unknown
+      )
+    }));
+
+    const MAX_NO_REUSE_VERSIONS = 100;
+    const hasNoValueReuseConstraint = parsedRules.some((r) =>
+      r.inputs.constraints?.some(
+        (c) => c.type === ConstraintType.NoValueReuse && c.appliesTo === ConstraintTarget.SecretValue
+      )
+    );
+
+    const previousValuesMap: Record<string, string[]> = {};
+    if (hasNoValueReuseConstraint) {
+      const secretIdsToCheck = secrets.filter((s) => s.secretId).map((s) => s.secretId!);
+      if (secretIdsToCheck.length) {
+        const allVersions = await Promise.all(
+          secretIdsToCheck.map((sId) =>
+            secretVersionV2BridgeDAL.find(
+              { secretId: sId },
+              { sort: [["version", "desc"]], limit: MAX_NO_REUSE_VERSIONS }
+            )
+          )
+        );
+
+        for (const versions of allVersions) {
+          for (const version of versions) {
+            if (!version.encryptedValue) {
+              // eslint-disable-next-line no-continue
+              continue;
+            }
+            const decryptedValue = secretManagerDecryptor({ cipherTextBlob: version.encryptedValue }).toString();
+            if (!previousValuesMap[version.secretId]) {
+              previousValuesMap[version.secretId] = [];
+            }
+            previousValuesMap[version.secretId].push(decryptedValue);
+          }
+        }
+      }
+    }
+
+    const resolvedSecrets = await Promise.all(
       secrets.map(async (s) => ({
         key: s.key,
         value: await expandSecretReferences({
@@ -351,23 +403,13 @@ export const secretValidationRuleServiceFactory = ({
           secretPath,
           environment,
           secretKey: s.key
-        })
+        }),
+        ...(s.secretId && previousValuesMap[s.secretId] ? { previousValues: previousValuesMap[s.secretId] } : {})
       }))
     );
 
-    const { decryptor: ruleInputsDecryptor } = await kmsService.createCipherPairWithDataKey({
-      type: KmsDataKey.SecretManager,
-      projectId
-    });
-
     enforceSecretValidationRules({
-      projectRules: rules.map((r) => ({
-        ...r,
-        inputs: parseSecretValidationRuleInputs(
-          r.type,
-          JSON.parse(ruleInputsDecryptor({ cipherTextBlob: r.encryptedInputs }).toString()) as unknown
-        )
-      })),
+      projectRules: parsedRules,
       envId,
       secretPath,
       secrets: resolvedSecrets

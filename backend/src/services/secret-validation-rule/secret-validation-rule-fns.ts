@@ -146,6 +146,7 @@ export const checkForOverlappingRules = ({
 type TSecretToValidate = {
   key: string;
   value?: string;
+  previousValues?: string[];
 };
 
 type TValidationRule = {
@@ -168,7 +169,8 @@ const CONSTRAINT_LABELS: Record<ConstraintType, string> = {
   [ConstraintType.MaxLength]: "Maximum length",
   [ConstraintType.RegexPattern]: "Regex pattern",
   [ConstraintType.RequiredPrefix]: "Required prefix",
-  [ConstraintType.RequiredSuffix]: "Required suffix"
+  [ConstraintType.RequiredSuffix]: "Required suffix",
+  [ConstraintType.NoValueReuse]: "No reuse of previous values"
 };
 
 const TARGET_LABELS: Record<ConstraintTarget, string> = {
@@ -231,6 +233,17 @@ const evaluateConstraint = (constraint: TConstraint, secret: TSecretToValidate):
     case ConstraintType.RequiredSuffix: {
       if (!targetValue.endsWith(constraint.value)) {
         return `${targetLabel} must end with "${constraint.value}"`;
+      }
+      return null;
+    }
+    case ConstraintType.NoValueReuse: {
+      if (secret.value === undefined || !secret.previousValues?.length) {
+        return null;
+      }
+      const versionCount = Number(constraint.value) || 100;
+      const valuesToCheck = secret.previousValues.slice(0, versionCount);
+      if (valuesToCheck.includes(secret.value)) {
+        return `${targetLabel} cannot reuse any of the last ${versionCount} values`;
       }
       return null;
     }
