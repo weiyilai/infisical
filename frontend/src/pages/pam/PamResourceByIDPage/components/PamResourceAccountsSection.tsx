@@ -69,7 +69,6 @@ import { PamAddAccountModal } from "../../PamAccountsPage/components/PamAddAccou
 import { PamDeleteAccountModal } from "../../PamAccountsPage/components/PamDeleteAccountModal";
 import { PamRequestAccountAccessModal } from "../../PamAccountsPage/components/PamRequestAccountAccessModal";
 import { PamUpdateAccountModal } from "../../PamAccountsPage/components/PamUpdateAccountModal";
-import { useAccessAwsIamAccount } from "../../PamAccountsPage/components/useAccessAwsIamAccount";
 
 type Props = {
   resource: TPamResource;
@@ -93,7 +92,6 @@ export const PamResourceAccountsSection = ({ resource }: Props) => {
   const params = useParams({ strict: false }) as { projectId?: string };
   const { projectId } = params;
 
-  const { accessAwsIam, loadingAccountId } = useAccessAwsIamAccount();
   const { mutateAsync: checkPolicyMatch } = useCheckPolicyMatch();
   const manualRotate = useManualRotateAccount();
 
@@ -271,11 +269,7 @@ export const PamResourceAccountsSection = ({ resource }: Props) => {
       return;
     }
 
-    if (account.resource?.resourceType === PamResourceType.AwsIam) {
-      accessAwsIam(account);
-    } else {
-      handlePopUpOpen("accessAccount", { account });
-    }
+    handlePopUpOpen("accessAccount", { account });
   };
 
   return (
@@ -540,8 +534,6 @@ export const PamResourceAccountsSection = ({ resource }: Props) => {
                               e.stopPropagation();
                               accessAccount(account);
                             }}
-                            isPending={loadingAccountId === account.id}
-                            isDisabled={loadingAccountId === account.id}
                           >
                             <LogInIcon />
                             Connect

@@ -45,7 +45,6 @@ import { PamAccessAccountModal } from "../PamAccountsPage/components/PamAccessAc
 import { PamDeleteAccountModal } from "../PamAccountsPage/components/PamDeleteAccountModal";
 import { PamRequestAccountAccessModal } from "../PamAccountsPage/components/PamRequestAccountAccessModal";
 import { PamUpdateAccountModal } from "../PamAccountsPage/components/PamUpdateAccountModal";
-import { useAccessAwsIamAccount } from "../PamAccountsPage/components/useAccessAwsIamAccount";
 import {
   PamAccountCredentialsSection,
   PamAccountDependenciesSection,
@@ -83,7 +82,6 @@ const PageContent = () => {
   ] as const);
 
   const queryClient = useQueryClient();
-  const { accessAwsIam, isPending: isAwsAccessPending } = useAccessAwsIamAccount();
   const { mutateAsync: checkPolicyMatch } = useCheckPolicyMatch();
   const rotateAccount = useManualRotateAccount();
 
@@ -166,11 +164,7 @@ const PageContent = () => {
       return;
     }
 
-    if (account.resource?.resourceType === PamResourceType.AwsIam) {
-      accessAwsIam(account);
-    } else {
-      handlePopUpOpen("accessAccount", { account });
-    }
+    handlePopUpOpen("accessAccount", { account });
   };
 
   const handleRotate = async () => {
@@ -237,7 +231,7 @@ const PageContent = () => {
               I={ProjectPermissionPamAccountActions.Access}
               a={ProjectPermissionSub.PamAccounts}
             >
-              <Button variant="neutral" onClick={handleAccess} isPending={isAwsAccessPending}>
+              <Button variant="neutral" onClick={handleAccess}>
                 <LogInIcon />
                 Access
               </Button>

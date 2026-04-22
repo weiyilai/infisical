@@ -4,8 +4,9 @@ import picomatch from "picomatch";
 import { ActionProjectType, OrganizationActionScope, TableName, TPamAccounts, TPamResources } from "@app/db/schemas";
 import { decryptDomainConnectionDetails } from "@app/ee/services/pam-domain/pam-domain-fns";
 import {
+  exchangeCredentialsForConsoleUrl,
   extractAwsAccountIdFromArn,
-  generateConsoleFederationUrl,
+  generateAwsIamSessionCredentials,
   TAwsIamAccountCredentials
 } from "@app/ee/services/pam-resource/aws-iam";
 import { parseMongoConnectionString } from "@app/ee/services/pam-resource/mongodb/mongodb-resource-factory";
@@ -863,7 +864,7 @@ export const pamAccountServiceFactory = ({
         projectId: account.projectId
       })) as TAwsIamAccountCredentials;
 
-      const { consoleUrl, expiresAt } = await generateConsoleFederationUrl({
+      const credentials = await generateAwsIamSessionCredentials({
         connectionDetails,
         targetRoleArn: awsCredentials.targetRoleArn,
         roleSessionName: actorEmail,
@@ -884,23 +885,25 @@ export const pamAccountServiceFactory = ({
         accountId: account.id,
         resourceId: resource.id,
         userId: actor.id,
-        expiresAt,
+        expiresAt: credentials.expiresAt,
         startedAt: new Date()
       });
 
       // Schedule session expiration job to run at expiresAt
-      await pamSessionExpirationService.scheduleSessionExpiration(session.id, expiresAt);
+      await pamSessionExpirationService.scheduleSessionExpiration(session.id, credentials.expiresAt);
 
       return {
         sessionId: session.id,
         resourceType,
         account,
-        consoleUrl,
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken,
+        expiresAt: credentials.expiresAt.toISOString(),
         metadata: {
           awsAccountId: extractAwsAccountIdFromArn(connectionDetails.roleArn),
           targetRoleArn: awsCredentials.targetRoleArn,
-          federatedUsername: actorEmail,
-          expiresAt: expiresAt.toISOString()
+          federatedUsername: actorEmail
         }
       };
     }
@@ -1044,6 +1047,50 @@ export const pamAccountServiceFactory = ({
       account,
       metadata
     };
+  };
+
+  const getAwsIamConsoleUrl = async (
+    {
+      sessionId,
+      projectId,
+      accessKeyId,
+      secretAccessKey,
+      sessionToken
+    }: {
+      sessionId: string;
+      projectId: string;
+      accessKeyId: string;
+      secretAccessKey: string;
+      sessionToken: string;
+    },
+    actor: OrgServiceActor
+  ) => {
+    const session = await pamSessionDAL.findById(sessionId);
+    if (!session) throw new NotFoundError({ message: `Session with ID '${sessionId}' not found` });
+
+    if (session.projectId !== projectId) {
+      throw new ForbiddenRequestError({ message: "Session does not belong to the specified project" });
+    }
+
+    if (session.userId !== actor.id) {
+      throw new ForbiddenRequestError({ message: "Session does not belong to the current user" });
+    }
+
+    if (session.resourceType !== PamResource.AwsIam) {
+      throw new BadRequestError({ message: "Session is not an AWS IAM session" });
+    }
+
+    if (session.endedAt || (session.expiresAt && session.expiresAt < new Date())) {
+      throw new BadRequestError({ message: "Session has ended or expired" });
+    }
+
+    const consoleUrl = await exchangeCredentialsForConsoleUrl({
+      accessKeyId,
+      secretAccessKey,
+      sessionToken
+    });
+
+    return { consoleUrl };
   };
 
   const getSessionCredentials = async (sessionId: string, actor: OrgServiceActor) => {
@@ -1660,6 +1707,7 @@ export const pamAccountServiceFactory = ({
     list,
     getById,
     access,
+    getAwsIamConsoleUrl,
     viewCredentials,
     getSessionCredentials,
     rotateAllDueAccounts,

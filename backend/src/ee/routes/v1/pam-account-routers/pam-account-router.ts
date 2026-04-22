@@ -556,11 +556,14 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
           GatewayAccessResponseSchema.extend({ resourceType: z.literal(PamResource.Redis) }),
           GatewayAccessResponseSchema.extend({ resourceType: z.literal(PamResource.SSH) }),
           GatewayAccessResponseSchema.extend({ resourceType: z.literal(PamResource.Kubernetes) }),
-          // AWS IAM (no gateway, returns console URL)
+          // AWS IAM (no gateway, returns short-lived STS credentials usable by both CLI and console)
           z.object({
             sessionId: z.string(),
             resourceType: z.literal(PamResource.AwsIam),
-            consoleUrl: z.string().url(),
+            accessKeyId: z.string(),
+            secretAccessKey: z.string(),
+            sessionToken: z.string(),
+            expiresAt: z.string(),
             metadata: z.record(z.string(), z.string().optional()).optional()
           })
         ])
@@ -617,6 +620,51 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
         .catch(() => {});
 
       return response;
+    }
+  });
+
+  // Mint an AWS Console federated sign-in URL from an existing AWS IAM session
+  server.route({
+    method: "POST",
+    url: "/sessions/:sessionId/aws-console-url",
+    config: {
+      rateLimit: writeLimit
+    },
+    schema: {
+      description: "Generate an AWS console sign-in URL for an existing PAM session",
+      params: z.object({
+        sessionId: z.string().uuid()
+      }),
+      body: z.object({
+        projectId: z.string().uuid(),
+        accessKeyId: z.string().min(1),
+        secretAccessKey: z.string().min(1),
+        sessionToken: z.string().min(1)
+      }),
+      response: {
+        200: z.object({
+          consoleUrl: z.string().url()
+        })
+      }
+    },
+    onRequest: verifyAuth([AuthMode.JWT]),
+    handler: async (req) => {
+      if (req.auth.authMode !== AuthMode.JWT) {
+        throw new BadRequestError({ message: "You can only access PAM accounts using JWT auth tokens." });
+      }
+
+      const result = await server.services.pamAccount.getAwsIamConsoleUrl(
+        {
+          sessionId: req.params.sessionId,
+          projectId: req.body.projectId,
+          accessKeyId: req.body.accessKeyId,
+          secretAccessKey: req.body.secretAccessKey,
+          sessionToken: req.body.sessionToken
+        },
+        req.permission
+      );
+
+      return { consoleUrl: result.consoleUrl };
     }
   });
 
