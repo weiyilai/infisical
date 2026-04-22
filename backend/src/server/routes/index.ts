@@ -2633,6 +2633,7 @@ export const registerRoutes = async (
     scepEnrollmentConfigDAL,
     scepDynamicChallengeDAL,
     scepTransactionDAL,
+    certificateDAL,
     certificateAuthorityDAL,
     certificateAuthorityCertDAL,
     certificateRequestDAL,
