@@ -47,6 +47,9 @@ export const useWebAccessSession = ({
   const nextPromptRejecterRef = useRef<((reason: Error) => void) | null>(null);
 
   const onSessionEndRef = useRef(onSessionEnd);
+  // Seed with the prop so non-SSH flows (which collect reason via the upfront ReasonGate)
+  // pass it on the first connect; SSH leaves it undefined and uses the inline terminal prompt.
+  const submittedReasonRef = useRef<string | undefined>(reason);
 
   useEffect(() => {
     onSessionEndRef.current = onSessionEnd;
@@ -239,7 +242,7 @@ export const useWebAccessSession = ({
     try {
       const { data } = await apiRequest.post<{ ticket: string }>(
         `/api/v1/pam/accounts/${accountId}/web-access-ticket`,
-        { projectId, reason }
+        { projectId, reason: submittedReasonRef.current }
       );
       if (containerEl) {
         containerEl.style.width = "";
@@ -331,7 +334,7 @@ export const useWebAccessSession = ({
           terminal.reset();
           const { data: retryData } = await apiRequest.post<{ ticket: string }>(
             `/api/v1/pam/accounts/${accountId}/web-access-ticket`,
-            { projectId, mfaSessionId, reason }
+            { projectId, mfaSessionId, reason: submittedReasonRef.current }
           );
           openWebSocket(terminal, retryData.ticket);
         } catch {
@@ -400,9 +403,28 @@ export const useWebAccessSession = ({
         return;
       }
 
+      if (axiosErr?.response?.data?.error === "PAM_REASON_REQUIRED") {
+        terminal.write("\r\nThis account requires a reason for access.\r\n");
+
+        const reasonInput = await prompt("\r\nEnter reason: ");
+
+        if (!reasonInput.trim()) {
+          terminal.write("\r\nA reason is required to continue.\r\n");
+          await prompt("\r\nPress Enter to try again.");
+          terminal.reset();
+          connect();
+          return;
+        }
+
+        submittedReasonRef.current = reasonInput.trim();
+        terminal.reset();
+        connect();
+        return;
+      }
+
       terminal.write("\r\nFailed to connect. Please close and try again.\r\n");
     }
-  }, [accountId, projectId, orgId, resourceName, accountName, reason, containerEl, openWebSocket]);
+  }, [accountId, projectId, orgId, resourceName, accountName, containerEl, openWebSocket]);
 
   const disconnect = useCallback(() => {
     const ws = wsRef.current;

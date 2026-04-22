@@ -17,7 +17,7 @@ const TerminalContent = ({
   account: TPamAccount;
   projectId: string;
   orgId: string;
-  reason: string;
+  reason?: string;
 }) => {
   const [sessionEnded, setSessionEnded] = useState(false);
 
@@ -122,6 +122,12 @@ const PageContent = () => {
         <p className="text-mineshaft-300">Could not find PAM Account with ID {accountId}</p>
       </div>
     );
+  }
+
+  // SSH uses inline terminal prompts for reason — bypass the upfront ReasonGate so the
+  // approval prompt and reason prompt render in the same terminal stream, in order.
+  if (account.resource?.resourceType === PamResourceType.SSH) {
+    return <TerminalContent account={account} projectId={projectId!} orgId={orgId!} />;
   }
 
   return (

@@ -108,7 +108,13 @@ export const PamSessionDetailsSection = ({
         </DetailItem>
 
         <DetailItem label="Reason">
-          <p className="break-words whitespace-pre-wrap">{reason || "—"}</p>
+          {reason ? (
+            <div className="max-h-32 overflow-y-auto rounded border border-mineshaft-600 bg-mineshaft-800 p-2">
+              <p className="break-words whitespace-pre-wrap">{reason}</p>
+            </div>
+          ) : (
+            <p>—</p>
+          )}
         </DetailItem>
 
         <DetailItem label="Created At">

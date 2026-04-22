@@ -185,6 +185,16 @@ export const pamAccountServiceFactory = ({
     };
   };
 
+  // Resolve whether the given policy enforces RequireReason at access time.
+  // Surfaced on account responses so the UI can gate access without needing
+  // pam-account-policy:read permission.
+  const resolveRequireReason = async (policyId?: string | null) => {
+    if (!policyId) return false;
+    const policy = await pamAccountPolicyDAL.findById(policyId);
+    const policyRules = (policy?.rules ?? {}) as TPolicyRules;
+    return Boolean(policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason]);
+  };
+
   const create = async (
     {
       credentials,
@@ -312,7 +322,8 @@ export const pamAccountServiceFactory = ({
           resource: parent.isResource ? parent.raw : null,
           domain: parent.isResource ? null : parent.raw
         }),
-        metadata: insertedMetadata?.map(({ id, key, value }) => ({ id, key, value: value ?? "" })) ?? []
+        metadata: insertedMetadata?.map(({ id, key, value }) => ({ id, key, value: value ?? "" })) ?? [],
+        requireReason: await resolveRequireReason(account.policyId)
       };
     } catch (err) {
       if (err instanceof DatabaseError && (err.error as { code: string })?.code === DatabaseErrorCode.UniqueViolation) {
@@ -467,7 +478,8 @@ export const pamAccountServiceFactory = ({
           resource,
           domain: parent.isResource ? null : parent.raw
         }),
-        metadata: existingMeta[accountId] || []
+        metadata: existingMeta[accountId] || [],
+        requireReason: await resolveRequireReason(account.policyId)
       };
     }
 
@@ -501,7 +513,8 @@ export const pamAccountServiceFactory = ({
           resource,
           domain: parent.isResource ? null : parent.raw
         }),
-        metadata: freshMeta[accountId] || []
+        metadata: freshMeta[accountId] || [],
+        requireReason: await resolveRequireReason(updatedAccount.policyId)
       };
     } catch (err) {
       if (err instanceof DatabaseError && (err.error as { code: string })?.code === DatabaseErrorCode.UniqueViolation) {
@@ -682,15 +695,6 @@ export const pamAccountServiceFactory = ({
 
     const decryptedAccount = await decryptAccount(accountWithParent, accountWithParent.projectId, kmsService);
 
-    // Resolve whether the policy enforces a reason at access time so the UI can
-    // gate the access flow without needing pam-account-policy:read permission.
-    let requireReason = false;
-    if (accountWithParent.policyId) {
-      const policy = await pamAccountPolicyDAL.findById(accountWithParent.policyId);
-      const policyRules = (policy?.rules ?? {}) as TPolicyRules;
-      requireReason = Boolean(policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason]);
-    }
-
     return {
       ...decryptedAccount,
       ...formatAccountParent({
@@ -698,7 +702,7 @@ export const pamAccountServiceFactory = ({
         domain: accountWithParent.domain
       }),
       metadata: accountMetadata,
-      requireReason
+      requireReason: await resolveRequireReason(accountWithParent.policyId)
     };
   };
 

@@ -7,7 +7,7 @@ export async function up(knex: Knex): Promise<void> {
     const hasCol = await knex.schema.hasColumn(TableName.PamSession, "reason");
     if (!hasCol) {
       await knex.schema.alterTable(TableName.PamSession, (t) => {
-        t.text("reason").nullable();
+        t.string("reason", 1000).nullable();
       });
     }
   }
