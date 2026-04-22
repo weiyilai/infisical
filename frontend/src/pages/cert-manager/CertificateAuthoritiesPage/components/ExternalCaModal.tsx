@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { SingleValue } from "react-select";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -606,6 +606,8 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
     });
   };
 
+  const modalContainer = useRef<HTMLDivElement>(null);
+
   return (
     <Modal
       isOpen={popUp?.ca?.isOpen}
@@ -614,7 +616,7 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
         handlePopUpToggle("ca", isOpen);
       }}
     >
-      <ModalContent title={`${ca ? "Edit" : "Create"} External CA`}>
+      <ModalContent ref={modalContainer} title={`${ca ? "Edit" : "Create"} External CA`}>
         <form onSubmit={handleSubmit(onFormSubmit)}>
           {ca && (
             <FormControl label="CA ID">
@@ -1039,6 +1041,7 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
                       placeholder="Select an organization..."
                       getOptionLabel={(option) => option.displayName || option.name}
                       getOptionValue={(option) => String(option.id)}
+                      menuPortalTarget={modalContainer.current}
                     />
                   </FormControl>
                 )}
@@ -1065,6 +1068,7 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
                       placeholder="Select a product..."
                       getOptionLabel={(option) => `${option.name} (${option.nameId})`}
                       getOptionValue={(option) => option.nameId}
+                      menuPortalTarget={modalContainer.current}
                     />
                   </FormControl>
                 )}
