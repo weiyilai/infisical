@@ -206,7 +206,7 @@ export const ViewSharedSecretByIDPage = () => {
   if (isLoading || isLoadingBrandingConfig) {
     return (
       <div className="h-screen w-screen bg-bunker-800">
-        <PageLoader lottieClassName="w-34" />;
+        <PageLoader lottieClassName="w-34" />
       </div>
     );
   }
