@@ -592,7 +592,15 @@ export const registerAiMcpEndpointRouter = async (server: FastifyZodProvider) =>
         endpointId: z.string().uuid().trim().min(1)
       }),
       body: z.object({
-        redirect_uris: z.array(z.string()),
+        redirect_uris: z.array(
+          z
+            .string()
+            .url()
+            .refine(
+              (uri) => uri.startsWith("https://") || uri.startsWith("http://"),
+              "Redirect URI must start with https:// or http://"
+            )
+        ),
         token_endpoint_auth_method: z.string(),
         grant_types: z.array(z.string()),
         response_types: z.array(z.string()),

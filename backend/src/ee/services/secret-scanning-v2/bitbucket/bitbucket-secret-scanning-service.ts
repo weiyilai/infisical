@@ -70,12 +70,12 @@ export const bitbucketSecretScanningService = (
     hmac.update(bodyString);
     const calculatedSignature = hmac.digest("hex");
 
+    const calculatedSignatureBuf = Buffer.from(calculatedSignature, "hex");
+    const receivedSignatureBuf = Buffer.from(receivedSignature, "hex");
+
     const isValid =
-      calculatedSignature.length === receivedSignature.length &&
-      crypto.nativeCrypto.timingSafeEqual(
-        Buffer.from(calculatedSignature, "hex"),
-        Buffer.from(receivedSignature, "hex")
-      );
+      calculatedSignatureBuf.byteLength === receivedSignatureBuf.byteLength &&
+      crypto.nativeCrypto.timingSafeEqual(calculatedSignatureBuf, receivedSignatureBuf);
 
     if (!isValid) {
       logger.error(

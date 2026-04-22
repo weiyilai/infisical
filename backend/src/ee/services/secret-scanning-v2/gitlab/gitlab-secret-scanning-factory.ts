@@ -260,7 +260,7 @@ export const GitLabSecretScanningFactory = ({ appConnectionDAL, kmsService }: TS
       throw new Error("Invalid GitLab project name");
     }
 
-    const validatedHostname = new URL(instanceUrl).hostname;
+    const validatedHostname = new URL(instanceUrl).host;
 
     await cloneRepository({
       cloneUrl: `https://${user.username}:${connection.credentials.accessToken}@${validatedHostname}/${resourceName}.git`,
