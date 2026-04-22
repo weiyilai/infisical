@@ -38,7 +38,7 @@ import { TNotificationServiceFactory } from "../notification/notification-servic
 import { NotificationType } from "../notification/notification-types";
 import { TOrgDALFactory } from "../org/org-dal";
 import { getDefaultOrgMembershipRole } from "../org/org-role-fns";
-import { SmtpTemplates, TSmtpService } from "../smtp/smtp-service";
+import { SmtpTemplates, throwIfSmtpError, TSmtpService } from "../smtp/smtp-service";
 import { LoginMethod } from "../super-admin/super-admin-types";
 import { TTotpServiceFactory } from "../totp/totp-service";
 import { TUserDALFactory } from "../user/user-dal";
@@ -115,17 +115,19 @@ export const authLoginServiceFactory = ({
       ]);
 
       if (user.email) {
-        await smtpService.sendMail({
-          template: SmtpTemplates.NewDeviceJoin,
-          subjectLine: "Successful login from new device",
-          recipients: [user.email],
-          substitutions: {
-            email: user.email,
-            timestamp: new Date().toString(),
-            ip,
-            userAgent
-          }
-        });
+        await smtpService
+          .sendMail({
+            template: SmtpTemplates.NewDeviceJoin,
+            subjectLine: "Successful login from new device",
+            recipients: [user.email],
+            substitutions: {
+              email: user.email,
+              timestamp: new Date().toString(),
+              ip,
+              userAgent
+            }
+          })
+          .catch((err) => logger.error(err, "Failed to send new device login email"));
       }
     }
   };
@@ -140,14 +142,16 @@ export const authLoginServiceFactory = ({
       userId
     });
 
-    await smtpService.sendMail({
-      template: SmtpTemplates.EmailMfa,
-      subjectLine: "Infisical MFA code",
-      recipients: [email],
-      substitutions: {
-        code
-      }
-    });
+    await smtpService
+      .sendMail({
+        template: SmtpTemplates.EmailMfa,
+        subjectLine: "Infisical MFA code",
+        recipients: [email],
+        substitutions: {
+          code
+        }
+      })
+      .catch((err) => throwIfSmtpError(err, "Failed to send MFA code email"));
   };
 
   /*
@@ -194,7 +198,8 @@ export const authLoginServiceFactory = ({
         authTokenType: AuthTokenType.MFA_TOKEN,
         userId,
         organizationId,
-        email
+        email,
+        requiredMfaMethod
       },
       appCfg.AUTH_SECRET,
       { expiresIn: appCfg.JWT_MFA_LIFETIME }
@@ -596,7 +601,13 @@ export const authLoginServiceFactory = ({
    * Multi factor authentication re-send code, Get user id from token
    * saved in frontend
    */
-  const resendMfaToken = async (userId: string) => {
+  const resendMfaToken = async (userId: string, requiredMfaMethod: MfaMethod) => {
+    if (requiredMfaMethod !== MfaMethod.EMAIL) {
+      throw new BadRequestError({
+        message: "Email MFA code cannot be sent when a different MFA method is required"
+      });
+    }
+
     const user = await userDAL.findById(userId);
     if (!user || !user.email) return;
     enforceUserLockStatus(Boolean(user.isLocked), user.temporaryLockDateEnd);
@@ -663,6 +674,7 @@ export const authLoginServiceFactory = ({
     userId,
     mfaToken,
     mfaMethod,
+    requiredMfaMethod,
     mfaJwtToken,
     ip,
     userAgent,
@@ -673,6 +685,12 @@ export const authLoginServiceFactory = ({
     const user = await userDAL.findById(userId);
 
     try {
+      if (mfaMethod !== requiredMfaMethod) {
+        throw new BadRequestError({
+          message: `Invalid MFA method. ${requiredMfaMethod} verification is required.`
+        });
+      }
+
       enforceUserLockStatus(Boolean(user.isLocked), user.temporaryLockDateEnd);
       if (mfaMethod === MfaMethod.EMAIL) {
         await tokenService.validateTokenForUser({
@@ -1314,19 +1332,21 @@ export const authLoginServiceFactory = ({
             }))
         );
 
-        await smtpService.sendMail({
-          recipients: adminEmails,
-          subjectLine: "Security Alert: SSO Bypass",
-          substitutions: {
-            email: user.email,
-            timestamp: new Date().toISOString(),
-            ip: ipAddress,
-            userAgent,
-            siteUrl: removeTrailingSlash(cfg.SITE_URL || "https://app.infisical.com"),
-            orgId: organizationId
-          },
-          template: SmtpTemplates.OrgAdminBreakglassAccess
-        });
+        await smtpService
+          .sendMail({
+            recipients: adminEmails,
+            subjectLine: "Security Alert: SSO Bypass",
+            substitutions: {
+              email: user.email,
+              timestamp: new Date().toISOString(),
+              ip: ipAddress,
+              userAgent,
+              siteUrl: removeTrailingSlash(cfg.SITE_URL || "https://app.infisical.com"),
+              orgId: organizationId
+            },
+            template: SmtpTemplates.OrgAdminBreakglassAccess
+          })
+          .catch((err) => logger.error(err, "Failed to send SSO bypass alert email"));
       }
     }
 

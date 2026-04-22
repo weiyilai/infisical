@@ -2559,6 +2559,12 @@ export const CertificateAuthorities = {
       certificateAuthorityArn: `The ARN of the AWS Private Certificate Authority to use for issuing certificates.`,
       region: `The AWS region where the Private Certificate Authority is located.`
     },
+    AWS_ACM_PUBLIC_CA: {
+      appConnectionId: `The ID of the AWS App Connection to use for authenticating with AWS Certificate Manager (ACM). This connection must have permissions to request, describe, export, renew, and delete certificates.`,
+      dnsAppConnectionId: `The ID of the AWS App Connection to use for creating and managing Route 53 CNAME records required for ACM domain validation.`,
+      hostedZoneId: `The Route 53 hosted zone ID to use for ACM DNS validation CNAME records.`,
+      region: `The AWS region to use for the ACM API calls.`
+    },
     INTERNAL: {
       type: "The type of CA to create.",
       friendlyName: "A friendly name for the CA.",
@@ -2960,7 +2966,9 @@ export const SecretSyncs = {
       teamName:
         "The name of the team to sync the secrets to. This is an optional field only intended for display purposes.",
       targetEnvironments: "An optional array of Vercel environments to add shared environment variables to.",
-      targetProjects: "An optional array of Vercel projects to add shared environment variables to."
+      targetProjects: "An optional array of Vercel projects to add shared environment variables to.",
+      sensitive:
+        "Whether to create Vercel environment variables as Sensitive (cannot be read back). Not allowed when targeting the Development environment."
     },
     LARAVEL_FORGE: {
       orgSlug: "The slug of the Laravel Forge org to sync secrets to.",
