@@ -720,16 +720,22 @@ export const secretApprovalRequestServiceFactory = ({
             type: SecretType.Shared
           }))
         );
-        const updationConflictSecretsGroupByKey = groupBy(secrets, (i) => i.key);
+        const updationSecretsGroupByKey = groupBy(secrets, (i) => i.key);
         secretUpdationCommits
-          .filter(({ key, secretId }) => updationConflictSecretsGroupByKey[key] || !secretId)
+          .filter(({ key, secretId }) => {
+            const dbSecret = updationSecretsGroupByKey[key]?.[0];
+            // Conflict if: secret doesn't exist OR secretId doesn't match (was recreated) OR no secretId in commit
+            return !dbSecret || dbSecret.id !== secretId || !secretId;
+          })
           .forEach((el) => {
             conflicts.push({ op: SecretOperations.Update, secretId: el.id });
           });
 
-        secretUpdationCommits = secretUpdationCommits.filter(
-          ({ key, secretId }) => Boolean(secretId) && !updationConflictSecretsGroupByKey[key]
-        );
+        secretUpdationCommits = secretUpdationCommits.filter(({ key, secretId }) => {
+          const dbSecret = updationSecretsGroupByKey[key]?.[0];
+          // Valid if: secret exists AND secretId matches AND has secretId
+          return dbSecret && dbSecret.id === secretId && Boolean(secretId);
+        });
       }
 
       const secretDeletionCommits = secretApprovalSecrets.filter(({ op }) => op === SecretOperations.Delete);
