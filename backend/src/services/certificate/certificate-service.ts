@@ -390,7 +390,11 @@ export const certificateServiceFactory = ({
 
     // Call the upstream CA first so we don't end up with a cert that's revoked locally but still
     // active at the issuer (e.g., when the upstream rejects the chosen revocation reason).
-    if (ca.externalCa?.type === CaType.AWS_PCA || ca.externalCa?.type === CaType.AWS_ACM_PUBLIC_CA) {
+    if (
+      ca.externalCa?.type === CaType.AWS_PCA ||
+      ca.externalCa?.type === CaType.AWS_ACM_PUBLIC_CA ||
+      ca.externalCa?.type === CaType.DIGICERT
+    ) {
       await certificateAuthorityService.revokeCertificate({
         caId: ca.id,
         serialNumber: cert.serialNumber,
@@ -416,17 +420,6 @@ export const certificateServiceFactory = ({
       pkiSyncDAL,
       pkiSyncQueue
     });
-
-    // Note: External CA revocation handling would go here for supported CA types
-    // Currently, only internal CAs, ACME CAs, AWS PCA, and DigiCert (external CAs) support revocation
-
-    if (ca.externalCa?.type === CaType.AWS_PCA || ca.externalCa?.type === CaType.DIGICERT) {
-      await certificateAuthorityService.revokeCertificate({
-        caId: ca.id,
-        serialNumber: cert.serialNumber,
-        reason: revocationReason
-      });
-    }
 
     // rebuild CRL (TODO: move to interval-based cron job)
     // Only rebuild CRL for internal CAs - external CAs manage their own CRLs

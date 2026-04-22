@@ -46,6 +46,7 @@ export const DigiCertCertificateRequestMetadataSchema = z.object({
     certificateId: z.number().int().optional(),
     productNameId: z.string(),
     organizationId: z.number().int(),
+    orderPlacedAt: z.string(),
     lastCheckedAt: z.string().optional(),
     lastCheckStatus: z.string().optional(),
     isRenewal: z.boolean().optional(),

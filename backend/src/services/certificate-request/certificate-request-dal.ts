@@ -395,7 +395,7 @@ export const certificateRequestDALFactory = (db: TDbClient) => {
 
   const findPendingValidationByCaType = async (
     caType: string,
-    options: { limit?: number; offset?: number } = {}
+    options: { limit?: number; afterCreatedAt?: Date } = {}
   ): Promise<TCertificateRequests[]> => {
     try {
       const query = db(TableName.CertificateRequests)
@@ -414,8 +414,10 @@ export const certificateRequestDALFactory = (db: TDbClient) => {
         .select(selectAllTableCols(TableName.CertificateRequests))
         .orderBy(`${TableName.CertificateRequests}.createdAt`, "asc");
 
+      if (options.afterCreatedAt) {
+        void query.where(`${TableName.CertificateRequests}.createdAt`, ">", options.afterCreatedAt);
+      }
       if (options.limit) void query.limit(options.limit);
-      if (options.offset) void query.offset(options.offset);
 
       return (await query) as TCertificateRequests[];
     } catch (error) {

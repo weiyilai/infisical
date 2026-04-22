@@ -39,6 +39,7 @@ export type TDigiCertOrderMetadata = {
     certificateId?: number;
     productNameId: string;
     organizationId: number;
+    orderPlacedAt: string;
     lastCheckedAt?: string;
     lastCheckStatus?: string;
     isRenewal?: boolean;
@@ -98,17 +99,6 @@ export const processDigiCertPendingValidationRequest = async (
   request: TCertificateRequests,
   clientCache?: Map<string, TDigiCertApiClient>
 ): Promise<TProcessDigiCertRequestResult> => {
-  const age = Date.now() - new Date(request.createdAt).getTime();
-  if (age >= DIGICERT_VALIDATION_TIMEOUT_MS) {
-    await deps.certificateRequestService.updateCertificateRequestStatus({
-      certificateRequestId: request.id,
-      status: CertificateRequestStatus.FAILED,
-      errorMessage: "Validation timed out after 24h"
-    });
-    logger.info(`DigiCert validation timed out [certificateRequestId=${request.id}]`);
-    return { status: CertificateRequestStatus.FAILED, orderStatus: "timeout", reason: "timeout" };
-  }
-
   if (!request.caId || !request.metadata) {
     return { status: DigiCertProcessorOutcome.Skipped, reason: "missing caId or metadata" };
   }
@@ -123,6 +113,20 @@ export const processDigiCertPendingValidationRequest = async (
 
   if (!parsed.digicert?.orderId) {
     return { status: DigiCertProcessorOutcome.Skipped, reason: "missing DigiCert order id" };
+  }
+
+  if (!parsed.digicert.orderPlacedAt) {
+    return { status: DigiCertProcessorOutcome.Skipped, reason: "missing orderPlacedAt" };
+  }
+  const age = Date.now() - new Date(parsed.digicert.orderPlacedAt).getTime();
+  if (age >= DIGICERT_VALIDATION_TIMEOUT_MS) {
+    await deps.certificateRequestService.updateCertificateRequestStatus({
+      certificateRequestId: request.id,
+      status: CertificateRequestStatus.FAILED,
+      errorMessage: "Validation timed out after 24h"
+    });
+    logger.info(`DigiCert validation timed out [certificateRequestId=${request.id}]`);
+    return { status: CertificateRequestStatus.FAILED, orderStatus: "timeout", reason: "timeout" };
   }
 
   const client = await getOrCreateClient(request, deps, clientCache);

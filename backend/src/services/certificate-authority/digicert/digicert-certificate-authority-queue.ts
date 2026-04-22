@@ -47,18 +47,15 @@ export const digicertCertificateAuthorityQueueServiceFactory = ({
         let issued = 0;
         let failed = 0;
 
-        let offset = 0;
+        let cursor: Date | undefined;
         let hasMore = true;
         while (hasMore) {
           const requests = await processorDeps.certificateRequestDAL.findPendingValidationByCaType(CaType.DIGICERT, {
             limit: QUEUE_BATCH_SIZE,
-            offset
+            afterCreatedAt: cursor
           });
 
-          if (requests.length === 0) {
-            hasMore = false;
-            break;
-          }
+          if (requests.length === 0) break;
 
           for (const request of requests) {
             processed += 1;
@@ -71,7 +68,8 @@ export const digicertCertificateAuthorityQueueServiceFactory = ({
             }
           }
 
-          offset += QUEUE_BATCH_SIZE;
+          cursor = new Date(requests[requests.length - 1].createdAt);
+          hasMore = requests.length === QUEUE_BATCH_SIZE;
         }
 
         logger.info(

@@ -454,7 +454,8 @@ export const DigiCertCertificateAuthorityFns = ({
           orderId: orderResponse.id,
           certificateId: orderResponse.certificate_id,
           productNameId,
-          organizationId: digicertCa.configuration.organizationId
+          organizationId: digicertCa.configuration.organizationId,
+          orderPlacedAt: new Date().toISOString()
         }
       },
       privateKey: privateKeyPem,
