@@ -69,7 +69,7 @@ export const isSignerCertIssuedByCa = async ({
 }: {
   signerCertDer: Buffer;
   caId: string;
-  certificateDAL: Pick<TCertificateDALFactory, "findOne">;
+  certificateDAL: Pick<TCertificateDALFactory, "findOne" | "transaction">;
   certificateAuthorityCertDAL: Pick<TCertificateAuthorityCertDALFactory, "find" | "findById">;
   certificateAuthorityDAL: Pick<TCertificateAuthorityDALFactory, "findById">;
   projectDAL: Pick<TProjectDALFactory, "findOne" | "updateById" | "transaction">;
@@ -106,12 +106,19 @@ export const isSignerCertIssuedByCa = async ({
     }
 
     // Check if the certificate has been revoked in the database
-    const storedCert = await certificateDAL.findOne({
-      serialNumber: signerCert.serialNumber,
-      caId
+    // Use transaction to read from primary DB (not replica) since this is a security-critical check
+    const isRevoked = await certificateDAL.transaction(async (tx) => {
+      const storedCert = await certificateDAL.findOne(
+        {
+          serialNumber: signerCert.serialNumber,
+          caId
+        },
+        tx
+      );
+      return storedCert?.status === CertStatus.REVOKED;
     });
 
-    if (storedCert && storedCert.status === CertStatus.REVOKED) {
+    if (isRevoked) {
       return false;
     }
 
