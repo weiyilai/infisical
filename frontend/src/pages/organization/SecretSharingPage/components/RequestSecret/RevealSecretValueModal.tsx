@@ -75,9 +75,11 @@ export const RevealSecretValueModal = ({ isOpen, onOpenChange, popUp }: Props) =
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Shared secret value</DialogTitle>
-          <DialogDescription>
-            Shared secret value for secret request {data?.secretRequestName}
-          </DialogDescription>
+          {data?.secretRequestName && (
+            <DialogDescription>
+              Shared secret value for secret request {data.secretRequestName}
+            </DialogDescription>
+          )}
         </DialogHeader>
         <Content secretValue={data?.secretValue} onClose={() => onOpenChange?.(false)} />
       </DialogContent>
