@@ -330,7 +330,7 @@ export const CmekTable = () => {
                 onChange={(e) => {
                   setSearch(e.target.value);
                 }}
-                placeholder="Search keys by name..."
+                placeholder="Search keys by name or ID..."
               />
             </InputGroup>
             {isFetching && <Spinner size="xs" />}
