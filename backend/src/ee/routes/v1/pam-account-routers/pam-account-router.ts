@@ -669,8 +669,9 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
         orgId: req.permission.orgId,
         projectId: req.body.projectId,
         event: {
-          type: EventType.PAM_ACCOUNT_ACCESS,
+          type: EventType.PAM_ACCOUNT_AWS_CONSOLE_URL_GENERATED,
           metadata: {
+            sessionId: req.params.sessionId,
             accountId: result.accountId ?? "",
             resourceName: result.resourceName,
             accountName: result.accountName
