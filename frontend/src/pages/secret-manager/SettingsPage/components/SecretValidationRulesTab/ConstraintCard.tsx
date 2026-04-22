@@ -45,11 +45,11 @@ export const ConstraintCard = ({ index, onRemove }: Props) => {
 
   const Icon = constraintOption?.icon;
   const placeholder = constraintOption?.placeholder;
-  const isNoValueReuse = constraintType === ConstraintType.NoValueReuse;
+  const isPreventValueReuse = constraintType === ConstraintType.PreventValueReuse;
   const isNumericInput =
     constraintType === ConstraintType.MinLength ||
     constraintType === ConstraintType.MaxLength ||
-    constraintType === ConstraintType.NoValueReuse;
+    constraintType === ConstraintType.PreventValueReuse;
 
   return (
     <div className="rounded-md border border-border bg-card p-4">
@@ -70,7 +70,7 @@ export const ConstraintCard = ({ index, onRemove }: Props) => {
       )}
 
       <div className="mt-3 grid grid-cols-2 gap-3">
-        {isNoValueReuse ? (
+        {isPreventValueReuse ? (
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-muted">Applies to</label>
             <Input value="Secret Value" readOnly className="cursor-default opacity-60" />
@@ -109,15 +109,15 @@ export const ConstraintCard = ({ index, onRemove }: Props) => {
           <label className="text-xs font-medium text-muted">
             <div className="flex items-center gap-1">
               {CONSTRAINT_VALUE_LABELS[constraintType]}
-              {constraintType === ConstraintType.NoValueReuse && (
+              {constraintType === ConstraintType.PreventValueReuse && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <InfoIcon className="ml-1 size-3.5 text-muted" />
                   </TooltipTrigger>
                   <TooltipContent side="left" align="start" className="max-w-xs">
                     <p className="text-sm">
-                      When a secret is updated, its new value is compared against this many of its
-                      most recent versions.
+                      When a secret is updated, its new value is validated against the specified
+                      number of prior versions.
                     </p>
                     <p className="mt-2 text-xs text-muted">Maximum: 100 versions</p>
                   </TooltipContent>
@@ -133,8 +133,8 @@ export const ConstraintCard = ({ index, onRemove }: Props) => {
                 <Input
                   {...field}
                   type={isNumericInput ? "number" : "text"}
-                  min={isNoValueReuse ? 1 : undefined}
-                  max={isNoValueReuse ? 100 : undefined}
+                  min={isPreventValueReuse ? 1 : undefined}
+                  max={isPreventValueReuse ? 100 : undefined}
                   placeholder={placeholder?.toString() || undefined}
                   isError={Boolean(error)}
                 />

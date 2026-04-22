@@ -170,7 +170,7 @@ const CONSTRAINT_LABELS: Record<ConstraintType, string> = {
   [ConstraintType.RegexPattern]: "Regex pattern",
   [ConstraintType.RequiredPrefix]: "Required prefix",
   [ConstraintType.RequiredSuffix]: "Required suffix",
-  [ConstraintType.NoValueReuse]: "No reuse of previous values"
+  [ConstraintType.PreventValueReuse]: "Prevent reuse of previous secret values"
 };
 
 const TARGET_LABELS: Record<ConstraintTarget, string> = {
@@ -236,7 +236,7 @@ const evaluateConstraint = (constraint: TConstraint, secret: TSecretToValidate):
       }
       return null;
     }
-    case ConstraintType.NoValueReuse: {
+    case ConstraintType.PreventValueReuse: {
       if (secret.value === undefined || !secret.previousValues?.length) {
         return null;
       }

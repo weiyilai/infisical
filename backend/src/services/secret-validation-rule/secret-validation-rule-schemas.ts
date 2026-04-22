@@ -9,7 +9,7 @@ import {
   TSecretValidationRuleInputs
 } from "./secret-validation-rule-types";
 
-const MAX_NO_REUSE_VERSIONS = 100;
+export const MAX_PREVENT_VALUE_REUSE_VERSIONS = 100;
 
 export const constraintSchema = z
   .object({
@@ -17,22 +17,22 @@ export const constraintSchema = z
     appliesTo: z.nativeEnum(ConstraintTarget),
     value: z.string()
   })
-  .refine((c) => c.type === ConstraintType.NoValueReuse || c.value.length > 0, {
+  .refine((c) => c.type === ConstraintType.PreventValueReuse || c.value.length > 0, {
     message: "Value is required",
     path: ["value"]
   })
-  .refine((c) => c.type !== ConstraintType.NoValueReuse || c.appliesTo === ConstraintTarget.SecretValue, {
+  .refine((c) => c.type !== ConstraintType.PreventValueReuse || c.appliesTo === ConstraintTarget.SecretValue, {
     message: "No value reuse constraint can only apply to secret values",
     path: ["appliesTo"]
   })
   .refine(
     (c) => {
-      if (c.type !== ConstraintType.NoValueReuse) return true;
+      if (c.type !== ConstraintType.PreventValueReuse) return true;
       const num = Number(c.value);
-      return Number.isInteger(num) && num >= 1 && num <= MAX_NO_REUSE_VERSIONS;
+      return Number.isInteger(num) && num >= 1 && num <= MAX_PREVENT_VALUE_REUSE_VERSIONS;
     },
     {
-      message: `No value reuse version count must be between 1 and ${MAX_NO_REUSE_VERSIONS}`,
+      message: `Prevent value reuse version count must be between 1 and ${MAX_PREVENT_VALUE_REUSE_VERSIONS}`,
       path: ["value"]
     }
   );

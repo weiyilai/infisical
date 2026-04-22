@@ -128,7 +128,7 @@ const CONSTRAINT_LABELS: Record<ConstraintType, string> = {
   [ConstraintType.RegexPattern]: "Pattern",
   [ConstraintType.MinLength]: "Min length",
   [ConstraintType.MaxLength]: "Max length",
-  [ConstraintType.NoValueReuse]: "No reuse of previous values"
+  [ConstraintType.PreventValueReuse]: "Prevent reuse of previous values"
 };
 
 const RuleOptionComponent = ({ isSelected, children, ...props }: OptionProps<RuleOption>) => (
@@ -379,12 +379,12 @@ export const PasswordGenerator = ({
                     <span
                       className={twMerge(
                         "font-medium text-muted",
-                        constraint.type === ConstraintType.NoValueReuse && "text-label"
+                        constraint.type === ConstraintType.PreventValueReuse && "text-label"
                       )}
                     >
                       {CONSTRAINT_LABELS[constraint.type]}
                     </span>
-                    {constraint.type !== ConstraintType.NoValueReuse && (
+                    {constraint.type !== ConstraintType.PreventValueReuse && (
                       <>
                         : <span className="font-mono text-label">{constraint.value}</span>
                       </>

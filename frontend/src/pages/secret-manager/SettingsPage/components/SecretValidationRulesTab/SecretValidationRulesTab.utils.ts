@@ -14,7 +14,7 @@ export enum ConstraintType {
   RegexPattern = "regex-pattern",
   RequiredPrefix = "required-prefix",
   RequiredSuffix = "required-suffix",
-  NoValueReuse = "no-value-reuse"
+  PreventValueReuse = "prevent-value-reuse"
 }
 
 export enum ConstraintTarget {
@@ -67,11 +67,11 @@ export const CONSTRAINT_OPTIONS: {
     icon: TextIcon
   },
   {
-    type: ConstraintType.NoValueReuse,
-    label: "No Value Reuse",
+    type: ConstraintType.PreventValueReuse,
+    label: "Prevent Value Reuse",
     description: "Prevent reusing previous secret values",
     cardDescription:
-      "Prevents secrets from reusing previous values. When a secret is updated, its new value must differ from its most recent versions.",
+      "When a secret is updated, its new value is validated against the specified number of prior versions.",
     placeholder: 10,
     icon: HistoryIcon,
     allowedTargets: [ConstraintTarget.SecretValue]
@@ -84,7 +84,7 @@ export const CONSTRAINT_VALUE_LABELS: Record<ConstraintType, string> = {
   [ConstraintType.RegexPattern]: "Pattern",
   [ConstraintType.RequiredPrefix]: "Text",
   [ConstraintType.RequiredSuffix]: "Text",
-  [ConstraintType.NoValueReuse]: "Previous versions"
+  [ConstraintType.PreventValueReuse]: "Previous versions"
 };
 
 export const CONSTRAINT_TYPE_LABELS: Record<ConstraintType, string> = {
@@ -93,7 +93,7 @@ export const CONSTRAINT_TYPE_LABELS: Record<ConstraintType, string> = {
   [ConstraintType.RegexPattern]: "Regex Pattern",
   [ConstraintType.RequiredPrefix]: "Required Prefix",
   [ConstraintType.RequiredSuffix]: "Required Suffix",
-  [ConstraintType.NoValueReuse]: "No Value Reuse"
+  [ConstraintType.PreventValueReuse]: "Prevent Value Reuse"
 };
 
 export enum RuleType {
@@ -112,13 +112,13 @@ export const constraintSchema = z
     appliesTo: z.nativeEnum(ConstraintTarget),
     value: z.string()
   })
-  .refine((c) => c.type === ConstraintType.NoValueReuse || c.value.length > 0, {
+  .refine((c) => c.type === ConstraintType.PreventValueReuse || c.value.length > 0, {
     message: "Value is required",
     path: ["value"]
   })
   .refine(
     (c) => {
-      if (c.type !== ConstraintType.NoValueReuse) return true;
+      if (c.type !== ConstraintType.PreventValueReuse) return true;
       const num = Number(c.value);
       return Number.isInteger(num) && num >= 1 && num <= MAX_NO_REUSE_VERSIONS;
     },

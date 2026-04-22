@@ -15,7 +15,7 @@ import { TSecretV2BridgeDALFactory } from "../secret-v2-bridge/secret-v2-bridge-
 import { TSecretVersionV2DALFactory } from "../secret-v2-bridge/secret-version-dal";
 import { TSecretValidationRuleDALFactory } from "./secret-validation-rule-dal";
 import { checkForOverlappingRules, enforceSecretValidationRules } from "./secret-validation-rule-fns";
-import { parseSecretValidationRuleInputs } from "./secret-validation-rule-schemas";
+import { MAX_PREVENT_VALUE_REUSE_VERSIONS, parseSecretValidationRuleInputs } from "./secret-validation-rule-schemas";
 import {
   ConstraintTarget,
   ConstraintType,
@@ -360,28 +360,27 @@ export const secretValidationRuleServiceFactory = ({
       )
     }));
 
-    // filter to rules that actually match this environment + path so we don't trigger expensive version-history lookups for unrelated NoValueReuse rules.
-    const MAX_NO_REUSE_VERSIONS = 100;
+    // filter to rules that actually match this environment + path so we don't trigger expensive version-history lookups for unrelated PreventValueReuse rules.
     const matchingRules = parsedRules.filter((r) => {
       if (r.envId && r.envId !== envId) return false;
       return picomatch.isMatch(secretPath, r.secretPath, { strictSlashes: false });
     });
 
-    const hasNoValueReuseConstraint = matchingRules.some((r) =>
+    const hasPreventValueReuseConstraint = matchingRules.some((r) =>
       r.inputs.constraints?.some(
-        (c) => c.type === ConstraintType.NoValueReuse && c.appliesTo === ConstraintTarget.SecretValue
+        (c) => c.type === ConstraintType.PreventValueReuse && c.appliesTo === ConstraintTarget.SecretValue
       )
     );
 
     const previousValuesMap: Record<string, string[]> = {};
-    if (hasNoValueReuseConstraint) {
+    if (hasPreventValueReuseConstraint) {
       const secretIdsToCheck = secrets.filter((s) => s.secretId).map((s) => s.secretId!);
       if (secretIdsToCheck.length) {
         const allVersions = await Promise.all(
           secretIdsToCheck.map((sId) =>
             secretVersionV2BridgeDAL.find(
               { secretId: sId },
-              { sort: [["version", "desc"]], limit: MAX_NO_REUSE_VERSIONS }
+              { sort: [["version", "desc"]], limit: MAX_PREVENT_VALUE_REUSE_VERSIONS }
             )
           )
         );

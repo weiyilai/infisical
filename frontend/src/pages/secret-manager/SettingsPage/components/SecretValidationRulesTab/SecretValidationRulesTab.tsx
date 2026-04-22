@@ -285,7 +285,7 @@ const RuleFormContent = ({
                               type: opt.type,
                               appliesTo: defaultTarget,
                               value:
-                                opt.type === ConstraintType.NoValueReuse
+                                opt.type === ConstraintType.PreventValueReuse
                                   ? String(opt.placeholder || 10)
                                   : ""
                             })

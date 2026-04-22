@@ -10,7 +10,7 @@ export enum ConstraintType {
   RegexPattern = "regex-pattern",
   RequiredPrefix = "required-prefix",
   RequiredSuffix = "required-suffix",
-  NoValueReuse = "no-value-reuse"
+  PreventValueReuse = "prevent-value-reuse"
 }
 
 export enum ConstraintTarget {
