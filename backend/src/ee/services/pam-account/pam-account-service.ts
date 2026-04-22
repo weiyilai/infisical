@@ -893,10 +893,7 @@ export const pamAccountServiceFactory = ({
       });
 
       // Cache the AccessKeyId so /aws-console-url can verify the caller is
-      // submitting credentials that actually belong to this session, not creds
-      // from some other AWS role they happen to control. AccessKeyId is a
-      // non-secret identifier (analogous to a username); the secret/token are
-      // never stored server-side.
+      // submitting credentials that actually belong to this session
       const ttlSeconds = Math.max(1, Math.floor((credentials.expiresAt.getTime() - Date.now()) / 1000));
       await keyStore.setItemWithExpiry(
         KeyStorePrefixes.PamAwsIamAccessKeyId(session.id),
@@ -1100,9 +1097,7 @@ export const pamAccountServiceFactory = ({
     }
 
     // Confirm the submitted creds actually belong to this session by comparing
-    // against the AccessKeyId we stashed at /access time. If the cache entry is
-    // gone, the session has effectively expired even if the row hasn't been
-    // marked yet.
+    // against the AccessKeyId we stashed at /access time
     const expectedAccessKeyId = await keyStore.getItem(KeyStorePrefixes.PamAwsIamAccessKeyId(sessionId));
     if (!expectedAccessKeyId) {
       throw new BadRequestError({

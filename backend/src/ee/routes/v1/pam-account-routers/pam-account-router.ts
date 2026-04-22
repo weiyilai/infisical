@@ -664,8 +664,6 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
         req.permission
       );
 
-      // Each console-URL mint produces a fresh authenticated browser session,
-      // so audit it independently from the originating /access call.
       await server.services.auditLog.createAuditLog({
         ...req.auditLogInfo,
         orgId: req.permission.orgId,
