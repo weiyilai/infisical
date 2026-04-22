@@ -40,7 +40,6 @@ import { Route as MfaSessionPageRouteImport } from './pages/MfaSessionPage/route
 import { Route as authSignUpPageRouteImport } from './pages/auth/SignUpPage/route'
 import { Route as authLoginPageRouteImport } from './pages/auth/LoginPage/route'
 import { Route as adminLayoutImport } from './pages/admin/layout'
-import { Route as authProviderSuccessPageRouteImport } from './pages/auth/ProviderSuccessPage/route'
 import { Route as authProviderErrorPageRouteImport } from './pages/auth/ProviderErrorPage/route'
 import { Route as userPersonalSettingsPageRouteImport } from './pages/user/PersonalSettingsPage/route'
 import { Route as adminIntegrationsPageRouteImport } from './pages/admin/IntegrationsPage/route'
@@ -611,13 +610,6 @@ const AuthenticateInjectOrgDetailsOrgLayoutIntegrationsRoute =
     id: '/integrations',
     path: '/integrations',
     getParentRoute: () => organizationLayoutRoute,
-  } as any)
-
-const authProviderSuccessPageRouteRoute =
-  authProviderSuccessPageRouteImport.update({
-    id: '/provider/success',
-    path: '/provider/success',
-    getParentRoute: () => RestrictLoginSignupLoginRoute,
   } as any)
 
 const authProviderErrorPageRouteRoute = authProviderErrorPageRouteImport.update(
@@ -2825,13 +2817,6 @@ declare module '@tanstack/react-router' {
       path: '/provider/error'
       fullPath: '/login/provider/error'
       preLoaderRoute: typeof authProviderErrorPageRouteImport
-      parentRoute: typeof RestrictLoginSignupLoginImport
-    }
-    '/_restrict-login-signup/login/provider/success': {
-      id: '/_restrict-login-signup/login/provider/success'
-      path: '/provider/success'
-      fullPath: '/login/provider/success'
-      preLoaderRoute: typeof authProviderSuccessPageRouteImport
       parentRoute: typeof RestrictLoginSignupLoginImport
     }
     '/_authenticate/_inject-org-details/_org-layout/integrations': {
@@ -5900,7 +5885,6 @@ interface RestrictLoginSignupLoginRouteChildren {
   authLoginLdapPageRouteRoute: typeof authLoginLdapPageRouteRoute
   authSelectOrgPageRouteRoute: typeof authSelectOrgPageRouteRoute
   authProviderErrorPageRouteRoute: typeof authProviderErrorPageRouteRoute
-  authProviderSuccessPageRouteRoute: typeof authProviderSuccessPageRouteRoute
 }
 
 const RestrictLoginSignupLoginRouteChildren: RestrictLoginSignupLoginRouteChildren =
@@ -5910,7 +5894,6 @@ const RestrictLoginSignupLoginRouteChildren: RestrictLoginSignupLoginRouteChildr
     authLoginLdapPageRouteRoute: authLoginLdapPageRouteRoute,
     authSelectOrgPageRouteRoute: authSelectOrgPageRouteRoute,
     authProviderErrorPageRouteRoute: authProviderErrorPageRouteRoute,
-    authProviderSuccessPageRouteRoute: authProviderSuccessPageRouteRoute,
   }
 
 const RestrictLoginSignupLoginRouteWithChildren =
@@ -5993,7 +5976,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof adminLayoutRouteWithChildren
   '/personal-settings/': typeof userPersonalSettingsPageRouteRoute
   '/login/provider/error': typeof authProviderErrorPageRouteRoute
-  '/login/provider/success': typeof authProviderSuccessPageRouteRoute
   '/integrations': typeof AuthenticateInjectOrgDetailsOrgLayoutIntegrationsRouteWithChildren
   '/admin/': typeof adminGeneralPageRouteRoute
   '/admin/access-management': typeof adminAccessManagementPageRouteRoute
@@ -6271,7 +6253,6 @@ export interface FileRoutesByTo {
   '/shared/secret/$secretId': typeof publicViewSharedSecretByIDPageRouteRoute
   '/admin': typeof adminGeneralPageRouteRoute
   '/login/provider/error': typeof authProviderErrorPageRouteRoute
-  '/login/provider/success': typeof authProviderSuccessPageRouteRoute
   '/integrations': typeof AuthenticateInjectOrgDetailsOrgLayoutIntegrationsRouteWithChildren
   '/admin/access-management': typeof adminAccessManagementPageRouteRoute
   '/admin/authentication': typeof adminAuthenticationPageRouteRoute
@@ -6534,7 +6515,6 @@ export interface FileRoutesById {
   '/_authenticate/personal-settings/_layout': typeof userLayoutRouteWithChildren
   '/_authenticate/personal-settings/_layout/': typeof userPersonalSettingsPageRouteRoute
   '/_restrict-login-signup/login/provider/error': typeof authProviderErrorPageRouteRoute
-  '/_restrict-login-signup/login/provider/success': typeof authProviderSuccessPageRouteRoute
   '/_authenticate/_inject-org-details/_org-layout/integrations': typeof AuthenticateInjectOrgDetailsOrgLayoutIntegrationsRouteWithChildren
   '/_authenticate/_inject-org-details/admin/_admin-layout': typeof adminLayoutRouteWithChildren
   '/_authenticate/_inject-org-details/admin/_admin-layout/': typeof adminGeneralPageRouteRoute
@@ -6825,7 +6805,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/personal-settings/'
     | '/login/provider/error'
-    | '/login/provider/success'
     | '/integrations'
     | '/admin/'
     | '/admin/access-management'
@@ -7102,7 +7081,6 @@ export interface FileRouteTypes {
     | '/shared/secret/$secretId'
     | '/admin'
     | '/login/provider/error'
-    | '/login/provider/success'
     | '/integrations'
     | '/admin/access-management'
     | '/admin/authentication'
@@ -7363,7 +7341,6 @@ export interface FileRouteTypes {
     | '/_authenticate/personal-settings/_layout'
     | '/_authenticate/personal-settings/_layout/'
     | '/_restrict-login-signup/login/provider/error'
-    | '/_restrict-login-signup/login/provider/success'
     | '/_authenticate/_inject-org-details/_org-layout/integrations'
     | '/_authenticate/_inject-org-details/admin/_admin-layout'
     | '/_authenticate/_inject-org-details/admin/_admin-layout/'
@@ -7748,8 +7725,7 @@ export const routeTree = rootRoute
         "/_restrict-login-signup/login/admin",
         "/_restrict-login-signup/login/ldap",
         "/_restrict-login-signup/login/select-organization",
-        "/_restrict-login-signup/login/provider/error",
-        "/_restrict-login-signup/login/provider/success"
+        "/_restrict-login-signup/login/provider/error"
       ]
     },
     "/_restrict-login-signup/signup": {
@@ -7834,10 +7810,6 @@ export const routeTree = rootRoute
     },
     "/_restrict-login-signup/login/provider/error": {
       "filePath": "auth/ProviderErrorPage/route.tsx",
-      "parent": "/_restrict-login-signup/login"
-    },
-    "/_restrict-login-signup/login/provider/success": {
-      "filePath": "auth/ProviderSuccessPage/route.tsx",
       "parent": "/_restrict-login-signup/login"
     },
     "/_authenticate/_inject-org-details/_org-layout/integrations": {

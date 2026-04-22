@@ -70,7 +70,14 @@ export const bitbucketSecretScanningService = (
     hmac.update(bodyString);
     const calculatedSignature = hmac.digest("hex");
 
-    if (calculatedSignature !== receivedSignature) {
+    const isValid =
+      calculatedSignature.length === receivedSignature.length &&
+      crypto.nativeCrypto.timingSafeEqual(
+        Buffer.from(calculatedSignature, "hex"),
+        Buffer.from(receivedSignature, "hex")
+      );
+
+    if (!isValid) {
       logger.error(
         `secretScanningV2PushEvent: Bitbucket - Invalid signature for webhook [dataSourceId=${dataSource.id}] [workspaceUuid=${repository.workspace.uuid}]`
       );
