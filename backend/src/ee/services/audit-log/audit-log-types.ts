@@ -3662,8 +3662,7 @@ interface CmekGetPrivateKeyEvent {
 interface CmekBulkGetPrivateKeysEvent {
   type: EventType.CMEK_BULK_EXPORT_PRIVATE_KEYS;
   metadata: {
-    keyIds: string[];
-    keyNames: string[];
+    keys: { keyId: string; name: string }[];
   };
 }
 

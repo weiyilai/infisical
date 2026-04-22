@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   faCancel,
   faCheck,
@@ -144,8 +144,15 @@ export const CmekTable = () => {
 
   const [selectedKeyIds, setSelectedKeyIds] = useState<string[]>([]);
 
-  const isPageSelected = keys.length > 0 && keys.every((k) => selectedKeyIds.includes(k.id));
-  const isPageIndeterminate = !isPageSelected && keys.some((k) => selectedKeyIds.includes(k.id));
+  useEffect(() => {
+    setSelectedKeyIds([]);
+  }, [page]);
+
+  const selectableKeys = keys.filter((k) => !k.isDisabled);
+  const isPageSelected =
+    selectableKeys.length > 0 && selectableKeys.every((k) => selectedKeyIds.includes(k.id));
+  const isPageIndeterminate =
+    !isPageSelected && selectableKeys.some((k) => selectedKeyIds.includes(k.id));
 
   const [, isCopyingCiphertext, setCopyCipherText] = useTimedReset<string>({
     initialState: "",
@@ -353,15 +360,18 @@ export const CmekTable = () => {
                       id="cmek-page-select"
                       isChecked={isPageSelected || isPageIndeterminate}
                       isIndeterminate={isPageIndeterminate}
+                      isDisabled={selectableKeys.length === 0}
                       variant="project"
                       onCheckedChange={() => {
                         if (isPageSelected) {
                           setSelectedKeyIds((prev) =>
-                            prev.filter((id) => !keys.find((k) => k.id === id))
+                            prev.filter((id) => !selectableKeys.find((k) => k.id === id))
                           );
                         } else {
                           setSelectedKeyIds((prev) => {
-                            const merged = [...new Set([...prev, ...keys.map((k) => k.id)])];
+                            const merged = [
+                              ...new Set([...prev, ...selectableKeys.map((k) => k.id)])
+                            ];
                             return merged.slice(0, 100);
                           });
                         }
@@ -427,24 +437,40 @@ export const CmekTable = () => {
                         onMouseLeave={() => setCopyCipherText("")}
                       >
                         <TableCell>
-                          <Checkbox
-                            id={`select-cmek-${id}`}
-                            isChecked={isSelected}
-                            variant="project"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!isSelected && selectedKeyIds.length >= 100) {
-                                createNotification({
-                                  text: "Cannot select more than 100 keys at once",
-                                  type: "error"
-                                });
-                                return;
-                              }
-                              setSelectedKeyIds((prev) =>
-                                isSelected ? prev.filter((k) => k !== id) : [...prev, id]
-                              );
-                            }}
-                          />
+                          {isDisabled ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Checkbox
+                                    id={`select-cmek-${id}`}
+                                    isChecked={false}
+                                    isDisabled
+                                    variant="project"
+                                  />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Disabled keys cannot be exported</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Checkbox
+                              id={`select-cmek-${id}`}
+                              isChecked={isSelected}
+                              variant="project"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isSelected && selectedKeyIds.length >= 100) {
+                                  createNotification({
+                                    text: "Cannot select more than 100 keys at once",
+                                    type: "error"
+                                  });
+                                  return;
+                                }
+                                setSelectedKeyIds((prev) =>
+                                  isSelected ? prev.filter((k) => k !== id) : [...prev, id]
+                                );
+                              }}
+                            />
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
