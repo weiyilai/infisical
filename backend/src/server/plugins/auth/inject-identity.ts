@@ -177,7 +177,7 @@ export const injectIdentity = fp(
       }
 
       if (
-        req.url.startsWith(".well-known/est") ||
+        req.url.startsWith("/.well-known/est") ||
         (req.url.startsWith("/api/v3/auth/") && !req.url.startsWith("/api/v3/auth/select-organization"))
       ) {
         return;

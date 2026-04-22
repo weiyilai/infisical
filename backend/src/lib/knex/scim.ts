@@ -4,6 +4,7 @@ import { Compare, Filter, parse } from "scim2-parse-filter";
 import { TableName } from "@app/db/schemas";
 
 import { sanitizeSqlLikeString } from "../fn";
+import { BadRequestError } from "../errors";
 
 const appendParentToGroupingOperator = (parentPath: string, filter: Filter) => {
   if (filter.op !== "[]" && filter.op !== "and" && filter.op !== "or" && filter.op !== "not") {
@@ -66,8 +67,10 @@ const processDynamicQuery = (
       }
       case "sw": {
         const attrPath = getAttributeField(scimFilterAst.attrPath);
-        if (attrPath && scimFilterAst.compValue)
-          void query.whereILike(attrPath, `${sanitizeSqlLikeString(String(scimFilterAst.compValue))}%`);
+        if (!scimFilterAst.compValue || !attrPath) {
+          throw new BadRequestError({ message: "compValue is required for sw filter" });
+        }
+        void query.whereILike(attrPath, `${sanitizeSqlLikeString(String(scimFilterAst.compValue))}%`);
         break;
       }
       case "ew": {
