@@ -9,6 +9,10 @@ import {
 } from "./azure-ad-cs/azure-ad-cs-certificate-authority-types";
 import { CaType } from "./certificate-authority-enums";
 import {
+  TCreateDigiCertCertificateAuthorityDTO,
+  TDigiCertCertificateAuthority
+} from "./digicert/digicert-certificate-authority-types";
+import {
   TInternalCertificateAuthority,
   TInternalCertificateAuthorityInput
 } from "./internal/internal-certificate-authority-types";
@@ -17,13 +21,15 @@ export type TCertificateAuthority =
   | TInternalCertificateAuthority
   | TAcmeCertificateAuthority
   | TAzureAdCsCertificateAuthority
-  | TAwsPcaCertificateAuthority;
+  | TAwsPcaCertificateAuthority
+  | TDigiCertCertificateAuthority;
 
 export type TCertificateAuthorityInput =
   | TInternalCertificateAuthorityInput
   | TAcmeCertificateAuthorityInput
   | TCreateAzureAdCsCertificateAuthorityDTO
-  | TCreateAwsPcaCertificateAuthorityDTO;
+  | TCreateAwsPcaCertificateAuthorityDTO
+  | TCreateDigiCertCertificateAuthorityDTO;
 
 export type TCreateCertificateAuthorityDTO = Omit<TCertificateAuthority, "id" | "enableDirectIssuance">;
 

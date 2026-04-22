@@ -2640,6 +2640,9 @@ export const AppConnections = {
     VERCEL: {
       apiToken: "The API token used to authenticate with Vercel."
     },
+    DIGICERT: {
+      apiKey: "The CertCentral API Key used to authenticate with DigiCert."
+    },
     CAMUNDA: {
       clientId: "The client ID used to authenticate with Camunda.",
       clientSecret: "The client secret used to authenticate with Camunda."

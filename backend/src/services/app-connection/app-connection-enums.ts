@@ -55,7 +55,8 @@ export enum AppConnection {
   ExternalInfisical = "external-infisical",
   Doppler = "doppler",
   NetScaler = "netscaler",
-  Anthropic = "anthropic"
+  Anthropic = "anthropic",
+  DigiCert = "digicert"
 }
 
 export enum AWSRegion {

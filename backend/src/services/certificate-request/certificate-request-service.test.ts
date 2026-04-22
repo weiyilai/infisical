@@ -57,7 +57,11 @@ describe("CertificateRequestService", () => {
       certificateDAL: mockCertificateDAL,
       certificateService: mockCertificateService,
       permissionService: mockPermissionService,
-      resourceMetadataDAL: { find: vi.fn().mockResolvedValue([]) }
+      resourceMetadataDAL: { find: vi.fn().mockResolvedValue([]), insertMany: vi.fn() },
+      certificateAuthorityDAL: { findByIdWithAssociatedCa: vi.fn() as any },
+      appConnectionDAL: { findById: vi.fn() as any },
+      kmsService: { createCipherPairWithDataKey: vi.fn() as any },
+      digicertFns: { fetchAndAttachIssuedCertificate: vi.fn() as any }
     });
   });
 

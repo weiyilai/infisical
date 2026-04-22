@@ -14,7 +14,13 @@ import { BadRequestError, NotFoundError } from "@app/lib/errors";
 import { TCertificateDALFactory } from "@app/services/certificate/certificate-dal";
 import { TCertificateServiceFactory } from "@app/services/certificate/certificate-service";
 
+import { TAppConnectionDALFactory } from "../app-connection/app-connection-dal";
 import { ActorType } from "../auth/auth-type";
+import { TCertificateAuthorityDALFactory } from "../certificate-authority/certificate-authority-dal";
+import { CaType } from "../certificate-authority/certificate-authority-enums";
+import { TDigiCertCertificateAuthorityFns } from "../certificate-authority/digicert/digicert-certificate-authority-fns";
+import { processDigiCertPendingValidationRequest } from "../certificate-authority/digicert/digicert-certificate-authority-processor";
+import { TKmsServiceFactory } from "../kms/kms-service";
 import { TResourceMetadataDALFactory } from "../resource-metadata/resource-metadata-dal";
 import { TCertificateRequestDALFactory } from "./certificate-request-dal";
 import {
@@ -32,7 +38,11 @@ type TCertificateRequestServiceFactoryDep = {
   certificateDAL: Pick<TCertificateDALFactory, "findById">;
   certificateService: Pick<TCertificateServiceFactory, "getCertBody" | "getCertPrivateKey">;
   permissionService: Pick<TPermissionServiceFactory, "getProjectPermission">;
-  resourceMetadataDAL: Pick<TResourceMetadataDALFactory, "find">;
+  resourceMetadataDAL: Pick<TResourceMetadataDALFactory, "find" | "insertMany">;
+  certificateAuthorityDAL: Pick<TCertificateAuthorityDALFactory, "findByIdWithAssociatedCa">;
+  appConnectionDAL: Pick<TAppConnectionDALFactory, "findById">;
+  kmsService: Pick<TKmsServiceFactory, "createCipherPairWithDataKey">;
+  digicertFns: Pick<TDigiCertCertificateAuthorityFns, "fetchAndAttachIssuedCertificate">;
 };
 
 export type TCertificateRequestServiceFactory = ReturnType<typeof certificateRequestServiceFactory>;
@@ -123,7 +133,11 @@ export const certificateRequestServiceFactory = ({
   certificateDAL,
   certificateService,
   permissionService,
-  resourceMetadataDAL
+  resourceMetadataDAL,
+  certificateAuthorityDAL,
+  appConnectionDAL,
+  kmsService,
+  digicertFns
 }: TCertificateRequestServiceFactoryDep) => {
   const createCertificateRequest = async ({
     acmeOrderId,
@@ -378,6 +392,65 @@ export const certificateRequestServiceFactory = ({
     return certificateRequestDAL.attachCertificate(certificateRequestId, certificateId);
   };
 
+  const triggerCertificateRequestValidation = async ({
+    actor,
+    actorId,
+    actorAuthMethod,
+    actorOrgId,
+    certificateRequestId
+  }: TGetCertificateFromRequestDTO) => {
+    const certificateRequest = await certificateRequestDAL.findById(certificateRequestId);
+    if (!certificateRequest) {
+      throw new NotFoundError({ message: "Certificate request not found" });
+    }
+
+    const { permission } = await permissionService.getProjectPermission({
+      actor,
+      actorId,
+      projectId: certificateRequest.projectId,
+      actorAuthMethod,
+      actorOrgId,
+      actionProjectType: ActionProjectType.CertificateManager
+    });
+
+    ForbiddenError.from(permission).throwUnlessCan(
+      ProjectPermissionCertificateActions.Edit,
+      ProjectPermissionSub.Certificates
+    );
+
+    if (certificateRequest.status !== CertificateRequestStatus.PENDING_VALIDATION) {
+      throw new BadRequestError({
+        message: `Certificate request is not pending validation [status=${certificateRequest.status}]`
+      });
+    }
+
+    if (!certificateRequest.caId) {
+      throw new BadRequestError({ message: "Certificate request is not linked to a certificate authority" });
+    }
+
+    const ca = await certificateAuthorityDAL.findByIdWithAssociatedCa(certificateRequest.caId);
+    if (ca.externalCa?.type !== CaType.DIGICERT) {
+      throw new BadRequestError({
+        message: `Manual validation is only supported for DigiCert certificate authorities [caType=${ca.externalCa?.type}]`
+      });
+    }
+
+    const result = await processDigiCertPendingValidationRequest(
+      {
+        certificateAuthorityDAL,
+        appConnectionDAL,
+        kmsService,
+        certificateRequestDAL,
+        certificateRequestService: { updateCertificateRequestStatus, attachCertificateToRequest },
+        resourceMetadataDAL,
+        digicertFns
+      },
+      certificateRequest
+    );
+
+    return { ...result, projectId: certificateRequest.projectId };
+  };
+
   const listCertificateRequests = async ({
     actor,
     actorId,
@@ -433,10 +506,12 @@ export const certificateRequestServiceFactory = ({
       certificateRequestDAL.countByProjectId(projectId, options, processedRules)
     ]);
 
-    const mappedCertificateRequests = certificateRequests.map((request) => ({
-      ...request,
-      status: request.status as CertificateRequestStatus
-    }));
+    const mappedCertificateRequests = certificateRequests.map(
+      ({ encryptedPrivateKey: _encryptedPrivateKey, ...request }) => ({
+        ...request,
+        status: request.status as CertificateRequestStatus
+      })
+    );
 
     return {
       certificateRequests: mappedCertificateRequests,
@@ -450,6 +525,7 @@ export const certificateRequestServiceFactory = ({
     getCertificateFromRequest,
     updateCertificateRequestStatus,
     attachCertificateToRequest,
+    triggerCertificateRequestValidation,
     listCertificateRequests
   };
 };

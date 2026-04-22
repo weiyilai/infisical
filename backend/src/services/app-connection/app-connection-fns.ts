@@ -109,6 +109,11 @@ import {
 } from "./databricks/databricks-connection-fns";
 import { DbtConnectionMethod, getDbtConnectionListItem, validateDbtConnectionCredentials } from "./dbt";
 import {
+  DigiCertConnectionMethod,
+  getDigiCertConnectionListItem,
+  validateDigiCertConnectionCredentials
+} from "./digicert";
+import {
   DigitalOceanConnectionMethod,
   getDigitalOceanConnectionListItem,
   validateDigitalOceanConnectionCredentials
@@ -233,7 +238,8 @@ const PKI_APP_CONNECTIONS = [
   AppConnection.DNSMadeEasy,
   AppConnection.AzureDNS,
   AppConnection.Venafi,
-  AppConnection.NetScaler
+  AppConnection.NetScaler,
+  AppConnection.DigiCert
 ];
 
 export const listAppConnectionOptions = (projectType?: ProjectType) => {
@@ -294,7 +300,8 @@ export const listAppConnectionOptions = (projectType?: ProjectType) => {
     getVenafiConnectionListItem(),
     getExternalInfisicalConnectionListItem(),
     getDopplerConnectionListItem(),
-    getNetScalerConnectionListItem()
+    getNetScalerConnectionListItem(),
+    getDigiCertConnectionListItem()
   ]
     .filter((option) => {
       switch (projectType) {
@@ -446,7 +453,8 @@ export const validateAppConnectionCredentials = async (
         config as TExternalInfisicalConnectionConfig,
         deps.identityUaDAL
       )) as TAppConnectionCredentialsValidator,
-    [AppConnection.Doppler]: validateDopplerConnectionCredentials as TAppConnectionCredentialsValidator
+    [AppConnection.Doppler]: validateDopplerConnectionCredentials as TAppConnectionCredentialsValidator,
+    [AppConnection.DigiCert]: validateDigiCertConnectionCredentials as TAppConnectionCredentialsValidator
   };
 
   return VALIDATE_APP_CONNECTION_CREDENTIALS_MAP[appConnection.app](appConnection, gatewayService, gatewayV2Service);
@@ -494,6 +502,8 @@ export const getAppConnectionMethodName = (method: TAppConnection["method"]) => 
     case DbtConnectionMethod.ApiToken:
     case CircleCIConnectionMethod.ApiToken:
       return "API Token";
+    case DigiCertConnectionMethod.ApiKey:
+      return "API Key";
     case DNSMadeEasyConnectionMethod.APIKeySecret:
       return "API Key & Secret";
     case AzureDnsConnectionMethod.ClientSecret:
@@ -653,7 +663,8 @@ export const TRANSITION_CONNECTION_CREDENTIALS_TO_PLATFORM: Record<
   [AppConnection.Venafi]: platformManagedCredentialsNotSupported,
   [AppConnection.ExternalInfisical]: platformManagedCredentialsNotSupported,
   [AppConnection.Doppler]: platformManagedCredentialsNotSupported,
-  [AppConnection.NetScaler]: platformManagedCredentialsNotSupported
+  [AppConnection.NetScaler]: platformManagedCredentialsNotSupported,
+  [AppConnection.DigiCert]: platformManagedCredentialsNotSupported
 };
 
 export const enterpriseAppCheck = async (

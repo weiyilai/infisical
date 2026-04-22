@@ -204,7 +204,7 @@ export type TUpdateCertificateDTO = {
 
 export type TCertificateRequestListItem = {
   id: string;
-  status: "pending_approval" | "pending" | "issued" | "failed" | "rejected";
+  status: "pending_approval" | "pending" | "pending_validation" | "issued" | "failed" | "rejected";
   commonName: string | null;
   altNames: string | null;
   profileId: string | null;

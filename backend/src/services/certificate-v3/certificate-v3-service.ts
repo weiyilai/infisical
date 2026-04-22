@@ -276,7 +276,8 @@ const validateRenewalEligibility = (
 
   const caType = (ca.externalCa?.type as CaType) ?? CaType.INTERNAL;
   const isInternalCa = caType === CaType.INTERNAL;
-  const isConnectedExternalCa = caType === CaType.ACME || caType === CaType.AZURE_AD_CS || caType === CaType.AWS_PCA;
+  const isConnectedExternalCa =
+    caType === CaType.ACME || caType === CaType.AZURE_AD_CS || caType === CaType.AWS_PCA || caType === CaType.DIGICERT;
   const isImportedCertificate = certificate.pkiSubscriberId != null && !certificate.profileId;
 
   if (!isInternalCa && !isConnectedExternalCa) {
@@ -1853,7 +1854,12 @@ export const certificateV3ServiceFactory = ({
       });
     }
 
-    if (caType === CaType.ACME || caType === CaType.AZURE_AD_CS || caType === CaType.AWS_PCA) {
+    if (
+      caType === CaType.ACME ||
+      caType === CaType.AZURE_AD_CS ||
+      caType === CaType.AWS_PCA ||
+      caType === CaType.DIGICERT
+    ) {
       const orderId = randomUUID();
 
       const certRequest = await certificateRequestService.createCertificateRequest({
@@ -2181,7 +2187,12 @@ export const certificateV3ServiceFactory = ({
             throw new NotFoundError({ message: "Certificate was signed but could not be found in database" });
           }
           newCert = foundCert;
-        } else if (caType === CaType.ACME || caType === CaType.AZURE_AD_CS || caType === CaType.AWS_PCA) {
+        } else if (
+          caType === CaType.ACME ||
+          caType === CaType.AZURE_AD_CS ||
+          caType === CaType.AWS_PCA ||
+          caType === CaType.DIGICERT
+        ) {
           // External CA renewal - mark for async processing outside transaction
           return {
             isExternalCA: true,

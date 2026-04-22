@@ -131,6 +131,12 @@ import {
   TValidateDbtConnectionCredentialsSchema
 } from "./dbt";
 import {
+  TDigiCertConnection,
+  TDigiCertConnectionConfig,
+  TDigiCertConnectionInput,
+  TValidateDigiCertConnectionCredentialsSchema
+} from "./digicert";
+import {
   TDigitalOceanConnection,
   TDigitalOceanConnectionConfig,
   TDigitalOceanConnectionInput,
@@ -394,6 +400,7 @@ export type TAppConnection = { id: string } & (
   | TDopplerConnection
   | TNetScalerConnection
   | TAnthropicConnection
+  | TDigiCertConnection
 );
 
 export type TAppConnectionRaw = NonNullable<Awaited<ReturnType<TAppConnectionDALFactory["findById"]>>>;
@@ -462,6 +469,7 @@ export type TAppConnectionInput = { id: string } & (
   | TDopplerConnectionInput
   | TNetScalerConnectionInput
   | TAnthropicConnectionInput
+  | TDigiCertConnectionInput
 );
 
 export type TSqlConnectionInput =
@@ -558,7 +566,8 @@ export type TAppConnectionConfig =
   | TExternalInfisicalConnectionConfig
   | TDopplerConnectionConfig
   | TNetScalerConnectionConfig
-  | TAnthropicConnectionConfig;
+  | TAnthropicConnectionConfig
+  | TDigiCertConnectionConfig;
 
 export type TValidateAppConnectionCredentialsSchema =
   | TValidateAwsConnectionCredentialsSchema
@@ -617,7 +626,8 @@ export type TValidateAppConnectionCredentialsSchema =
   | TValidateExternalInfisicalConnectionCredentialsSchema
   | TValidateDopplerConnectionCredentialsSchema
   | TValidateNetScalerConnectionCredentialsSchema
-  | TValidateAnthropicConnectionCredentialsSchema;
+  | TValidateAnthropicConnectionCredentialsSchema
+  | TValidateDigiCertConnectionCredentialsSchema;
 
 export type TListAwsConnectionKmsKeys = {
   connectionId: string;

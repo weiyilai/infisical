@@ -13,12 +13,14 @@ import {
 import { TCertificateProfileDALFactory } from "@app/services/certificate-profile/certificate-profile-dal";
 import { TKmsServiceFactory } from "@app/services/kms/kms-service";
 import { TProjectDALFactory } from "@app/services/project/project-dal";
+import { getProjectKmsCertificateKeyId } from "@app/services/project/project-fns";
 
 import { TAppConnectionDALFactory } from "../app-connection/app-connection-dal";
 import { TAppConnectionServiceFactory } from "../app-connection/app-connection-service";
 import { TCertificateBodyDALFactory } from "../certificate/certificate-body-dal";
 import { TCertificateSecretDALFactory } from "../certificate/certificate-secret-dal";
 import { CertKeyAlgorithm } from "../certificate-common/certificate-constants";
+import { TCertificateRequestDALFactory } from "../certificate-request/certificate-request-dal";
 import { TCertificateRequestServiceFactory } from "../certificate-request/certificate-request-service";
 import { CertificateRequestStatus } from "../certificate-request/certificate-request-types";
 import { TPkiAlertV2QueueServiceFactory } from "../pki-alert-v2/pki-alert-v2-queue";
@@ -34,6 +36,7 @@ import { AzureAdCsCertificateAuthorityFns } from "./azure-ad-cs/azure-ad-cs-cert
 import { TCertificateAuthorityDALFactory } from "./certificate-authority-dal";
 import { CaType } from "./certificate-authority-enums";
 import { keyAlgorithmToAlgCfg } from "./certificate-authority-fns";
+import { DigiCertCertificateAuthorityFns } from "./digicert/digicert-certificate-authority-fns";
 import { TExternalCertificateAuthorityDALFactory } from "./external-certificate-authority-dal";
 
 const base64UrlToBase64 = (base64url: string): string => {
@@ -109,6 +112,7 @@ type TCertificateIssuanceQueueFactoryDep = {
     TCertificateRequestServiceFactory,
     "attachCertificateToRequest" | "updateCertificateRequestStatus"
   >;
+  certificateRequestDAL?: Pick<TCertificateRequestDALFactory, "updateById">;
   resourceMetadataDAL: Pick<TResourceMetadataDALFactory, "find" | "insertMany">;
   pkiAlertV2Queue?: Pick<TPkiAlertV2QueueServiceFactory, "queueCertificateEvent">;
 };
@@ -131,6 +135,7 @@ export const certificateIssuanceQueueFactory = ({
   pkiSyncQueue,
   certificateProfileDAL,
   certificateRequestService,
+  certificateRequestDAL,
   resourceMetadataDAL,
   pkiAlertV2Queue
 }: TCertificateIssuanceQueueFactoryDep) => {
@@ -177,6 +182,18 @@ export const certificateIssuanceQueueFactory = ({
     kmsService,
     projectDAL,
     certificateProfileDAL
+  });
+
+  const digicertFns = DigiCertCertificateAuthorityFns({
+    appConnectionDAL,
+    appConnectionService,
+    certificateAuthorityDAL,
+    externalCertificateAuthorityDAL,
+    certificateDAL,
+    certificateBodyDAL,
+    certificateSecretDAL,
+    kmsService,
+    projectDAL
   });
 
   /**
@@ -470,6 +487,114 @@ export const certificateIssuanceQueueFactory = ({
               );
             }
           }
+        }
+      } else if (ca.externalCa?.type === CaType.DIGICERT) {
+        if (!certificateRequestId || !certificateRequestDAL) {
+          throw new NotFoundError({
+            message: "DigiCert issuance requires a certificate request and request DAL"
+          });
+        }
+
+        let renewalOfOrderId: number | undefined;
+        if (isRenewal && originalCertificateId) {
+          const originalCert = await certificateDAL.findById(originalCertificateId);
+          if (originalCert?.externalOrderId) {
+            const parsed = Number(originalCert.externalOrderId);
+            if (Number.isFinite(parsed)) {
+              renewalOfOrderId = parsed;
+            } else {
+              logger.warn(
+                `DigiCert renewal requested but previous certificate's externalOrderId is not numeric — falling back to a new order [originalCertificateId=${originalCertificateId}] [externalOrderId=${originalCert.externalOrderId}]`
+              );
+            }
+          } else {
+            logger.warn(
+              `DigiCert renewal requested but previous certificate has no externalOrderId — falling back to a new order [originalCertificateId=${originalCertificateId}]`
+            );
+          }
+        }
+
+        const digicertResult = await digicertFns.orderCertificateFromProfile({
+          caId,
+          commonName: commonName || "",
+          altNames: altNames?.map((san) => san.value) || [],
+          signatureAlgorithm,
+          keyAlgorithm: keyAlgorithm as CertKeyAlgorithm,
+          ...(csr && { csr }),
+          ...(renewalOfOrderId !== undefined && { renewalOfOrderId })
+        });
+
+        let encryptedPrivateKey: Buffer | undefined;
+        if (digicertResult.privateKey) {
+          const certificateManagerKmsId = await getProjectKmsCertificateKeyId({
+            projectId: ca.projectId,
+            projectDAL,
+            kmsService
+          });
+          const kmsEncryptor = await kmsService.encryptWithKmsKey({ kmsId: certificateManagerKmsId });
+          const { cipherTextBlob } = await kmsEncryptor({ plainText: Buffer.from(digicertResult.privateKey) });
+          encryptedPrivateKey = cipherTextBlob;
+        }
+
+        const metadataWithRenewal = {
+          ...digicertResult.metadata,
+          digicert: {
+            ...digicertResult.metadata.digicert,
+            ...(isRenewal && originalCertificateId ? { isRenewal: true, originalCertificateId } : {})
+          }
+        };
+
+        await certificateRequestDAL.updateById(certificateRequestId, {
+          status: CertificateRequestStatus.PENDING_VALIDATION,
+          metadata: JSON.stringify(metadataWithRenewal),
+          ...(encryptedPrivateKey && { encryptedPrivateKey })
+        });
+
+        if (digicertResult.immediateCertificateId) {
+          try {
+            const { certificateId: attachedCertificateId } = await digicertFns.fetchAndAttachIssuedCertificate({
+              caId,
+              certificateRequest: {
+                id: certificateRequestId,
+                profileId,
+                commonName: commonName || "",
+                altNames: altNames?.map((san) => san.value).join(",") ?? null,
+                keyUsages: keyUsages ?? null,
+                extendedKeyUsages: extendedKeyUsages ?? null,
+                keyAlgorithm,
+                signatureAlgorithm
+              },
+              digicertCertificateId: digicertResult.immediateCertificateId,
+              digicertOrderId: digicertResult.orderId,
+              encryptedPrivateKey,
+              isRenewal,
+              originalCertificateId
+            });
+
+            if (certificateRequestService) {
+              await certificateRequestService.attachCertificateToRequest({
+                certificateRequestId,
+                certificateId: attachedCertificateId
+              });
+              await copyMetadataFromRequestToCertificate(resourceMetadataDAL, {
+                certificateRequestId,
+                certificateId: attachedCertificateId
+              });
+            }
+
+            logger.info(
+              `DigiCert order issued immediately (pre-validated domains), attached certificate [certificateRequestId=${certificateRequestId}] [certificateId=${attachedCertificateId}]`
+            );
+          } catch (finaliseError) {
+            logger.error(
+              finaliseError,
+              `DigiCert immediate finalisation failed, will be retried by polling queue [certificateRequestId=${certificateRequestId}]`
+            );
+          }
+        } else {
+          logger.info(
+            `DigiCert order placed, awaiting validation [certificateRequestId=${certificateRequestId}] [orderId=${digicertResult.metadata.digicert.orderId}]`
+          );
         }
       }
 

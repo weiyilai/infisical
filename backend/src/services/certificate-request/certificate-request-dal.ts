@@ -393,10 +393,41 @@ export const certificateRequestDALFactory = (db: TDbClient) => {
     }
   };
 
+  const findPendingValidationByCaType = async (
+    caType: string,
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<TCertificateRequests[]> => {
+    try {
+      const query = db(TableName.CertificateRequests)
+        .join(
+          TableName.CertificateAuthority,
+          `${TableName.CertificateRequests}.caId`,
+          `${TableName.CertificateAuthority}.id`
+        )
+        .join(
+          TableName.ExternalCertificateAuthority,
+          `${TableName.CertificateAuthority}.id`,
+          `${TableName.ExternalCertificateAuthority}.caId`
+        )
+        .where(`${TableName.CertificateRequests}.status`, CertificateRequestStatus.PENDING_VALIDATION)
+        .where(`${TableName.ExternalCertificateAuthority}.type`, caType)
+        .select(selectAllTableCols(TableName.CertificateRequests))
+        .orderBy(`${TableName.CertificateRequests}.createdAt`, "asc");
+
+      if (options.limit) void query.limit(options.limit);
+      if (options.offset) void query.offset(options.offset);
+
+      return (await query) as TCertificateRequests[];
+    } catch (error) {
+      throw new DatabaseError({ error, name: "Find pending validation certificate requests by CA type" });
+    }
+  };
+
   return {
     ...certificateRequestOrm,
     findByIdWithCertificate,
     findPendingByProjectId,
+    findPendingValidationByCaType,
     updateStatus,
     attachCertificate,
     findByProjectId,

@@ -54,6 +54,14 @@ import {
   TDeprecatedUpdateCertificateAuthorityDTO,
   TUpdateCertificateAuthorityDTO
 } from "./certificate-authority-types";
+import {
+  castDbEntryToDigiCertCertificateAuthority,
+  DigiCertCertificateAuthorityFns
+} from "./digicert/digicert-certificate-authority-fns";
+import {
+  TCreateDigiCertCertificateAuthorityDTO,
+  TUpdateDigiCertCertificateAuthorityDTO
+} from "./digicert/digicert-certificate-authority-types";
 import { TExternalCertificateAuthorityDALFactory } from "./external-certificate-authority-dal";
 import { TInternalCertificateAuthorityServiceFactory } from "./internal/internal-certificate-authority-service";
 import { TCreateInternalCertificateAuthorityDTO } from "./internal/internal-certificate-authority-types";
@@ -77,7 +85,7 @@ type TCertificateAuthorityServiceFactoryDep = {
   internalCertificateAuthorityService: TInternalCertificateAuthorityServiceFactory;
   projectDAL: Pick<TProjectDALFactory, "findProjectBySlug" | "findOne" | "updateById" | "findById" | "transaction">;
   permissionService: Pick<TPermissionServiceFactory, "getProjectPermission">;
-  certificateDAL: Pick<TCertificateDALFactory, "create" | "transaction" | "updateById">;
+  certificateDAL: Pick<TCertificateDALFactory, "create" | "transaction" | "updateById" | "findOne">;
   certificateBodyDAL: Pick<TCertificateBodyDALFactory, "create">;
   certificateSecretDAL: Pick<TCertificateSecretDALFactory, "create">;
   kmsService: Pick<
@@ -154,6 +162,18 @@ export const certificateAuthorityServiceFactory = ({
     certificateProfileDAL
   });
 
+  const digicertFns = DigiCertCertificateAuthorityFns({
+    appConnectionDAL,
+    appConnectionService,
+    certificateAuthorityDAL,
+    externalCertificateAuthorityDAL,
+    certificateDAL,
+    certificateBodyDAL,
+    certificateSecretDAL,
+    kmsService,
+    projectDAL
+  });
+
   const createCertificateAuthority = async (
     { type, projectId, name, configuration, status }: TCreateCertificateAuthorityDTO,
     actor: OrgServiceActor
@@ -227,6 +247,16 @@ export const certificateAuthorityServiceFactory = ({
       });
     }
 
+    if (type === CaType.DIGICERT) {
+      return digicertFns.createCertificateAuthority({
+        name,
+        projectId,
+        configuration: configuration as TCreateDigiCertCertificateAuthorityDTO["configuration"],
+        status,
+        actor
+      });
+    }
+
     throw new BadRequestError({ message: "Invalid certificate authority type" });
   };
 
@@ -287,6 +317,10 @@ export const certificateAuthorityServiceFactory = ({
 
     if (type === CaType.AWS_PCA) {
       return castDbEntryToAwsPcaCertificateAuthority(certificateAuthority);
+    }
+
+    if (type === CaType.DIGICERT) {
+      return castDbEntryToDigiCertCertificateAuthority(certificateAuthority);
     }
 
     throw new BadRequestError({ message: "Invalid certificate authority type" });
@@ -356,6 +390,10 @@ export const certificateAuthorityServiceFactory = ({
       return castDbEntryToAwsPcaCertificateAuthority(certificateAuthority);
     }
 
+    if (type === CaType.DIGICERT) {
+      return castDbEntryToDigiCertCertificateAuthority(certificateAuthority);
+    }
+
     throw new BadRequestError({ message: "Invalid certificate authority type" });
   };
 
@@ -416,6 +454,10 @@ export const certificateAuthorityServiceFactory = ({
 
     if (type === CaType.AWS_PCA) {
       return awsPcaFns.listCertificateAuthorities({ projectId, permissionFilters });
+    }
+
+    if (type === CaType.DIGICERT) {
+      return digicertFns.listCertificateAuthorities({ projectId, permissionFilters });
     }
 
     throw new BadRequestError({ message: "Invalid certificate authority type" });
@@ -507,6 +549,16 @@ export const certificateAuthorityServiceFactory = ({
       });
     }
 
+    if (type === CaType.DIGICERT) {
+      return digicertFns.updateCertificateAuthority({
+        id: certificateAuthority.id,
+        configuration: configuration as TUpdateDigiCertCertificateAuthorityDTO["configuration"],
+        actor,
+        status,
+        name
+      });
+    }
+
     throw new BadRequestError({ message: "Invalid certificate authority type" });
   };
 
@@ -568,6 +620,10 @@ export const certificateAuthorityServiceFactory = ({
 
     if (type === CaType.AWS_PCA) {
       return castDbEntryToAwsPcaCertificateAuthority(certificateAuthority);
+    }
+
+    if (type === CaType.DIGICERT) {
+      return castDbEntryToDigiCertCertificateAuthority(certificateAuthority);
     }
 
     throw new BadRequestError({ message: "Invalid certificate authority type" });
@@ -662,6 +718,16 @@ export const certificateAuthorityServiceFactory = ({
       });
     }
 
+    if (type === CaType.DIGICERT) {
+      return digicertFns.updateCertificateAuthority({
+        id: certificateAuthority.id,
+        configuration: configuration as TUpdateDigiCertCertificateAuthorityDTO["configuration"],
+        actor,
+        status,
+        name
+      });
+    }
+
     throw new BadRequestError({ message: "Invalid certificate authority type" });
   };
 
@@ -729,6 +795,10 @@ export const certificateAuthorityServiceFactory = ({
 
     if (type === CaType.AWS_PCA) {
       return castDbEntryToAwsPcaCertificateAuthority(certificateAuthority);
+    }
+
+    if (type === CaType.DIGICERT) {
+      return castDbEntryToDigiCertCertificateAuthority(certificateAuthority);
     }
 
     throw new BadRequestError({ message: "Invalid certificate authority type" });
@@ -837,6 +907,11 @@ export const certificateAuthorityServiceFactory = ({
 
     if (caType === CaType.AWS_PCA) {
       await awsPcaFns.revokeCertificate({ caId, serialNumber, reason });
+      return;
+    }
+
+    if (caType === CaType.DIGICERT) {
+      await digicertFns.revokeCertificate({ caId, serialNumber, reason });
       return;
     }
 
