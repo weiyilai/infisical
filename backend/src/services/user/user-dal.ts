@@ -91,7 +91,9 @@ export const userDALFactory = (db: TDbClient) => {
           isGhost: false
         })
         .whereIn(`${TableName.Users}.id`, userIds)
-        .leftJoin(TableName.UserEncryptionKey, `${TableName.Users}.id`, `${TableName.UserEncryptionKey}.userId`);
+        .leftJoin(TableName.UserEncryptionKey, `${TableName.Users}.id`, `${TableName.UserEncryptionKey}.userId`)
+        .select(selectAllTableCols(TableName.Users))
+        .select(db.ref("publicKey").withSchema(TableName.UserEncryptionKey));
     } catch (error) {
       throw new DatabaseError({ error, name: "Find user enc by user ids batch" });
     }
