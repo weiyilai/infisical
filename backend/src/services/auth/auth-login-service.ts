@@ -198,6 +198,7 @@ export const authLoginServiceFactory = ({
         authTokenType: AuthTokenType.MFA_TOKEN,
         userId,
         organizationId,
+        email,
         requiredMfaMethod
       },
       appCfg.AUTH_SECRET,
