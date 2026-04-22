@@ -26,11 +26,16 @@ export const PasswordContainer = ({
   isInvalidCredential,
   brandingTheme
 }: Props) => {
-  const { control, handleSubmit, watch } = useForm<FormData>({
-    resolver: zodResolver(formSchema)
+  const {
+    control,
+    handleSubmit,
+    formState: { isDirty }
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      password: ""
+    }
   });
-
-  const currentPassword = watch("password");
 
   const onFormSubmit = async ({ password }: FormData) => {
     onPasswordSubmit(password);
@@ -103,7 +108,7 @@ export const PasswordContainer = ({
           onClick={handleSubmit(onFormSubmit)}
           style={inputStyle}
           isPending={isSubmitting}
-          isDisabled={!currentPassword}
+          isDisabled={!isDirty}
         >
           View Secret
         </Button>
