@@ -24,38 +24,38 @@ import { Spinner } from "@app/components/v2";
 import {
   Badge,
   Button,
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Checkbox,
   DocumentationLinkBadge,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+  IconButton,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  Pagination,
   Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
   TBadgeProps,
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
-  UnstableCard,
-  UnstableCardAction,
-  UnstableCardContent,
-  UnstableCardDescription,
-  UnstableCardHeader,
-  UnstableCardTitle,
-  UnstableDropdownMenu,
-  UnstableDropdownMenuContent,
-  UnstableDropdownMenuItem,
-  UnstableDropdownMenuTrigger,
-  UnstableEmpty,
-  UnstableEmptyDescription,
-  UnstableEmptyHeader,
-  UnstableEmptyTitle,
-  UnstableIconButton,
-  UnstablePagination,
-  UnstableTable,
-  UnstableTableBody,
-  UnstableTableCell,
-  UnstableTableHead,
-  UnstableTableHeader,
-  UnstableTableRow
+  TooltipTrigger
 } from "@app/components/v3";
 import {
   ProjectPermissionActions,
@@ -290,16 +290,14 @@ export const CmekTable = () => {
         </div>
       </div>
 
-      <UnstableCard>
-        <UnstableCardHeader>
-          <UnstableCardTitle>
+      <Card>
+        <CardHeader>
+          <CardTitle>
             Keys
             <DocumentationLinkBadge href="https://infisical.com/docs/documentation/platform/kms" />
-          </UnstableCardTitle>
-          <UnstableCardDescription>
-            Manage keys and perform cryptographic operations.
-          </UnstableCardDescription>
-          <UnstableCardAction>
+          </CardTitle>
+          <CardDescription>Manage keys and perform cryptographic operations.</CardDescription>
+          <CardAction>
             <ProjectPermissionCan I={ProjectPermissionActions.Create} a={ProjectPermissionSub.Cmek}>
               {(isAllowed) => (
                 <Button
@@ -312,9 +310,9 @@ export const CmekTable = () => {
                 </Button>
               )}
             </ProjectPermissionCan>
-          </UnstableCardAction>
-        </UnstableCardHeader>
-        <UnstableCardContent>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
           <div className="mb-4 flex items-center gap-2">
             <InputGroup className="flex-1">
               <InputGroupAddon>
@@ -332,25 +330,25 @@ export const CmekTable = () => {
           </div>
 
           {!isPending && keys.length === 0 ? (
-            <UnstableEmpty className="border">
-              <UnstableEmptyHeader>
-                <UnstableEmptyTitle>
+            <Empty className="border">
+              <EmptyHeader>
+                <EmptyTitle>
                   {debouncedSearch.trim().length > 0
                     ? "No keys match search filter"
                     : "No keys have been added to this project"}
-                </UnstableEmptyTitle>
-                <UnstableEmptyDescription>
+                </EmptyTitle>
+                <EmptyDescription>
                   {debouncedSearch.trim().length > 0
                     ? "Try a different search term."
                     : "Add a key to get started."}
-                </UnstableEmptyDescription>
-              </UnstableEmptyHeader>
-            </UnstableEmpty>
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
-            <UnstableTable>
-              <UnstableTableHeader>
-                <UnstableTableRow>
-                  <UnstableTableHead className="w-5">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-5">
                     <Checkbox
                       id="cmek-page-select"
                       isChecked={isPageSelected || isPageIndeterminate}
@@ -369,8 +367,8 @@ export const CmekTable = () => {
                         }
                       }}
                     />
-                  </UnstableTableHead>
-                  <UnstableTableHead onClick={handleSort} className="cursor-pointer">
+                  </TableHead>
+                  <TableHead onClick={handleSort} className="cursor-pointer">
                     Name
                     <ChevronDownIcon
                       className={twMerge(
@@ -378,27 +376,27 @@ export const CmekTable = () => {
                         orderDirection === OrderByDirection.DESC && "rotate-180"
                       )}
                     />
-                  </UnstableTableHead>
-                  <UnstableTableHead>Key ID</UnstableTableHead>
-                  <UnstableTableHead>Key Usage</UnstableTableHead>
-                  <UnstableTableHead>Algorithm</UnstableTableHead>
-                  <UnstableTableHead>Status</UnstableTableHead>
-                  <UnstableTableHead>Version</UnstableTableHead>
-                  <UnstableTableHead className="w-12" />
-                </UnstableTableRow>
-              </UnstableTableHeader>
-              <UnstableTableBody>
+                  </TableHead>
+                  <TableHead>Key ID</TableHead>
+                  <TableHead>Key Usage</TableHead>
+                  <TableHead>Algorithm</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Version</TableHead>
+                  <TableHead className="w-12" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {isPending &&
                   Array.from({ length: 5 }).map((_, i) => (
                     // eslint-disable-next-line react/no-array-index-key
-                    <UnstableTableRow key={`skeleton-${i}`}>
+                    <TableRow key={`skeleton-${i}`}>
                       {Array.from({ length: 8 }).map((__, j) => (
                         // eslint-disable-next-line react/no-array-index-key
-                        <UnstableTableCell key={j}>
+                        <TableCell key={j}>
                           <Skeleton className="h-4 w-full" />
-                        </UnstableTableCell>
+                        </TableCell>
                       ))}
-                    </UnstableTableRow>
+                    </TableRow>
                   ))}
                 {!isPending &&
                   keys.map((cmek) => {
@@ -422,13 +420,13 @@ export const CmekTable = () => {
                       : cannotExportPrivateKey;
 
                     return (
-                      <UnstableTableRow
+                      <TableRow
                         key={`cmek-${id}`}
                         className="group"
                         data-state={isSelected ? "selected" : undefined}
                         onMouseLeave={() => setCopyCipherText("")}
                       >
-                        <UnstableTableCell>
+                        <TableCell>
                           <Checkbox
                             id={`select-cmek-${id}`}
                             isChecked={isSelected}
@@ -447,8 +445,8 @@ export const CmekTable = () => {
                               );
                             }}
                           />
-                        </UnstableTableCell>
-                        <UnstableTableCell>
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-2">
                             {name}
                             {description && (
@@ -460,11 +458,11 @@ export const CmekTable = () => {
                               </Tooltip>
                             )}
                           </div>
-                        </UnstableTableCell>
-                        <UnstableTableCell>
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center">
                             <span className="font-mono text-xs">{id}</span>
-                            <UnstableIconButton
+                            <IconButton
                               aria-label="copy key id"
                               variant="ghost"
                               size="xs"
@@ -475,10 +473,10 @@ export const CmekTable = () => {
                               }}
                             >
                               <FontAwesomeIcon icon={isCopyingCiphertext ? faCheck : faCopy} />
-                            </UnstableIconButton>
+                            </IconButton>
                           </div>
-                        </UnstableTableCell>
-                        <UnstableTableCell>
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-2">
                             {kmsKeyUsageOptions[keyUsage].label}
                             <Tooltip>
@@ -490,78 +488,72 @@ export const CmekTable = () => {
                               </TooltipContent>
                             </Tooltip>
                           </div>
-                        </UnstableTableCell>
-                        <UnstableTableCell className="uppercase">
-                          {encryptionAlgorithm}
-                        </UnstableTableCell>
-                        <UnstableTableCell>
+                        </TableCell>
+                        <TableCell className="uppercase">{encryptionAlgorithm}</TableCell>
+                        <TableCell>
                           <Badge variant={variant}>{label}</Badge>
-                        </UnstableTableCell>
-                        <UnstableTableCell>{version}</UnstableTableCell>
-                        <UnstableTableCell>
+                        </TableCell>
+                        <TableCell>{version}</TableCell>
+                        <TableCell>
                           <div className="flex justify-end">
-                            <UnstableDropdownMenu>
-                              <UnstableDropdownMenuTrigger asChild>
-                                <UnstableIconButton
-                                  variant="ghost"
-                                  size="sm"
-                                  aria-label="More options"
-                                >
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <IconButton variant="ghost" size="sm" aria-label="More options">
                                   <FontAwesomeIcon icon={faEllipsis} />
-                                </UnstableIconButton>
-                              </UnstableDropdownMenuTrigger>
-                              <UnstableDropdownMenuContent align="end" className="min-w-[160px]">
+                                </IconButton>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="min-w-[160px]">
                                 {keyUsage === KmsKeyUsage.ENCRYPT_DECRYPT && (
                                   <>
-                                    <UnstableDropdownMenuItem
+                                    <DropdownMenuItem
                                       onClick={() => handlePopUpOpen("encryptData", cmek)}
                                       isDisabled={cannotEncryptData || isDisabled}
                                     >
                                       <FontAwesomeIcon icon={faLock} className="mr-2" />
                                       Encrypt Data
-                                    </UnstableDropdownMenuItem>
-                                    <UnstableDropdownMenuItem
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
                                       onClick={() => handlePopUpOpen("decryptData", cmek)}
                                       isDisabled={cannotDecryptData || isDisabled}
                                     >
                                       <FontAwesomeIcon icon={faLockOpen} className="mr-2" />
                                       Decrypt Data
-                                    </UnstableDropdownMenuItem>
+                                    </DropdownMenuItem>
                                   </>
                                 )}
                                 {keyUsage === KmsKeyUsage.SIGN_VERIFY && (
                                   <>
-                                    <UnstableDropdownMenuItem
+                                    <DropdownMenuItem
                                       onClick={() => handlePopUpOpen("signData", cmek)}
                                       isDisabled={cannotSignData || isDisabled}
                                     >
                                       <FontAwesomeIcon icon={faFileSignature} className="mr-2" />
                                       Sign Data
-                                    </UnstableDropdownMenuItem>
-                                    <UnstableDropdownMenuItem
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
                                       onClick={() => handlePopUpOpen("verifyData", cmek)}
                                       isDisabled={cannotVerifyData || isDisabled}
                                     >
                                       <FontAwesomeIcon icon={faCheckCircle} className="mr-2" />
                                       Verify Data
-                                    </UnstableDropdownMenuItem>
+                                    </DropdownMenuItem>
                                   </>
                                 )}
-                                <UnstableDropdownMenuItem
+                                <DropdownMenuItem
                                   onClick={() => handlePopUpOpen("exportKey", cmek)}
                                   isDisabled={cannotExportKey || isDisabled}
                                 >
                                   <FontAwesomeIcon icon={faDownload} className="mr-2" />
                                   Export Key
-                                </UnstableDropdownMenuItem>
-                                <UnstableDropdownMenuItem
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   onClick={() => handlePopUpOpen("upsertKey", cmek)}
                                   isDisabled={cannotEditKey}
                                 >
                                   <FontAwesomeIcon icon={faEdit} className="mr-2" />
                                   Edit Key
-                                </UnstableDropdownMenuItem>
-                                <UnstableDropdownMenuItem
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   onClick={() => handleDisableCmek(cmek)}
                                   isDisabled={cannotEditKey}
                                 >
@@ -570,28 +562,28 @@ export const CmekTable = () => {
                                     className="mr-2"
                                   />
                                   {isDisabled ? "Enable" : "Disable"} Key
-                                </UnstableDropdownMenuItem>
-                                <UnstableDropdownMenuItem
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   onClick={() => handlePopUpOpen("deleteKey", cmek)}
                                   isDisabled={cannotDeleteKey}
                                   variant="danger"
                                 >
                                   <FontAwesomeIcon icon={faTrash} className="mr-2" />
                                   Delete Key
-                                </UnstableDropdownMenuItem>
-                              </UnstableDropdownMenuContent>
-                            </UnstableDropdownMenu>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                        </UnstableTableCell>
-                      </UnstableTableRow>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-              </UnstableTableBody>
-            </UnstableTable>
+              </TableBody>
+            </Table>
           )}
 
           {!isPending && totalCount > 0 && (
-            <UnstablePagination
+            <Pagination
               className="mt-4"
               count={totalCount}
               page={page}
@@ -600,8 +592,8 @@ export const CmekTable = () => {
               onChangePerPage={handlePerPageChange}
             />
           )}
-        </UnstableCardContent>
-      </UnstableCard>
+        </CardContent>
+      </Card>
 
       <DeleteCmekModal
         isOpen={popUp.deleteKey.isOpen}
