@@ -2725,7 +2725,6 @@ export const registerRoutes = async (
   const pkiDiscoveryService = pkiDiscoveryServiceFactory({
     pkiDiscoveryConfigDAL,
     pkiDiscoveryScanHistoryDAL,
-    projectDAL,
     permissionService,
     gatewayV2DAL,
     queuePkiDiscoveryScan: pkiDiscoveryQueue.queuePkiDiscoveryScan

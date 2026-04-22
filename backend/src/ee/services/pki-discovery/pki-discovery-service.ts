@@ -8,9 +8,6 @@ import {
   ProjectPermissionSub
 } from "@app/ee/services/permission/project-permission";
 import { BadRequestError, DatabaseError, ForbiddenRequestError, NotFoundError } from "@app/lib/errors";
-import { requestMemoKeys } from "@app/lib/request-context/memo-keys";
-import { requestMemoize } from "@app/lib/request-context/request-memoizer";
-import { TProjectDALFactory } from "@app/services/project/project-dal";
 
 import { TGatewayV2DALFactory } from "../gateway-v2/gateway-v2-dal";
 import { TPkiDiscoveryConfigDALFactory } from "./pki-discovery-config-dal";
@@ -48,7 +45,6 @@ type TPkiDiscoveryServiceFactoryDep = {
     TPkiDiscoveryScanHistoryDALFactory,
     "findLatestByDiscoveryId" | "findByDiscoveryId" | "countByDiscoveryId"
   >;
-  projectDAL: Pick<TProjectDALFactory, "findById">;
   permissionService: Pick<TPermissionServiceFactory, "getProjectPermission" | "getOrgPermission">;
   gatewayV2DAL: Pick<TGatewayV2DALFactory, "findOne">;
   queuePkiDiscoveryScan: (discoveryId: string) => Promise<void>;
@@ -73,7 +69,6 @@ const validateTargetConfigForType = (discoveryType: PkiDiscoveryType, config: TP
 export const pkiDiscoveryServiceFactory = ({
   pkiDiscoveryConfigDAL,
   pkiDiscoveryScanHistoryDAL,
-  projectDAL,
   permissionService,
   gatewayV2DAL,
   queuePkiDiscoveryScan
