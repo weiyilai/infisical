@@ -63,6 +63,21 @@ export type TDigiCertCertificateAuthority = {
   };
 };
 
+export type TAwsAcmPublicCaCertificateAuthority = {
+  id: string;
+  projectId: string;
+  type: CaType.AWS_ACM_PUBLIC_CA;
+  status: CaStatus;
+  name: string;
+  enableDirectIssuance: boolean;
+  configuration: {
+    appConnectionId: string;
+    dnsAppConnectionId: string;
+    hostedZoneId: string;
+    region: string;
+  };
+};
+
 export type TInternalCertificateAuthority = {
   id: string;
   projectId: string;
@@ -95,6 +110,7 @@ export type TUnifiedCertificateAuthority =
   | TAzureAdCsCertificateAuthority
   | TAwsPcaCertificateAuthority
   | TDigiCertCertificateAuthority
+  | TAwsAcmPublicCaCertificateAuthority
   | TInternalCertificateAuthority;
 
 export type TCreateCertificateAuthorityDTO = Omit<

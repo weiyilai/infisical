@@ -1,4 +1,5 @@
 import acme from "acme-client";
+import { UnrecoverableError } from "bullmq";
 
 import { crypto } from "@app/lib/crypto/cryptography";
 import { NotFoundError } from "@app/lib/errors";
@@ -31,6 +32,8 @@ import { TPkiSyncQueueFactory } from "../pki-sync/pki-sync-queue";
 import { TResourceMetadataDALFactory } from "../resource-metadata/resource-metadata-dal";
 import { copyMetadataFromRequestToCertificate } from "../resource-metadata/resource-metadata-fns";
 import { AcmeCertificateAuthorityFns } from "./acme/acme-certificate-authority-fns";
+import { AcmPendingError } from "./aws-acm-public-ca/aws-acm-public-ca-certificate-authority-errors";
+import { AwsAcmPublicCaCertificateAuthorityFns } from "./aws-acm-public-ca/aws-acm-public-ca-certificate-authority-fns";
 import { AwsPcaCertificateAuthorityFns } from "./aws-pca/aws-pca-certificate-authority-fns";
 import { AzureAdCsCertificateAuthorityFns } from "./azure-ad-cs/azure-ad-cs-certificate-authority-fns";
 import { TCertificateAuthorityDALFactory } from "./certificate-authority-dal";
@@ -72,6 +75,7 @@ export type TIssueCertificateFromProfileJobData = {
   certificateId: string;
   profileId: string;
   caId: string;
+  caType?: CaType;
   commonName?: string;
   altNames?: Array<{ type: string; value: string }>;
   ttl: string;
@@ -107,7 +111,7 @@ type TCertificateIssuanceQueueFactoryDep = {
   pkiSubscriberDAL: Pick<TPkiSubscriberDALFactory, "findById" | "updateById">;
   pkiSyncDAL: Pick<TPkiSyncDALFactory, "find">;
   pkiSyncQueue: Pick<TPkiSyncQueueFactory, "queuePkiSyncSyncCertificatesById">;
-  certificateProfileDAL?: Pick<TCertificateProfileDALFactory, "findById">;
+  certificateProfileDAL?: Pick<TCertificateProfileDALFactory, "findById" | "findByIdWithConfigs">;
   certificateRequestService?: Pick<
     TCertificateRequestServiceFactory,
     "attachCertificateToRequest" | "updateCertificateRequestStatus"
@@ -195,6 +199,18 @@ export const certificateIssuanceQueueFactory = ({
     kmsService,
     projectDAL
   });
+  const awsAcmPublicCaFns = AwsAcmPublicCaCertificateAuthorityFns({
+    appConnectionDAL,
+    appConnectionService,
+    certificateAuthorityDAL,
+    externalCertificateAuthorityDAL,
+    certificateDAL,
+    certificateBodyDAL,
+    certificateSecretDAL,
+    kmsService,
+    projectDAL,
+    certificateProfileDAL
+  });
 
   /**
    * Queue a certificate issuance job.
@@ -203,6 +219,7 @@ export const certificateIssuanceQueueFactory = ({
     certificateId,
     profileId,
     caId,
+    caType,
     commonName,
     altNames,
     ttl,
@@ -224,6 +241,7 @@ export const certificateIssuanceQueueFactory = ({
       certificateId,
       profileId,
       caId,
+      caType,
       commonName,
       altNames,
       ttl,
@@ -242,13 +260,16 @@ export const certificateIssuanceQueueFactory = ({
       locality
     };
 
+    // ACM DNS validation can take 5–30 minutes; the function is fully idempotent via
+    // IdempotencyToken, so we poll longer with a fixed backoff instead of exponential.
+    const queueOpts =
+      caType === CaType.AWS_ACM_PUBLIC_CA
+        ? { attempts: 30, backoff: { type: "fixed" as const, delay: 60000 } }
+        : { attempts: 3, backoff: { type: "exponential" as const, delay: 5000 } };
+
     await queueService.queue(QueueName.CertificateIssuance, QueueJobs.CaIssueCertificateFromProfile, jobData, {
       jobId: `certificate-issuance-${certificateId}`,
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 5000
-      }
+      ...queueOpts
     });
   };
 
@@ -411,6 +432,62 @@ export const certificateIssuanceQueueFactory = ({
             await copyMetadataFromRequestToCertificate(resourceMetadataDAL, {
               certificateRequestId,
               certificateId: azureResult.certificateId
+            });
+
+            logger.info(`Certificate attached to request [certificateRequestId=${certificateRequestId}]`);
+          } catch (attachError) {
+            logger.error(
+              attachError,
+              `Failed to attach certificate to request [certificateRequestId=${certificateRequestId}]`
+            );
+            try {
+              await certificateRequestService.updateCertificateRequestStatus({
+                certificateRequestId,
+                status: CertificateRequestStatus.FAILED,
+                errorMessage: `Failed to attach certificate: ${attachError instanceof Error ? attachError.message : String(attachError)}`
+              });
+            } catch (statusUpdateError) {
+              logger.error(
+                statusUpdateError,
+                `Failed to update certificate request status [certificateRequestId=${certificateRequestId}]`
+              );
+            }
+          }
+        }
+      } else if (ca.externalCa?.type === CaType.AWS_ACM_PUBLIC_CA) {
+        const acmParams = {
+          caId,
+          profileId,
+          certificateId,
+          commonName: commonName || "",
+          altNames: (altNames || []) as Array<{ type: CertSubjectAlternativeNameType; value: string }>,
+          keyUsages,
+          extendedKeyUsages,
+          validity: { ttl },
+          signatureAlgorithm,
+          keyAlgorithm: keyAlgorithm as CertKeyAlgorithm,
+          isRenewal,
+          originalCertificateId,
+          ...(csr && { csr }),
+          organization,
+          organizationalUnit,
+          country,
+          state,
+          locality
+        };
+
+        const acmResult = await awsAcmPublicCaFns.orderCertificateFromProfile(acmParams);
+
+        if (certificateRequestId && certificateRequestService && acmResult?.certificateId) {
+          try {
+            await certificateRequestService.attachCertificateToRequest({
+              certificateRequestId,
+              certificateId: acmResult.certificateId
+            });
+
+            await copyMetadataFromRequestToCertificate(resourceMetadataDAL, {
+              certificateRequestId,
+              certificateId: acmResult.certificateId
             });
 
             logger.info(`Certificate attached to request [certificateRequestId=${certificateRequestId}]`);
@@ -612,6 +689,16 @@ export const certificateIssuanceQueueFactory = ({
         logger.debug("Failed to queue PKI alert event for async certificate issuance");
       }
     } catch (error: unknown) {
+      // AcmPendingError signals that an ACM operation (DNS validation, renewal, export) is still
+      // in flight. Don't mark the request as FAILED on every poll — only after the queue exhausts attempts.
+      const isRetryable = error instanceof AcmPendingError;
+      if (isRetryable) {
+        logger.info(
+          `Certificate issuance pending ACM operation — will retry [certificateId=${certificateId}] [caId=${caId}]`
+        );
+        throw error;
+      }
+
       logger.error(error, `Certificate issuance job failed for [certificateId=${certificateId}] [caId=${caId}]`);
 
       if (certificateRequestId && certificateRequestService) {
@@ -630,12 +717,52 @@ export const certificateIssuanceQueueFactory = ({
         }
       }
 
+      // For ACM's 30-attempt queue, wrap non-retryable errors so BullMQ stops retrying immediately.
+      // Other CAs keep default retry behavior (3 attempts is short enough that running through them is fine).
+      if (data.caType === CaType.AWS_ACM_PUBLIC_CA) {
+        const message = error instanceof Error ? error.message : String(error);
+        const wrapped = new UnrecoverableError(message);
+        (wrapped as Error).cause = error;
+        throw wrapped;
+      }
+
       throw error;
     }
   };
 
   queueService.start(QueueName.CertificateIssuance, async (job) => {
-    await processCertificateIssuanceJobs(job.data);
+    try {
+      await processCertificateIssuanceJobs(job.data);
+    } catch (error) {
+      // AcmPendingError is rethrown on every retry so BullMQ keeps polling; the in-handler
+      // FAILED-update branch never runs for it. On the final attempt we still need to flip the request
+      // row to FAILED ourselves — BullMQ will move the job to the failed state but has no hook to
+      // update our DB, and no queue-level "failed" listener is wired for CertificateIssuance.
+      if (error instanceof AcmPendingError) {
+        const attemptsMade = job.attemptsMade ?? 0;
+        const maxAttempts = job.opts?.attempts ?? 1;
+        const isFinalAttempt = attemptsMade + 1 >= maxAttempts;
+        const { certificateRequestId, certificateId, caId } = job.data;
+        if (isFinalAttempt && certificateRequestId && certificateRequestService) {
+          try {
+            await certificateRequestService.updateCertificateRequestStatus({
+              certificateRequestId,
+              status: CertificateRequestStatus.FAILED,
+              errorMessage: `AWS ACM DNS validation did not complete after ${maxAttempts} attempts: ${error.message}`
+            });
+            logger.info(
+              `Marked certificate request FAILED after exhausted ACM validation retries [certificateRequestId=${certificateRequestId}] [certificateId=${certificateId}] [caId=${caId}]`
+            );
+          } catch (updateError) {
+            logger.error(
+              updateError,
+              `Failed to mark certificate request FAILED after exhausted ACM retries [certificateRequestId=${certificateRequestId}]`
+            );
+          }
+        }
+      }
+      throw error;
+    }
   });
 
   return {

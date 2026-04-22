@@ -140,6 +140,19 @@ const digicertConfigurationSchema = z.object({
   productNameId: z.string().trim().min(1, "Product is required")
 });
 
+const awsAcmPublicCaConfigurationSchema = z.object({
+  awsConnection: z.object({
+    id: z.string().min(1, "AWS Connection is required"),
+    name: z.string()
+  }),
+  dnsConnection: z.object({
+    id: z.string().min(1, "Route 53 Connection is required"),
+    name: z.string()
+  }),
+  hostedZoneId: z.string().trim().min(1, "Hosted Zone ID is required"),
+  region: z.string().min(1, "Region is required")
+});
+
 const schema = z.discriminatedUnion("type", [
   baseSchema.extend({
     type: z.literal(CaType.ACME),
@@ -156,6 +169,10 @@ const schema = z.discriminatedUnion("type", [
   baseSchema.extend({
     type: z.literal(CaType.DIGICERT),
     configuration: digicertConfigurationSchema
+  }),
+  baseSchema.extend({
+    type: z.literal(CaType.AWS_ACM_PUBLIC_CA),
+    configuration: awsAcmPublicCaConfigurationSchema
   })
 ]);
 
@@ -170,7 +187,8 @@ const caTypes = [
   { label: "ACME", value: CaType.ACME },
   { label: "Active Directory Certificate Services (AD CS)", value: CaType.AZURE_AD_CS },
   { label: "AWS Private CA (PCA)", value: CaType.AWS_PCA },
-  { label: "DigiCert CertCentral", value: CaType.DIGICERT }
+  { label: "DigiCert CertCentral", value: CaType.DIGICERT },
+  { label: "AWS ACM Public CA", value: CaType.AWS_ACM_PUBLIC_CA }
 ];
 
 export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
@@ -248,6 +266,24 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
             productNameId: ""
           }
         });
+      } else if (initialType === CaType.AWS_ACM_PUBLIC_CA) {
+        reset({
+          type: CaType.AWS_ACM_PUBLIC_CA,
+          name: "",
+          status: CaStatus.ACTIVE,
+          configuration: {
+            awsConnection: {
+              id: "",
+              name: ""
+            },
+            dnsConnection: {
+              id: "",
+              name: ""
+            },
+            hostedZoneId: "",
+            region: ""
+          }
+        });
       } else {
         reset({
           type: CaType.ACME,
@@ -302,7 +338,7 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
     AppConnection.AWS,
     currentProject.id,
     {
-      enabled: caType === CaType.AWS_PCA
+      enabled: caType === CaType.AWS_PCA || caType === CaType.AWS_ACM_PUBLIC_CA
     }
   );
 
@@ -315,7 +351,7 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
     if (caType === CaType.AZURE_AD_CS) {
       return availableAzureConnections || [];
     }
-    if (caType === CaType.AWS_PCA) {
+    if (caType === CaType.AWS_PCA || caType === CaType.AWS_ACM_PUBLIC_CA) {
       return availableAwsConnections || [];
     }
     if (caType === CaType.DIGICERT) {
@@ -344,7 +380,7 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
     isDNSMadeEasyPending ||
     isAzureDNSPending ||
     (isAzurePending && caType === CaType.AZURE_AD_CS) ||
-    (isAwsPending && caType === CaType.AWS_PCA) ||
+    (isAwsPending && (caType === CaType.AWS_PCA || caType === CaType.AWS_ACM_PUBLIC_CA)) ||
     (isDigiCertPending && caType === CaType.DIGICERT);
 
   const dnsAppConnection =
@@ -447,6 +483,35 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
             productNameId: ca.configuration.productNameId
           }
         });
+      } else if (ca.type === CaType.AWS_ACM_PUBLIC_CA && availableConnections?.length) {
+        const selectedConnection = availableConnections?.find(
+          (connection) => connection.id === ca.configuration.appConnectionId
+        );
+        const selectedDnsConnection = ca.configuration.dnsAppConnectionId
+          ? availableConnections?.find(
+              (connection) => connection.id === ca.configuration.dnsAppConnectionId
+            )
+          : undefined;
+
+        reset({
+          type: ca.type,
+          name: ca.name,
+          status: ca.status,
+          configuration: {
+            awsConnection: {
+              id: ca.configuration.appConnectionId,
+              name: selectedConnection?.name || ""
+            },
+            dnsConnection: ca.configuration.dnsAppConnectionId
+              ? {
+                  id: ca.configuration.dnsAppConnectionId,
+                  name: selectedDnsConnection?.name || ""
+                }
+              : undefined,
+            hostedZoneId: ca.configuration.hostedZoneId || "",
+            region: ca.configuration.region
+          }
+        });
       }
     }
   }, [ca, availableConnections, reset, isCaLoading]);
@@ -501,6 +566,13 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
         appConnectionId: formConfiguration.digicertConnection.id,
         organizationId: formConfiguration.organizationId,
         productNameId: formConfiguration.productNameId
+      };
+    } else if (type === CaType.AWS_ACM_PUBLIC_CA && "awsConnection" in formConfiguration) {
+      configPayload = {
+        appConnectionId: formConfiguration.awsConnection.id,
+        dnsAppConnectionId: formConfiguration.dnsConnection.id,
+        hostedZoneId: formConfiguration.hostedZoneId,
+        region: formConfiguration.region
       };
     } else {
       throw new Error("Invalid certificate authority configuration");
@@ -994,6 +1066,93 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
                       getOptionLabel={(option) => `${option.name} (${option.nameId})`}
                       getOptionValue={(option) => option.nameId}
                     />
+                  </FormControl>
+                )}
+              />
+            </>
+          )}
+          {caType === CaType.AWS_ACM_PUBLIC_CA && (
+            <>
+              <Controller
+                render={({ field: { value, onChange }, fieldState: { error } }) => (
+                  <FormControl
+                    tooltipText="AWS App Connection used to issue, export, renew, and revoke certificates via AWS Certificate Manager (ACM)."
+                    isError={Boolean(error)}
+                    errorText={error?.message}
+                    label="AWS Connection"
+                    isRequired
+                  >
+                    <FilterableSelect
+                      value={value}
+                      onChange={(newValue) => {
+                        onChange(newValue);
+                      }}
+                      isLoading={isPending}
+                      options={availableConnections}
+                      placeholder="Select connection..."
+                      getOptionLabel={(option) => option.name}
+                      getOptionValue={(option) => option.id}
+                      components={{ Option: AppConnectionOption }}
+                    />
+                  </FormControl>
+                )}
+                control={control}
+                name="configuration.awsConnection"
+              />
+              <Controller
+                render={({ field: { value, onChange }, fieldState: { error } }) => (
+                  <FormControl
+                    tooltipText="AWS App Connection used to write the ACM CNAME validation records into Route 53."
+                    isError={Boolean(error)}
+                    errorText={error?.message}
+                    label="Route 53 Connection"
+                    isRequired
+                  >
+                    <FilterableSelect
+                      value={value}
+                      onChange={(newValue) => {
+                        onChange(newValue);
+                      }}
+                      isLoading={isPending}
+                      options={availableConnections}
+                      placeholder="Select connection..."
+                      getOptionLabel={(option) => option.name}
+                      getOptionValue={(option) => option.id}
+                      components={{ Option: AppConnectionOption }}
+                    />
+                  </FormControl>
+                )}
+                control={control}
+                name="configuration.dnsConnection"
+              />
+              <Controller
+                control={control}
+                defaultValue=""
+                name="configuration.hostedZoneId"
+                render={({ field, fieldState: { error } }) => (
+                  <FormControl
+                    label="Route 53 Hosted Zone ID"
+                    isError={Boolean(error)}
+                    errorText={error?.message}
+                    isRequired
+                    tooltipText="The Route 53 hosted zone that owns the domain(s) you'll issue certificates for."
+                  >
+                    <Input {...field} placeholder="Z040441124N1GOOMCQYX1" />
+                  </FormControl>
+                )}
+              />
+              <Controller
+                control={control}
+                defaultValue=""
+                name="configuration.region"
+                render={({ field: { value, onChange }, fieldState: { error } }) => (
+                  <FormControl
+                    label="Region"
+                    isError={Boolean(error)}
+                    errorText={error?.message}
+                    isRequired
+                  >
+                    <AwsRegionSelect value={value} onChange={(v) => onChange(v || "")} />
                   </FormControl>
                 )}
               />

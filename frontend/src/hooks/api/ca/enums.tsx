@@ -3,7 +3,8 @@ export enum CaType {
   ACME = "acme",
   AZURE_AD_CS = "azure-ad-cs",
   AWS_PCA = "aws-pca",
-  DIGICERT = "digicert"
+  DIGICERT = "digicert",
+  AWS_ACM_PUBLIC_CA = "aws-acm-public-ca"
 }
 
 export enum InternalCaType {

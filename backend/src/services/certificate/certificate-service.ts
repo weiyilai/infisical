@@ -388,6 +388,16 @@ export const certificateServiceFactory = ({
 
     if (cert.status === CertStatus.REVOKED) throw new Error("Certificate already revoked");
 
+    // Call the upstream CA first so we don't end up with a cert that's revoked locally but still
+    // active at the issuer (e.g., when the upstream rejects the chosen revocation reason).
+    if (ca.externalCa?.type === CaType.AWS_PCA || ca.externalCa?.type === CaType.AWS_ACM_PUBLIC_CA) {
+      await certificateAuthorityService.revokeCertificate({
+        caId: ca.id,
+        serialNumber: cert.serialNumber,
+        reason: revocationReason
+      });
+    }
+
     const revokedAt = new Date();
     await certificateDAL.update(
       {

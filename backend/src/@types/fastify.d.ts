@@ -54,7 +54,6 @@ import { TSamlConfigServiceFactory } from "@app/ee/services/saml-config/saml-con
 import { TScimServiceFactory } from "@app/ee/services/scim/scim-types";
 import { TSecretApprovalPolicyServiceFactory } from "@app/ee/services/secret-approval-policy/secret-approval-policy-service";
 import { TSecretApprovalRequestServiceFactory } from "@app/ee/services/secret-approval-request/secret-approval-request-service";
-import { TSecretRotationServiceFactory } from "@app/ee/services/secret-rotation/secret-rotation-service";
 import { TSecretRotationV2ServiceFactory } from "@app/ee/services/secret-rotation-v2/secret-rotation-v2-service";
 import { TSecretScanningServiceFactory } from "@app/ee/services/secret-scanning/secret-scanning-service";
 import { TSecretScanningV2ServiceFactory } from "@app/ee/services/secret-scanning-v2/secret-scanning-v2-service";
@@ -305,7 +304,6 @@ declare module "fastify" {
       accessApprovalRequest: TAccessApprovalRequestServiceFactory;
       secretApprovalPolicy: TSecretApprovalPolicyServiceFactory;
       secretApprovalRequest: TSecretApprovalRequestServiceFactory;
-      secretRotation: TSecretRotationServiceFactory;
       snapshot: TSecretSnapshotServiceFactory;
       saml: TSamlConfigServiceFactory;
       scim: TScimServiceFactory;

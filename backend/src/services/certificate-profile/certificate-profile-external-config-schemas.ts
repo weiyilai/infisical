@@ -28,6 +28,11 @@ export const AwsPcaExternalConfigSchema = z.object({});
 export const DigiCertExternalConfigSchema = z.object({});
 
 /**
+ * External configuration schema for AWS ACM Public Certificate Authority
+ */
+export const AwsAcmPublicCaExternalConfigSchema = z.object({});
+
+/**
  * Map of CA types to their corresponding external configuration schemas
  */
 export const ExternalConfigSchemaMap = {
@@ -35,6 +40,7 @@ export const ExternalConfigSchemaMap = {
   [CaType.ACME]: AcmeExternalConfigSchema,
   [CaType.AWS_PCA]: AwsPcaExternalConfigSchema,
   [CaType.DIGICERT]: DigiCertExternalConfigSchema,
+  [CaType.AWS_ACM_PUBLIC_CA]: AwsAcmPublicCaExternalConfigSchema,
   [CaType.INTERNAL]: z.object({}).optional() // Internal CAs don't use external configs
 } as const;
 
@@ -60,6 +66,7 @@ export const ExternalConfigUnionSchema = z
     AcmeExternalConfigSchema,
     AwsPcaExternalConfigSchema,
     DigiCertExternalConfigSchema,
+    AwsAcmPublicCaExternalConfigSchema,
     z.object({})
   ])
   .nullable()

@@ -5,7 +5,8 @@ export const CERTIFICATE_AUTHORITIES_TYPE_MAP: Record<CaType, string> = {
   [CaType.ACME]: "ACME-compatible CA",
   [CaType.AZURE_AD_CS]: "Active Directory Certificate Service",
   [CaType.AWS_PCA]: "AWS Private Certificate Authority",
-  [CaType.DIGICERT]: "DigiCert"
+  [CaType.DIGICERT]: "DigiCert",
+  [CaType.AWS_ACM_PUBLIC_CA]: "AWS ACM Public CA"
 };
 
 export const CERTIFICATE_AUTHORITIES_CAPABILITIES_MAP: Record<CaType, CaCapability[]> = {
@@ -26,6 +27,11 @@ export const CERTIFICATE_AUTHORITIES_CAPABILITIES_MAP: Record<CaType, CaCapabili
     CaCapability.RENEW_CERTIFICATES
   ],
   [CaType.DIGICERT]: [
+    CaCapability.ISSUE_CERTIFICATES,
+    CaCapability.REVOKE_CERTIFICATES,
+    CaCapability.RENEW_CERTIFICATES
+  ],
+  [CaType.AWS_ACM_PUBLIC_CA]: [
     CaCapability.ISSUE_CERTIFICATES,
     CaCapability.REVOKE_CERTIFICATES,
     CaCapability.RENEW_CERTIFICATES
