@@ -120,7 +120,7 @@ export const constraintSchema = z
     (c) => {
       if (c.type !== ConstraintType.NoValueReuse) return true;
       const num = Number(c.value);
-      return !Number.isNaN(num) && num >= 1 && num <= MAX_NO_REUSE_VERSIONS;
+      return Number.isInteger(num) && num >= 1 && num <= MAX_NO_REUSE_VERSIONS;
     },
     {
       message: `Must be a number between 1 and ${MAX_NO_REUSE_VERSIONS}`,

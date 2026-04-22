@@ -1,4 +1,5 @@
 import { ForbiddenError } from "@casl/ability";
+import picomatch from "picomatch";
 
 import { ActionProjectType } from "@app/db/schemas";
 import { TPermissionServiceFactory } from "@app/ee/services/permission/permission-service-types";
@@ -359,8 +360,14 @@ export const secretValidationRuleServiceFactory = ({
       )
     }));
 
+    // filter to rules that actually match this environment + path so we don't trigger expensive version-history lookups for unrelated NoValueReuse rules.
     const MAX_NO_REUSE_VERSIONS = 100;
-    const hasNoValueReuseConstraint = parsedRules.some((r) =>
+    const matchingRules = parsedRules.filter((r) => {
+      if (r.envId && r.envId !== envId) return false;
+      return picomatch.isMatch(secretPath, r.secretPath, { strictSlashes: false });
+    });
+
+    const hasNoValueReuseConstraint = matchingRules.some((r) =>
       r.inputs.constraints?.some(
         (c) => c.type === ConstraintType.NoValueReuse && c.appliesTo === ConstraintTarget.SecretValue
       )

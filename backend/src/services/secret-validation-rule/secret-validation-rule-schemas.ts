@@ -29,7 +29,7 @@ export const constraintSchema = z
     (c) => {
       if (c.type !== ConstraintType.NoValueReuse) return true;
       const num = Number(c.value);
-      return !Number.isNaN(num) && num >= 1 && num <= MAX_NO_REUSE_VERSIONS;
+      return Number.isInteger(num) && num >= 1 && num <= MAX_NO_REUSE_VERSIONS;
     },
     {
       message: `No value reuse version count must be between 1 and ${MAX_NO_REUSE_VERSIONS}`,
