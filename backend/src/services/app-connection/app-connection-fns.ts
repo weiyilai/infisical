@@ -666,7 +666,6 @@ export const TRANSITION_CONNECTION_CREDENTIALS_TO_PLATFORM: Record<
   [AppConnection.ExternalInfisical]: platformManagedCredentialsNotSupported,
   [AppConnection.NetScaler]: platformManagedCredentialsNotSupported,
   [AppConnection.Doppler]: platformManagedCredentialsNotSupported,
-  [AppConnection.NetScaler]: platformManagedCredentialsNotSupported,
   [AppConnection.Ona]: platformManagedCredentialsNotSupported,
   [AppConnection.TravisCI]: platformManagedCredentialsNotSupported
 };
