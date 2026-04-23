@@ -15,7 +15,7 @@ export type TOnaSyncWithCredentials = TOnaSync & {
 };
 
 export type TOnaScopeFilter = {
-  projectId?: string;
+  projectId: string;
 };
 
 export type TOnaSecret = {
