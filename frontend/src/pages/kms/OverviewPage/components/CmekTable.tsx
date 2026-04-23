@@ -180,6 +180,9 @@ export const CmekTable = () => {
 
   const handleDisableCmek = async ({ id: keyId, isDisabled }: TCmek) => {
     await updateCmek.mutateAsync({ keyId, projectId, isDisabled: !isDisabled });
+    if (!isDisabled) {
+      setSelectedKeyIds((prev) => prev.filter((id) => id !== keyId));
+    }
     createNotification({
       text: `Key successfully ${isDisabled ? "enabled" : "disabled"}`,
       type: "success"
@@ -625,6 +628,9 @@ export const CmekTable = () => {
         isOpen={popUp.deleteKey.isOpen}
         onOpenChange={(isOpen) => handlePopUpToggle("deleteKey", isOpen)}
         cmek={popUp.deleteKey.data as TCmek}
+        onDeleted={(deletedKeyId) =>
+          setSelectedKeyIds((prev) => prev.filter((id) => id !== deletedKeyId))
+        }
       />
       <CmekModal
         isOpen={popUp.upsertKey.isOpen}
