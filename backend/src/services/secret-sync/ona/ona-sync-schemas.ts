@@ -18,11 +18,7 @@ const OnaSyncDestinationConfigSchema = z.object({
     .trim()
     .min(1, "Ona project ID is required")
     .describe(SecretSyncs.DESTINATION_CONFIG.ONA.projectId),
-  projectName: z
-    .string()
-    .trim()
-    .min(1, "Ona project name is required")
-    .describe(SecretSyncs.DESTINATION_CONFIG.ONA.projectName)
+  projectName: z.string().trim().optional().describe(SecretSyncs.DESTINATION_CONFIG.ONA.projectName)
 });
 
 const OnaSyncOptionsConfig: TSyncOptionsConfig = { canImportSecrets: false };

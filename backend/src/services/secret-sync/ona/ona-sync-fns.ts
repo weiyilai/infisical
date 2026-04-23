@@ -6,7 +6,7 @@ import { matchesSchema } from "@app/services/secret-sync/secret-sync-fns";
 import { TSecretMap } from "@app/services/secret-sync/secret-sync-types";
 
 import { ONA_PAGE_SIZE } from "./ona-sync-enums";
-import { TOnaListSecretsResponse, TOnaScopeFilter, TOnaSecret, TOnaSyncWithCredentials } from "./ona-sync-types";
+import { TOnaListSecretsResponse, TOnaSecret, TOnaSyncWithCredentials } from "./ona-sync-types";
 
 const ONA_LIST_SECRETS_PATH = "/gitpod.v1.SecretService/ListSecrets";
 const ONA_CREATE_SECRET_PATH = "/gitpod.v1.SecretService/CreateSecret";
@@ -48,10 +48,7 @@ const getAuthHeaders = (secretSync: TOnaSyncWithCredentials) => ({
   "Content-Type": "application/json"
 });
 
-const listEnvVarSecrets = async (
-  secretSync: TOnaSyncWithCredentials,
-  scope: TOnaScopeFilter
-): Promise<TOnaSecret[]> => {
+const listEnvVarSecrets = async (secretSync: TOnaSyncWithCredentials): Promise<TOnaSecret[]> => {
   const all: TOnaSecret[] = [];
   let token: string | undefined;
   let hasMore = true;
@@ -62,7 +59,7 @@ const listEnvVarSecrets = async (
       return request.post<TOnaListSecretsResponse>(
         `${ONA_API_URL}${ONA_LIST_SECRETS_PATH}`,
         {
-          filter: { scope },
+          filter: { scope: { projectId: secretSync.destinationConfig.projectId } },
           pagination: { pageSize: ONA_PAGE_SIZE, ...(token ? { token } : {}) }
         },
         { headers: getAuthHeaders(secretSync) }
@@ -78,19 +75,14 @@ const listEnvVarSecrets = async (
   return all.filter((secret) => secret.environmentVariable === true);
 };
 
-const createEnvVarSecret = async (
-  secretSync: TOnaSyncWithCredentials,
-  scope: TOnaScopeFilter,
-  name: string,
-  value: string
-): Promise<void> => {
+const createEnvVarSecret = async (secretSync: TOnaSyncWithCredentials, name: string, value: string): Promise<void> => {
   await withOnaRetry(async () => {
     return request.post(
       `${ONA_API_URL}${ONA_CREATE_SECRET_PATH}`,
       {
         name,
         value,
-        scope,
+        scope: { projectId: secretSync.destinationConfig.projectId },
         environmentVariable: true
       },
       { headers: getAuthHeaders(secretSync) }
@@ -124,9 +116,7 @@ const deleteSecret = async (secretSync: TOnaSyncWithCredentials, secretId: strin
 
 export const OnaSyncFns = {
   syncSecrets: async (secretSync: TOnaSyncWithCredentials, secretMap: TSecretMap) => {
-    const scope: TOnaScopeFilter = { projectId: secretSync.destinationConfig.projectId };
-
-    const existingSecrets = await listEnvVarSecrets(secretSync, scope);
+    const existingSecrets = await listEnvVarSecrets(secretSync);
     const existingByName = new Map(existingSecrets.map((s) => [s.name, s]));
 
     for (const key of Object.keys(secretMap)) {
@@ -134,7 +124,7 @@ export const OnaSyncFns = {
       try {
         if (!prior) {
           // eslint-disable-next-line no-await-in-loop
-          await createEnvVarSecret(secretSync, scope, key, secretMap[key].value);
+          await createEnvVarSecret(secretSync, key, secretMap[key].value);
         } else {
           // eslint-disable-next-line no-await-in-loop
           await updateSecretValue(secretSync, prior.id, secretMap[key].value);
@@ -174,8 +164,7 @@ export const OnaSyncFns = {
   },
 
   removeSecrets: async (secretSync: TOnaSyncWithCredentials, secretMap: TSecretMap) => {
-    const scope: TOnaScopeFilter = { projectId: secretSync.destinationConfig.projectId };
-    const existingSecrets = await listEnvVarSecrets(secretSync, scope);
+    const existingSecrets = await listEnvVarSecrets(secretSync);
 
     for (const existing of existingSecrets) {
       if (!(existing.name in secretMap)) {

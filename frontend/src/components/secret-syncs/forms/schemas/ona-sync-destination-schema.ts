@@ -8,7 +8,7 @@ export const OnaSyncDestinationSchema = BaseSecretSyncSchema().merge(
     destination: z.literal(SecretSync.Ona),
     destinationConfig: z.object({
       projectId: z.string().trim().min(1, "Ona project required"),
-      projectName: z.string().trim().min(1, "Ona project name required")
+      projectName: z.string().trim().optional()
     })
   })
 );

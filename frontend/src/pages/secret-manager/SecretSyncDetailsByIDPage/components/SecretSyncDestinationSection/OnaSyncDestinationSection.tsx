@@ -8,5 +8,9 @@ type Props = {
 export const OnaSyncDestinationSection = ({ secretSync }: Props) => {
   const { destinationConfig } = secretSync;
 
-  return <GenericFieldLabel label="Ona Project">{destinationConfig.projectName}</GenericFieldLabel>;
+  return (
+    <GenericFieldLabel label="Ona Project">
+      {destinationConfig.projectName || destinationConfig.projectId}
+    </GenericFieldLabel>
+  );
 };

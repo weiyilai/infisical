@@ -234,7 +234,7 @@ export const getSecretSyncDestinationColValues = (secretSync: TSecretSync) => {
       secondaryText = `${destinationConfig.environment} - ${destinationConfig.secretPath}`;
       break;
     case SecretSync.Ona:
-      primaryText = destinationConfig.projectName;
+      primaryText = destinationConfig.projectName || destinationConfig.projectId;
       secondaryText = "Ona Project";
       break;
     default:

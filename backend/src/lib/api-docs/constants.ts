@@ -2952,7 +2952,7 @@ export const SecretSyncs = {
     },
     ONA: {
       projectId: "The Ona project ID to sync secrets to.",
-      projectName: "The Ona project name to sync secrets to."
+      projectName: "An optional display name for the Ona project."
     },
     VERCEL: {
       app: "The ID of the Vercel app to sync secrets to.",

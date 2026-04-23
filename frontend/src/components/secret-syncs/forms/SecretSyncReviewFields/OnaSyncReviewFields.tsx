@@ -8,5 +8,9 @@ export const OnaSyncReviewFields = () => {
   const { watch } = useFormContext<TSecretSyncForm & { destination: SecretSync.Ona }>();
   const destinationConfig = watch("destinationConfig");
 
-  return <GenericFieldLabel label="Ona Project">{destinationConfig.projectName}</GenericFieldLabel>;
+  return (
+    <GenericFieldLabel label="Ona Project">
+      {destinationConfig.projectName || destinationConfig.projectId}
+    </GenericFieldLabel>
+  );
 };
