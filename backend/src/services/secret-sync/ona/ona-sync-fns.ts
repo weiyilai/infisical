@@ -16,7 +16,7 @@ const ONA_DELETE_SECRET_PATH = "/gitpod.v1.SecretService/DeleteSecret";
 const ONA_MAX_RETRIES = 3;
 const ONA_BASE_RETRY_DELAY_MS = 500;
 
-const ONA_URL = "https://app.gitpod.io/api";
+const ONA_API_URL = "https://app.gitpod.io/api";
 
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => {
@@ -27,7 +27,7 @@ const isRetryableOnaError = (error: unknown): boolean => {
   if (!(error instanceof AxiosError)) return false;
   if (!error.response) return true;
   const { status } = error.response;
-  return status === 408 || status === 429;
+  return status === 429;
 };
 
 const withOnaRetry = async <T>(fn: () => Promise<T>): Promise<T> => {
@@ -59,16 +59,14 @@ const listEnvVarSecrets = async (
   while (hasMore) {
     // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
     const { data } = await withOnaRetry(async () => {
-      const res = await request.post<TOnaListSecretsResponse>(
-        `${ONA_URL}${ONA_LIST_SECRETS_PATH}`,
+      return request.post<TOnaListSecretsResponse>(
+        `${ONA_API_URL}${ONA_LIST_SECRETS_PATH}`,
         {
           filter: { scope },
           pagination: { pageSize: ONA_PAGE_SIZE, ...(token ? { token } : {}) }
         },
         { headers: getAuthHeaders(secretSync) }
       );
-
-      return res;
     });
 
     if (data?.secrets?.length) all.push(...data.secrets);
@@ -87,8 +85,8 @@ const createEnvVarSecret = async (
   value: string
 ): Promise<void> => {
   await withOnaRetry(async () => {
-    const res = await request.post(
-      `${ONA_URL}${ONA_CREATE_SECRET_PATH}`,
+    return request.post(
+      `${ONA_API_URL}${ONA_CREATE_SECRET_PATH}`,
       {
         name,
         value,
@@ -97,7 +95,6 @@ const createEnvVarSecret = async (
       },
       { headers: getAuthHeaders(secretSync) }
     );
-    return res;
   });
 };
 
@@ -107,23 +104,21 @@ const updateSecretValue = async (
   value: string
 ): Promise<void> => {
   await withOnaRetry(async () => {
-    const res = await request.post(
-      `${ONA_URL}${ONA_UPDATE_SECRET_VALUE_PATH}`,
+    return request.post(
+      `${ONA_API_URL}${ONA_UPDATE_SECRET_VALUE_PATH}`,
       { secretId, value },
       { headers: getAuthHeaders(secretSync) }
     );
-    return res;
   });
 };
 
 const deleteSecret = async (secretSync: TOnaSyncWithCredentials, secretId: string): Promise<void> => {
   await withOnaRetry(async () => {
-    const res = await request.post(
-      `${ONA_URL}${ONA_DELETE_SECRET_PATH}`,
+    return request.post(
+      `${ONA_API_URL}${ONA_DELETE_SECRET_PATH}`,
       { secretId },
       { headers: getAuthHeaders(secretSync) }
     );
-    return res;
   });
 };
 

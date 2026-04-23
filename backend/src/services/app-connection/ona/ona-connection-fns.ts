@@ -11,7 +11,7 @@ import { TOnaConnection, TOnaConnectionConfig, TOnaProject, TOnaProjectListRespo
 
 const GET_AUTHENTICATED_IDENTITY_PATH = "/gitpod.v1.IdentityService/GetAuthenticatedIdentity";
 const ONA_LIST_PROJECTS_PATH = "/gitpod.v1.ProjectService/ListProjects";
-const ONA_URL = "https://app.gitpod.io/api";
+const ONA_API_URL = "https://app.gitpod.io/api";
 const ONA_PAGE_SIZE = 100;
 
 export const getOnaConnectionListItem = () => {
@@ -27,7 +27,7 @@ export const validateOnaConnectionCredentials = async (config: TOnaConnectionCon
 
   try {
     await request.post(
-      `${ONA_URL}${GET_AUTHENTICATED_IDENTITY_PATH}`,
+      `${ONA_API_URL}${GET_AUTHENTICATED_IDENTITY_PATH}`,
       {},
       {
         headers: {
@@ -65,7 +65,7 @@ export const listOnaProjects = async (appConnection: TOnaConnection): Promise<TO
         pagination: { pageSize: ONA_PAGE_SIZE, ...(token ? { token } : {}) }
       };
 
-      const { data } = await request.post<TOnaProjectListResponse>(`${ONA_URL}${ONA_LIST_PROJECTS_PATH}`, body, {
+      const { data } = await request.post<TOnaProjectListResponse>(`${ONA_API_URL}${ONA_LIST_PROJECTS_PATH}`, body, {
         headers: {
           Authorization: `Bearer ${personalAccessToken}`,
           "Content-Type": "application/json"
