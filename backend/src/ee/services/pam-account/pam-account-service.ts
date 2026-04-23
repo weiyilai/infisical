@@ -4,8 +4,9 @@ import picomatch from "picomatch";
 import { ActionProjectType, OrganizationActionScope, TableName, TPamAccounts, TPamResources } from "@app/db/schemas";
 import { decryptDomainConnectionDetails } from "@app/ee/services/pam-domain/pam-domain-fns";
 import {
+  exchangeCredentialsForConsoleUrl,
   extractAwsAccountIdFromArn,
-  generateConsoleFederationUrl,
+  generateAwsIamSessionCredentials,
   TAwsIamAccountCredentials
 } from "@app/ee/services/pam-resource/aws-iam";
 import { parseMongoConnectionString } from "@app/ee/services/pam-resource/mongodb/mongodb-resource-factory";
@@ -24,6 +25,7 @@ import {
 import { createSshCert, createSshKeyPair } from "@app/ee/services/ssh/ssh-certificate-authority-fns";
 import { SshCertType } from "@app/ee/services/ssh/ssh-certificate-authority-types";
 import { SshCertKeyAlgorithm } from "@app/ee/services/ssh-certificate/ssh-certificate-types";
+import { KeyStorePrefixes, TKeyStoreFactory } from "@app/keystore/keystore";
 import { DatabaseErrorCode } from "@app/lib/error-codes";
 import {
   BadRequestError,
@@ -119,6 +121,7 @@ type TPamAccountServiceFactoryDep = {
     TPamAccountDependenciesDALFactory,
     "findByAccountId" | "updateById" | "countByAccountIds"
   >;
+  keyStore: Pick<TKeyStoreFactory, "setItemWithExpiry" | "getItem">;
 };
 
 export type TPamAccountServiceFactory = ReturnType<typeof pamAccountServiceFactory>;
@@ -144,7 +147,8 @@ export const pamAccountServiceFactory = ({
   approvalRequestGrantsDAL,
   pamSessionExpirationService,
   resourceMetadataDAL,
-  pamAccountDependenciesDAL
+  pamAccountDependenciesDAL,
+  keyStore
 }: TPamAccountServiceFactoryDep) => {
   // Helper to resolve account parent (resource or domain)
   const resolveAccountParent = async ({
@@ -895,7 +899,7 @@ export const pamAccountServiceFactory = ({
         projectId: account.projectId
       })) as TAwsIamAccountCredentials;
 
-      const { consoleUrl, expiresAt } = await generateConsoleFederationUrl({
+      const credentials = await generateAwsIamSessionCredentials({
         connectionDetails,
         targetRoleArn: awsCredentials.targetRoleArn,
         roleSessionName: actorEmail,
@@ -916,24 +920,35 @@ export const pamAccountServiceFactory = ({
         accountId: account.id,
         resourceId: resource.id,
         userId: actor.id,
-        expiresAt,
+        expiresAt: credentials.expiresAt,
         startedAt: new Date(),
         reason: trimmedReason
       });
 
+      // Cache the AccessKeyId so /aws-console-url can verify the caller is
+      // submitting credentials that actually belong to this session
+      const ttlSeconds = Math.max(1, Math.floor((credentials.expiresAt.getTime() - Date.now()) / 1000));
+      await keyStore.setItemWithExpiry(
+        KeyStorePrefixes.PamAwsIamAccessKeyId(session.id),
+        ttlSeconds,
+        credentials.accessKeyId
+      );
+
       // Schedule session expiration job to run at expiresAt
-      await pamSessionExpirationService.scheduleSessionExpiration(session.id, expiresAt);
+      await pamSessionExpirationService.scheduleSessionExpiration(session.id, credentials.expiresAt);
 
       return {
         sessionId: session.id,
         resourceType,
         account,
-        consoleUrl,
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken,
+        expiresAt: credentials.expiresAt.toISOString(),
         metadata: {
           awsAccountId: extractAwsAccountIdFromArn(connectionDetails.roleArn),
           targetRoleArn: awsCredentials.targetRoleArn,
-          federatedUsername: actorEmail,
-          expiresAt: expiresAt.toISOString()
+          federatedUsername: actorEmail
         }
       };
     }
@@ -1077,6 +1092,69 @@ export const pamAccountServiceFactory = ({
       projectId,
       account,
       metadata
+    };
+  };
+
+  const getAwsIamConsoleUrl = async (
+    {
+      sessionId,
+      projectId,
+      accessKeyId,
+      secretAccessKey,
+      sessionToken
+    }: {
+      sessionId: string;
+      projectId: string;
+      accessKeyId: string;
+      secretAccessKey: string;
+      sessionToken: string;
+    },
+    actor: OrgServiceActor
+  ) => {
+    const session = await pamSessionDAL.findById(sessionId);
+    if (!session) throw new NotFoundError({ message: `Session with ID '${sessionId}' not found` });
+
+    if (session.projectId !== projectId) {
+      throw new ForbiddenRequestError({ message: "Session does not belong to the specified project" });
+    }
+
+    if (session.userId !== actor.id) {
+      throw new ForbiddenRequestError({ message: "Session does not belong to the current user" });
+    }
+
+    if (session.resourceType !== PamResource.AwsIam) {
+      throw new BadRequestError({ message: "Session is not an AWS IAM session" });
+    }
+
+    if (session.endedAt || (session.expiresAt && session.expiresAt < new Date())) {
+      throw new BadRequestError({ message: "Session has ended or expired" });
+    }
+
+    // Confirm the submitted creds actually belong to this session by comparing
+    // against the AccessKeyId we stashed at /access time
+    const expectedAccessKeyId = await keyStore.getItem(KeyStorePrefixes.PamAwsIamAccessKeyId(sessionId));
+    if (!expectedAccessKeyId) {
+      throw new BadRequestError({
+        message: "Session credentials are no longer available. Please re-access the account."
+      });
+    }
+    if (expectedAccessKeyId !== accessKeyId) {
+      throw new ForbiddenRequestError({
+        message: "Submitted credentials do not match the session"
+      });
+    }
+
+    const consoleUrl = await exchangeCredentialsForConsoleUrl({
+      accessKeyId,
+      secretAccessKey,
+      sessionToken
+    });
+
+    return {
+      consoleUrl,
+      accountId: session.accountId,
+      accountName: session.accountName,
+      resourceName: session.resourceName
     };
   };
 
@@ -1699,6 +1777,7 @@ export const pamAccountServiceFactory = ({
     list,
     getById,
     access,
+    getAwsIamConsoleUrl,
     viewCredentials,
     getSessionCredentials,
     rotateAllDueAccounts,
