@@ -1,17 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { zodValidator } from "@tanstack/zod-adapter";
-import { z } from "zod";
+import { createFileRoute } from '@tanstack/react-router'
+import { zodValidator } from '@tanstack/zod-adapter'
+import { z } from 'zod'
 
-import { ApprovalPolicyType } from "@app/hooks/api/approvalPolicies";
+import { ApprovalPolicyType } from '@app/hooks/api/approvalPolicies'
 
-import { ApprovalRequestDetailPage } from "./ApprovalRequestDetailPage";
+import { ApprovalRequestDetailPage } from './ApprovalRequestDetailPage'
 
 const ApprovalRequestSearchSchema = z.object({
-  policyType: z.nativeEnum(ApprovalPolicyType).optional()
-});
+  policyType: z.nativeEnum(ApprovalPolicyType).optional(),
+})
 
 export const Route = createFileRoute(
-  "/_authenticate/_inject-org-details/_org-layout/organizations/$orgId/projects/cert-manager/$projectId/_cert-manager-layout/approval-requests/$approvalRequestId"
+  '/_authenticate/_inject-org-details/_org-layout/organizations/$orgId/projects/cert-manager/$projectId/_cert-manager-layout/approvals/$approvalRequestId',
 )({
   component: ApprovalRequestDetailPage,
   validateSearch: zodValidator(ApprovalRequestSearchSchema),
@@ -20,9 +20,9 @@ export const Route = createFileRoute(
       breadcrumbs: [
         ...context.breadcrumbs,
         {
-          label: "Approval Request"
-        }
-      ]
-    };
-  }
-});
+          label: 'Approval Request',
+        },
+      ],
+    }
+  },
+})

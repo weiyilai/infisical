@@ -1,16 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { zodValidator } from "@tanstack/zod-adapter";
-import { z } from "zod";
+import { createFileRoute } from '@tanstack/react-router'
+import { zodValidator } from '@tanstack/zod-adapter'
+import { z } from 'zod'
 
-import { ApprovalsPage } from "./ApprovalsPage";
+import { ApprovalsPage } from './ApprovalsPage'
 
 const ApprovalsSearchSchema = z.object({
-  selectedTab: z.string().optional().default("requests"),
-  section: z.enum(["certificates", "code-signing"]).optional().default("certificates")
-});
+  selectedTab: z.string().optional().default('requests'),
+  section: z
+    .enum(['certificates', 'code-signing'])
+    .optional()
+    .default('certificates'),
+})
 
 export const Route = createFileRoute(
-  "/_authenticate/_inject-org-details/_org-layout/organizations/$orgId/projects/cert-manager/$projectId/_cert-manager-layout/approvals"
+  '/_authenticate/_inject-org-details/_org-layout/organizations/$orgId/projects/cert-manager/$projectId/_cert-manager-layout/approvals/',
 )({
   component: ApprovalsPage,
   validateSearch: zodValidator(ApprovalsSearchSchema),
@@ -19,9 +22,9 @@ export const Route = createFileRoute(
       breadcrumbs: [
         ...context.breadcrumbs,
         {
-          label: "Approvals"
-        }
-      ]
-    };
-  }
-});
+          label: 'Approvals',
+        },
+      ],
+    }
+  },
+})

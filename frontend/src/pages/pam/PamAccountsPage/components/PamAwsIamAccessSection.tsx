@@ -27,10 +27,11 @@ type TStsCredentials = {
 type Props = {
   account: TPamAccount;
   projectId: string;
+  reason?: string;
   onClose: () => void;
 };
 
-export const PamAwsIamAccessSection = ({ account, projectId, onClose }: Props) => {
+export const PamAwsIamAccessSection = ({ account, projectId, reason, onClose }: Props) => {
   const accessPamAccount = useAccessPamAccount();
   const getAwsIamConsoleUrl = useGetAwsIamConsoleUrl();
 
@@ -59,7 +60,8 @@ export const PamAwsIamAccessSection = ({ account, projectId, onClose }: Props) =
           resourceName: account.resource?.name ?? "",
           accountName: account.name,
           projectId,
-          duration: `${(account.credentials as TAwsIamCredentials).defaultSessionDuration}s`
+          duration: `${(account.credentials as TAwsIamCredentials).defaultSessionDuration}s`,
+          reason
         });
 
         if (
