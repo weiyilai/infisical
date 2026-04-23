@@ -40,8 +40,8 @@ export const ReasonGate = ({ account, children }: Props) => {
       </h2>
       <p className="max-w-sm text-center text-xs text-mineshaft-400">
         {isReasonRequired
-          ? "This account's policy requires a reason for access. The reason will be stored with the session for audit purposes."
-          : "Optionally provide a reason for this session. The reason will be stored with the session for audit purposes."}
+          ? "This account's policy requires a reason for access. The reason will be stored for audit purposes."
+          : "Optionally provide a reason for this session. The reason will be stored for audit purposes."}
       </p>
       <div className="flex w-full max-w-sm flex-col gap-2">
         <textarea

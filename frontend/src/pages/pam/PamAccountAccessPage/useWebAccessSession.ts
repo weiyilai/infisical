@@ -50,6 +50,7 @@ export const useWebAccessSession = ({
   // Seed with the prop so non-SSH flows (which collect reason via the upfront ReasonGate)
   // pass it on the first connect; SSH leaves it undefined and uses the inline terminal prompt.
   const submittedReasonRef = useRef<string | undefined>(reason);
+  const askedOptionalReasonRef = useRef(false);
 
   useEffect(() => {
     onSessionEndRef.current = onSessionEnd;
@@ -249,6 +250,20 @@ export const useWebAccessSession = ({
         isWidenedRef.current = false;
       }
       if (fitAddonRef.current) fitAddonRef.current.fit();
+
+      if (isSSH && submittedReasonRef.current === undefined && !askedOptionalReasonRef.current) {
+        askedOptionalReasonRef.current = true;
+        const optional = await prompt(
+          "\r\nOptionally provide a reason for this session (press Enter to skip): "
+        );
+        if (optional.trim()) {
+          submittedReasonRef.current = optional.trim();
+          terminal.reset();
+          connect();
+          return;
+        }
+      }
+
       terminal.reset();
       openWebSocket(terminal, data.ticket);
     } catch (err: unknown) {
