@@ -387,7 +387,9 @@ export const SecretSyncFns = {
       case SecretSync.TravisCI:
         return TravisCISyncFns.syncSecrets(secretSync, schemaSecretMap);
       default:
-        throw new Error(`Unhandled sync destination for sync secrets fns: ${secretSync.destination}`);
+        throw new Error(
+          `Unhandled sync destination for sync secrets fns: ${(secretSync as TSecretSyncWithCredentials).destination}`
+        );
     }
   },
   getSecrets: async (
@@ -531,7 +533,9 @@ export const SecretSyncFns = {
         secretMap = await TravisCISyncFns.getSecrets(secretSync);
         break;
       default:
-        throw new Error(`Unhandled sync destination for get secrets fns: ${secretSync.destination}`);
+        throw new Error(
+          `Unhandled sync destination for get secrets fns: ${(secretSync as TSecretSyncWithCredentials).destination}`
+        );
     }
 
     const filtered = filterForSchema(secretMap, secretSync.environment?.slug || "", secretSync.syncOptions.keySchema);
@@ -642,7 +646,9 @@ export const SecretSyncFns = {
       case SecretSync.TravisCI:
         return TravisCISyncFns.removeSecrets(secretSync, schemaSecretMap);
       default:
-        throw new Error(`Unhandled sync destination for remove secrets fns: ${secretSync.destination}`);
+        throw new Error(
+          `Unhandled sync destination for remove secrets fns: ${(secretSync as TSecretSyncWithCredentials).destination}`
+        );
     }
   }
 };
