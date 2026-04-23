@@ -27,7 +27,11 @@ import { twMerge } from "tailwind-merge";
 import { UpgradePlanModal } from "@app/components/license/UpgradePlanModal";
 import { createNotification } from "@app/components/notifications";
 import { ProjectPermissionCan } from "@app/components/permissions";
-import { SecretReferenceTree } from "@app/components/secrets/SecretReferenceDetails";
+import {
+  hasSecretReference,
+  ResolvedSecretValuePopover,
+  SecretReferenceTree
+} from "@app/components/secrets/SecretReferenceDetails";
 import { DeleteActionModal, Input, Modal, ModalContent } from "@app/components/v2";
 import { InfisicalSecretInput } from "@app/components/v2/InfisicalSecretInput";
 import {
@@ -188,6 +192,8 @@ export const SecretEditTableRow = ({
   const batchStore = useBatchStoreApi();
 
   const [isFieldFocused, setIsFieldFocused] = useToggle();
+  const [isResolvedValueOpen, setIsResolvedValueOpen] = useToggle();
+  const isFieldActive = isFieldFocused || isResolvedValueOpen;
   const [isCopied, , setIsCopied] = useTimedReset<boolean>({ initialState: false });
 
   const fetchSharedValueParams =
@@ -214,7 +220,7 @@ export const SecretEditTableRow = ({
     isError: isErrorFetchingSharedValue,
     refetch: refetchSharedValue
   } = useGetSecretValue(fetchSharedValueParams, {
-    enabled: canFetchSharedValue && (isVisible || isFieldFocused)
+    enabled: canFetchSharedValue && (isVisible || isFieldActive)
   });
 
   const isFetchingSharedValue = canFetchSharedValue && isPendingSharedValue;
@@ -880,6 +886,8 @@ export const SecretEditTableRow = ({
   const isDirtyState =
     isDirty && (dirtyFields.key || dirtyFields.value) && !isImportedSecret && !isBatchMode;
 
+  const secretHasReference = hasSecretReference(watchedValue as string);
+
   const valueContent = (
     <>
       <DeleteActionModal
@@ -904,11 +912,21 @@ export const SecretEditTableRow = ({
         )}
         <div
           className={twMerge(
-            "grow pr-2 pl-1",
-            isFieldFocused && !isBatchMode && "pr-16",
-            isFieldFocused && isBatchMode && "pr-6"
+            "relative grow pr-2 pl-1",
+            isFieldActive && !isBatchMode && "pr-16",
+            isFieldActive && isBatchMode && "pr-6"
           )}
         >
+          {isFieldActive && !secretValueHidden && !isCreatable && secretHasReference && (
+            <ResolvedSecretValuePopover
+              environment={environment}
+              secretPath={secretPath}
+              secretKey={secretName}
+              open={isResolvedValueOpen}
+              onOpenChange={setIsResolvedValueOpen.toggle}
+              isDisabled={isDirtyState || hasPendingValueChange}
+            />
+          )}
           <Controller
             control={control}
             name="value"
@@ -926,13 +944,14 @@ export const SecretEditTableRow = ({
                         : (field.value as string)
                 }
                 key="secret-input-shared"
-                isVisible={isVisible}
+                isVisible={isVisible || isResolvedValueOpen}
                 secretPath={secretPath}
                 environment={environment}
                 isImport={isImportedSecret}
                 defaultValue={secretValueHidden ? "" : undefined}
                 canEditButNotView={secretValueHidden}
                 onFocus={() => setIsFieldFocused.on()}
+                containerClassName={secretHasReference && isFieldActive ? "pl-6" : ""}
                 onBlur={() => {
                   field.onBlur();
                   setIsFieldFocused.off();
@@ -941,7 +960,7 @@ export const SecretEditTableRow = ({
             )}
           />
         </div>
-        {!isDirtyState && !isFieldFocused && (
+        {!isDirtyState && !isFieldActive && (
           <div className="flex w-fit items-start justify-end self-start pl-2">
             <div className="flex items-center gap-1">
               {comment && !isImportedSecret && (
@@ -1051,7 +1070,7 @@ export const SecretEditTableRow = ({
           </div>
         </div>
       )}
-      {isFieldFocused &&
+      {isFieldActive &&
         !(
           isDirty &&
           (dirtyFields.key || dirtyFields.value) &&
@@ -1084,10 +1103,10 @@ export const SecretEditTableRow = ({
             "pointer-events-none opacity-0 transition-all duration-300",
             "group-hover:pointer-events-auto group-hover:gap-1 group-hover:opacity-100",
             shouldStayExpanded && "pointer-events-auto gap-1 opacity-100",
-            isFieldFocused &&
+            isFieldActive &&
               !showMenuWhileFocused &&
               "group-hover:pointer-events-none group-hover:gap-0 group-hover:opacity-0",
-            isFieldFocused && showMenuWhileFocused && "pointer-events-auto gap-1 opacity-100",
+            isFieldActive && showMenuWhileFocused && "pointer-events-auto gap-1 opacity-100",
             isSingleEnvView ? "top-0.5 right-0.5" : "-top-[1px] -right-1.5"
           )}
         >
