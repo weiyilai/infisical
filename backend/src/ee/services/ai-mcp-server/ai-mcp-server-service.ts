@@ -28,6 +28,7 @@ import { TGatewayV2ServiceFactory } from "../gateway-v2/gateway-v2-service";
 import { OrgPermissionGatewayActions, OrgPermissionSubjects } from "../permission/org-permission";
 import { TPermissionServiceFactory } from "../permission/permission-service-types";
 import { ProjectPermissionActions, ProjectPermissionSub } from "../permission/project-permission";
+import { ssrfSafeMcpFetch } from "./ai-mcp-server-fns";
 import { TAiMcpServerDALFactory } from "./ai-mcp-server-dal";
 import { AiMcpServerAuthMethod, AiMcpServerCredentialMode, AiMcpServerStatus } from "./ai-mcp-server-enum";
 import { TAiMcpServerToolDALFactory } from "./ai-mcp-server-tool-dal";
@@ -221,6 +222,7 @@ export const aiMcpServerServiceFactory = ({
         }
 
         const transport = new StreamableHTTPClientTransport(new URL(targetUrl), {
+          fetch: ssrfSafeMcpFetch,
           requestInit: {
             headers: {
               Authorization: `Bearer ${accessToken}`
