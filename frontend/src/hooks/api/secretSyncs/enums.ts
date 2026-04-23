@@ -36,7 +36,8 @@ export enum SecretSync {
   CircleCI = "circleci",
   AzureEntraIdScim = "azure-entra-id-scim",
   ExternalInfisical = "external-infisical",
-  Ona = "ona"
+  Ona = "ona",
+  TravisCI = "travis-ci"
 }
 
 export enum SecretSyncStatus {

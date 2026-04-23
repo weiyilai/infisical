@@ -158,6 +158,7 @@
                       "integrations/app-connections/supabase",
                       "integrations/app-connections/teamcity",
                       "integrations/app-connections/terraform-cloud",
+                      "integrations/app-connections/travis-ci",
                       "integrations/app-connections/venafi",
                       "integrations/app-connections/vercel",
                       "integrations/app-connections/windmill",
@@ -607,6 +608,7 @@
                       "integrations/secret-syncs/supabase",
                       "integrations/secret-syncs/teamcity",
                       "integrations/secret-syncs/terraform-cloud",
+                      "integrations/secret-syncs/travis-ci",
                       "integrations/secret-syncs/vercel",
                       "integrations/secret-syncs/windmill",
                       "integrations/secret-syncs/zabbix"
@@ -837,6 +839,7 @@
                   "documentation/platform/pki/ca/sectigo",
                   "documentation/platform/pki/ca/azure-adcs",
                   "documentation/platform/pki/ca/aws-pca",
+                  "documentation/platform/pki/ca/aws-acm-public-ca",
                   "documentation/platform/pki/ca/venafi"
                 ]
               }
@@ -2947,6 +2950,16 @@
                     ]
                   },
                   {
+                    "group": "AWS ACM Public CA",
+                    "pages": [
+                      "api-reference/endpoints/certificate-authorities/aws-acm-public-ca/list",
+                      "api-reference/endpoints/certificate-authorities/aws-acm-public-ca/create",
+                      "api-reference/endpoints/certificate-authorities/aws-acm-public-ca/read",
+                      "api-reference/endpoints/certificate-authorities/aws-acm-public-ca/update",
+                      "api-reference/endpoints/certificate-authorities/aws-acm-public-ca/delete"
+                    ]
+                  },
+                  {
                     "group": "Internal",
                     "pages": [
                       "api-reference/endpoints/certificate-authorities/internal/list",
@@ -3255,7 +3268,8 @@
                   "api-reference/endpoints/kms/keys/update",
                   "api-reference/endpoints/kms/keys/delete",
                   "api-reference/endpoints/kms/keys/public-key",
-                  "api-reference/endpoints/kms/keys/private-key"
+                  "api-reference/endpoints/kms/keys/private-key",
+                  "api-reference/endpoints/kms/keys/bulk-export-private-keys"
                 ]
               },
               {

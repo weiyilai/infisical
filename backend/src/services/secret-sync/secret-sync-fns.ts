@@ -77,6 +77,7 @@ import { SECRET_SYNC_PLAN_MAP } from "./secret-sync-maps";
 import { SUPABASE_SYNC_LIST_OPTION, SupabaseSyncFns } from "./supabase";
 import { TEAMCITY_SYNC_LIST_OPTION, TeamCitySyncFns } from "./teamcity";
 import { TERRAFORM_CLOUD_SYNC_LIST_OPTION, TerraformCloudSyncFns } from "./terraform-cloud";
+import { TRAVIS_CI_SYNC_LIST_OPTION, TravisCISyncFns } from "./travis-ci";
 import { VERCEL_SYNC_LIST_OPTION, VercelSyncFns } from "./vercel";
 import { WINDMILL_SYNC_LIST_OPTION, WindmillSyncFns } from "./windmill";
 import { ZABBIX_SYNC_LIST_OPTION, ZabbixSyncFns } from "./zabbix";
@@ -119,7 +120,8 @@ const SECRET_SYNC_LIST_OPTIONS: Record<SecretSync, TSecretSyncListItem> = {
   [SecretSync.CircleCI]: CIRCLECI_SYNC_LIST_OPTION,
   [SecretSync.AzureEntraIdScim]: AZURE_ENTRA_ID_SCIM_SYNC_LIST_OPTION,
   [SecretSync.ExternalInfisical]: EXTERNAL_INFISICAL_SYNC_LIST_OPTION,
-  [SecretSync.Ona]: ONA_SYNC_LIST_OPTION
+  [SecretSync.Ona]: ONA_SYNC_LIST_OPTION,
+  [SecretSync.TravisCI]: TRAVIS_CI_SYNC_LIST_OPTION
 };
 
 export const listSecretSyncOptions = () => {
@@ -382,10 +384,10 @@ export const SecretSyncFns = {
         return ExternalInfisicalSyncFns.syncSecrets(secretSync, secretMap);
       case SecretSync.Ona:
         return OnaSyncFns.syncSecrets(secretSync, schemaSecretMap);
+      case SecretSync.TravisCI:
+        return TravisCISyncFns.syncSecrets(secretSync, schemaSecretMap);
       default:
-        throw new Error(
-          `Unhandled sync destination for sync secrets fns: ${(secretSync as TSecretSyncWithCredentials).destination}`
-        );
+        throw new Error(`Unhandled sync destination for sync secrets fns: ${secretSync.destination}`);
     }
   },
   getSecrets: async (
@@ -525,10 +527,11 @@ export const SecretSyncFns = {
       case SecretSync.Ona:
         secretMap = await OnaSyncFns.getSecrets();
         break;
+      case SecretSync.TravisCI:
+        secretMap = await TravisCISyncFns.getSecrets(secretSync);
+        break;
       default:
-        throw new Error(
-          `Unhandled sync destination for get secrets fns: ${(secretSync as TSecretSyncWithCredentials).destination}`
-        );
+        throw new Error(`Unhandled sync destination for get secrets fns: ${secretSync.destination}`);
     }
 
     const filtered = filterForSchema(secretMap, secretSync.environment?.slug || "", secretSync.syncOptions.keySchema);
@@ -636,10 +639,10 @@ export const SecretSyncFns = {
         return ExternalInfisicalSyncFns.removeSecrets(secretSync, secretMap);
       case SecretSync.Ona:
         return OnaSyncFns.removeSecrets(secretSync, schemaSecretMap);
+      case SecretSync.TravisCI:
+        return TravisCISyncFns.removeSecrets(secretSync, schemaSecretMap);
       default:
-        throw new Error(
-          `Unhandled sync destination for remove secrets fns: ${(secretSync as TSecretSyncWithCredentials).destination}`
-        );
+        throw new Error(`Unhandled sync destination for remove secrets fns: ${secretSync.destination}`);
     }
   }
 };

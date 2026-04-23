@@ -35,6 +35,7 @@ import { registerRenderSyncRouter } from "./render-sync-router";
 import { registerSupabaseSyncRouter } from "./supabase-sync-router";
 import { registerTeamCitySyncRouter } from "./teamcity-sync-router";
 import { registerTerraformCloudSyncRouter } from "./terraform-cloud-sync-router";
+import { registerTravisCISyncRouter } from "./travis-ci-sync-router";
 import { registerVercelSyncRouter } from "./vercel-sync-router";
 import { registerWindmillSyncRouter } from "./windmill-sync-router";
 import { registerZabbixSyncRouter } from "./zabbix-sync-router";
@@ -79,5 +80,6 @@ export const SECRET_SYNC_REGISTER_ROUTER_MAP: Record<SecretSync, (server: Fastif
   [SecretSync.CircleCI]: registerCircleCISyncRouter,
   [SecretSync.AzureEntraIdScim]: registerAzureEntraIdScimSyncRouter,
   [SecretSync.ExternalInfisical]: registerExternalInfisicalSyncRouter,
-  [SecretSync.Ona]: registerOnaSyncRouter
+  [SecretSync.Ona]: registerOnaSyncRouter,
+  [SecretSync.TravisCI]: registerTravisCISyncRouter
 };

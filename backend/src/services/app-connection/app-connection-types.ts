@@ -318,6 +318,12 @@ import {
   TValidateTerraformCloudConnectionCredentialsSchema
 } from "./terraform-cloud";
 import {
+  TTravisCIConnection,
+  TTravisCIConnectionConfig,
+  TTravisCIConnectionInput,
+  TValidateTravisCIConnectionCredentialsSchema
+} from "./travis-ci";
+import {
   TValidateVenafiConnectionCredentialsSchema,
   TVenafiConnection,
   TVenafiConnectionConfig,
@@ -401,6 +407,7 @@ export type TAppConnection = { id: string } & (
   | TNetScalerConnection
   | TAnthropicConnection
   | TOnaConnection
+  | TTravisCIConnection
 );
 
 export type TAppConnectionRaw = NonNullable<Awaited<ReturnType<TAppConnectionDALFactory["findById"]>>>;
@@ -470,6 +477,7 @@ export type TAppConnectionInput = { id: string } & (
   | TNetScalerConnectionInput
   | TAnthropicConnectionInput
   | TOnaConnectionInput
+  | TTravisCIConnectionInput
 );
 
 export type TSqlConnectionInput =
@@ -567,7 +575,8 @@ export type TAppConnectionConfig =
   | TDopplerConnectionConfig
   | TNetScalerConnectionConfig
   | TAnthropicConnectionConfig
-  | TOnaConnectionConfig;
+  | TOnaConnectionConfig
+  | TTravisCIConnectionConfig;
 
 export type TValidateAppConnectionCredentialsSchema =
   | TValidateAwsConnectionCredentialsSchema
@@ -627,7 +636,8 @@ export type TValidateAppConnectionCredentialsSchema =
   | TValidateDopplerConnectionCredentialsSchema
   | TValidateNetScalerConnectionCredentialsSchema
   | TValidateAnthropicConnectionCredentialsSchema
-  | TValidateOnaConnectionCredentialsSchema;
+  | TValidateOnaConnectionCredentialsSchema
+  | TValidateTravisCIConnectionCredentialsSchema;
 
 export type TListAwsConnectionKmsKeys = {
   connectionId: string;
