@@ -187,6 +187,16 @@ export const pamAccountServiceFactory = ({
     };
   };
 
+  // Resolve whether the given policy enforces RequireReason at access time.
+  // Surfaced on account responses so the UI can gate access without needing
+  // pam-account-policy:read permission.
+  const resolveRequireReason = async (policyId?: string | null) => {
+    if (!policyId) return false;
+    const policy = await pamAccountPolicyDAL.findById(policyId);
+    const policyRules = (policy?.rules ?? {}) as TPolicyRules;
+    return Boolean(policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason]);
+  };
+
   const create = async (
     {
       credentials,
@@ -314,7 +324,8 @@ export const pamAccountServiceFactory = ({
           resource: parent.isResource ? parent.raw : null,
           domain: parent.isResource ? null : parent.raw
         }),
-        metadata: insertedMetadata?.map(({ id, key, value }) => ({ id, key, value: value ?? "" })) ?? []
+        metadata: insertedMetadata?.map(({ id, key, value }) => ({ id, key, value: value ?? "" })) ?? [],
+        requireReason: await resolveRequireReason(account.policyId)
       };
     } catch (err) {
       if (err instanceof DatabaseError && (err.error as { code: string })?.code === DatabaseErrorCode.UniqueViolation) {
@@ -469,7 +480,8 @@ export const pamAccountServiceFactory = ({
           resource,
           domain: parent.isResource ? null : parent.raw
         }),
-        metadata: existingMeta[accountId] || []
+        metadata: existingMeta[accountId] || [],
+        requireReason: await resolveRequireReason(account.policyId)
       };
     }
 
@@ -503,7 +515,8 @@ export const pamAccountServiceFactory = ({
           resource,
           domain: parent.isResource ? null : parent.raw
         }),
-        metadata: freshMeta[accountId] || []
+        metadata: freshMeta[accountId] || [],
+        requireReason: await resolveRequireReason(updatedAccount.policyId)
       };
     } catch (err) {
       if (err instanceof DatabaseError && (err.error as { code: string })?.code === DatabaseErrorCode.UniqueViolation) {
@@ -690,7 +703,8 @@ export const pamAccountServiceFactory = ({
         resource: accountWithParent.resource,
         domain: accountWithParent.domain
       }),
-      metadata: accountMetadata
+      metadata: accountMetadata,
+      requireReason: await resolveRequireReason(accountWithParent.policyId)
     };
   };
 
@@ -704,7 +718,8 @@ export const pamAccountServiceFactory = ({
       actorName,
       actorUserAgent,
       duration,
-      mfaSessionId
+      mfaSessionId,
+      reason
     }: TAccessAccountDTO,
     actor: OrgServiceActor
   ) => {
@@ -726,6 +741,8 @@ export const pamAccountServiceFactory = ({
         message: `Account with name '${inputAccountName}' not found for resource '${inputResourceName}'`
       });
     }
+
+    const trimmedReason = reason?.trim() || null;
 
     const fac = APPROVAL_POLICY_FACTORY_MAP[ApprovalPolicyType.PamAccess](ApprovalPolicyType.PamAccess);
 
@@ -773,6 +790,19 @@ export const pamAccountServiceFactory = ({
           metadata: accountMeta[account.id] || []
         })
       );
+    }
+
+    // Reason check is intentionally placed after the approval/permission gates so
+    // its distinct error code does not leak policy configuration to unauthorized actors.
+    if (account.policyId) {
+      const policy = await pamAccountPolicyDAL.findById(account.policyId);
+      const policyRules = (policy?.rules ?? {}) as TPolicyRules;
+      if (policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason] && !trimmedReason) {
+        throw new BadRequestError({
+          message: "A reason is required to access this account",
+          name: "PAM_REASON_REQUIRED"
+        });
+      }
     }
 
     const actorUser = await userDAL.findById(actor.id);
@@ -887,7 +917,8 @@ export const pamAccountServiceFactory = ({
         resourceId: resource.id,
         userId: actor.id,
         expiresAt,
-        startedAt: new Date()
+        startedAt: new Date(),
+        reason: trimmedReason
       });
 
       // Schedule session expiration job to run at expiresAt
@@ -921,7 +952,8 @@ export const pamAccountServiceFactory = ({
       accountId: account.id,
       resourceId: resource.id,
       userId: actor.id,
-      expiresAt: new Date(Date.now() + duration)
+      expiresAt: new Date(Date.now() + duration),
+      reason: trimmedReason
     });
 
     if (!gatewayId) {
@@ -1115,13 +1147,17 @@ export const pamAccountServiceFactory = ({
       const policy = await pamAccountPolicyDAL.findById(account.policyId);
       if (policy && policy.isActive) {
         const rules = (policy.rules ?? {}) as TPolicyRules;
-        for (const ruleType of Object.values(PamAccountPolicyRuleType)) {
+
+        const gatewayRuleTypes = [
+          PamAccountPolicyRuleType.CommandBlocking,
+          PamAccountPolicyRuleType.SessionLogMasking
+        ] as const;
+        for (const ruleType of gatewayRuleTypes) {
           const ruleConfig = rules[ruleType];
-          if (ruleConfig) {
-            const supported = PAM_ACCOUNT_POLICY_RULE_SUPPORTED_RESOURCES[ruleType];
-            if (supported === "all" || supported.includes(resource.resourceType as PamResource)) {
-              policyRules[ruleType] = ruleConfig;
-            }
+          const supported = PAM_ACCOUNT_POLICY_RULE_SUPPORTED_RESOURCES[ruleType];
+          const isSupported = supported === "all" || supported.includes(resource.resourceType as PamResource);
+          if (ruleConfig && isSupported) {
+            policyRules[ruleType] = ruleConfig;
           }
         }
       }

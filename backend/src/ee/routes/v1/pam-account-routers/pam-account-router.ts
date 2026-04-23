@@ -530,6 +530,7 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
         accountName: z.string().trim(),
         projectId: z.string().uuid(),
         mfaSessionId: z.string().optional(),
+        reason: z.string().trim().max(1000).optional(),
         duration: z
           .string()
           .min(1)
@@ -583,7 +584,8 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
           accountName: req.body.accountName,
           projectId: req.body.projectId,
           duration: req.body.duration,
-          mfaSessionId: req.body.mfaSessionId
+          mfaSessionId: req.body.mfaSessionId,
+          reason: req.body.reason
         },
         req.permission
       );
@@ -598,7 +600,8 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
             accountId: response.account.id,
             resourceName: req.body.resourceName,
             accountName: response.account.name,
-            duration: req.body.duration ? new Date(req.body.duration).toISOString() : undefined
+            duration: req.body.duration ? new Date(req.body.duration).toISOString() : undefined,
+            reason: req.body.reason
           }
         }
       });
@@ -634,7 +637,8 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
       }),
       body: z.object({
         projectId: z.string().uuid(),
-        mfaSessionId: z.string().optional()
+        mfaSessionId: z.string().optional(),
+        reason: z.string().trim().max(1000).optional()
       }),
       response: {
         200: z.object({ ticket: z.string() })
@@ -655,7 +659,8 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
         actorEmail: req.auth.user.email ?? "",
         actorName: `${req.auth.user.firstName ?? ""} ${req.auth.user.lastName ?? ""}`.trim(),
         auditLogInfo: req.auditLogInfo,
-        mfaSessionId: req.body.mfaSessionId
+        mfaSessionId: req.body.mfaSessionId,
+        reason: req.body.reason
       });
 
       await server.services.telemetry
@@ -724,6 +729,7 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
             accountName: z.string(),
             actorEmail: z.string(),
             actorName: z.string(),
+            reason: z.string().nullable().optional(),
             auditLogInfo: z.object({
               ipAddress: z.string().optional(),
               userAgent: z.string().optional(),
@@ -753,7 +759,8 @@ export const registerPamAccountRouter = async (server: FastifyZodProvider) => {
           auditLogInfo: payload.auditLogInfo as AuditLogInfo,
           userId,
           actorIp: req.realIp ?? "",
-          actorUserAgent: req.headers["user-agent"] ?? ""
+          actorUserAgent: req.headers["user-agent"] ?? "",
+          reason: payload.reason
         });
       } catch (err) {
         logger.error(err, "WebSocket ticket validation failed");

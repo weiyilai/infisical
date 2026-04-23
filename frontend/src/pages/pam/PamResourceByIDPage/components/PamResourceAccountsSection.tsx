@@ -66,6 +66,7 @@ import {
 
 import { PamAccessAccountModal } from "../../PamAccountsPage/components/PamAccessAccountModal";
 import { PamAddAccountModal } from "../../PamAccountsPage/components/PamAddAccountModal";
+import { PamAwsIamAccessReasonModal } from "../../PamAccountsPage/components/PamAwsIamAccessReasonModal";
 import { PamDeleteAccountModal } from "../../PamAccountsPage/components/PamDeleteAccountModal";
 import { PamRequestAccountAccessModal } from "../../PamAccountsPage/components/PamRequestAccountAccessModal";
 import { PamUpdateAccountModal } from "../../PamAccountsPage/components/PamUpdateAccountModal";
@@ -104,12 +105,13 @@ export const PamResourceAccountsSection = ({ resource }: Props) => {
   const [pendingMetadataEntries, setPendingMetadataEntries] = useState<MetadataFilterEntry[]>([]);
   const [appliedMetadataEntries, setAppliedMetadataEntries] = useState<MetadataFilterEntry[]>([]);
 
-  const { popUp, handlePopUpOpen, handlePopUpToggle } = usePopUp([
+  const { popUp, handlePopUpOpen, handlePopUpToggle, handlePopUpClose } = usePopUp([
     "addAccount",
     "accessAccount",
     "requestAccount",
     "updateAccount",
-    "deleteAccount"
+    "deleteAccount",
+    "awsIamReason"
   ] as const);
 
   const isTableFiltered = Boolean(appliedMetadataEntries.some((e) => e.key.trim()));
@@ -272,7 +274,7 @@ export const PamResourceAccountsSection = ({ resource }: Props) => {
     }
 
     if (account.resource?.resourceType === PamResourceType.AwsIam) {
-      accessAwsIam(account);
+      handlePopUpOpen("awsIamReason", { account });
     } else {
       handlePopUpOpen("accessAccount", { account });
     }
@@ -648,6 +650,19 @@ export const PamResourceAccountsSection = ({ resource }: Props) => {
         onOpenChange={(isOpen) => handlePopUpToggle("accessAccount", isOpen)}
         account={popUp.accessAccount.data?.account}
         projectId={projectId!}
+      />
+
+      <PamAwsIamAccessReasonModal
+        isOpen={popUp.awsIamReason.isOpen}
+        onOpenChange={(isOpen) => handlePopUpToggle("awsIamReason", isOpen)}
+        account={popUp.awsIamReason.data?.account}
+        isPending={Boolean(loadingAccountId)}
+        onSubmit={async (reason) => {
+          const account = popUp.awsIamReason.data?.account;
+          if (!account) return;
+          handlePopUpClose("awsIamReason");
+          await accessAwsIam(account, reason);
+        }}
       />
 
       <PamRequestAccountAccessModal
