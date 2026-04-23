@@ -10,7 +10,10 @@ import { GitLabSyncScope } from "@app/hooks/api/secretSyncs/types/gitlab-sync";
 import { HumanitecSyncScope } from "@app/hooks/api/secretSyncs/types/humanitec-sync";
 import { OctopusDeploySyncScope } from "@app/hooks/api/secretSyncs/types/octopus-deploy-sync";
 import { RenderSyncScope } from "@app/hooks/api/secretSyncs/types/render-sync";
-import { VercelSyncScope } from "@app/hooks/api/secretSyncs/types/vercel-sync";
+import {
+  VercelEnvironmentType,
+  VercelSyncScope
+} from "@app/hooks/api/secretSyncs/types/vercel-sync";
 
 // This functional ensures parity across what is displayed in the destination column
 // and the values used when search filtering
@@ -96,7 +99,13 @@ export const getSecretSyncDestinationColValues = (secretSync: TSecretSync) => {
     case SecretSync.Vercel:
       if (destinationConfig.scope === VercelSyncScope.Team) {
         primaryText = destinationConfig.teamName || destinationConfig.teamId;
-        secondaryText = destinationConfig.targetEnvironments.join(", ");
+        secondaryText = destinationConfig.targetEnvironments
+          .map((env) =>
+            env === VercelEnvironmentType.AllCustomEnvironments
+              ? "All Custom Environments"
+              : env.charAt(0).toUpperCase() + env.slice(1)
+          )
+          .join(", ");
       } else {
         primaryText = destinationConfig.appName || destinationConfig.app;
         secondaryText = destinationConfig.env;

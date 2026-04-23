@@ -20,10 +20,15 @@ import {
 
 import { TSecretSyncForm } from "../schemas";
 
-const vercelEnvironments = [
+const standardVercelEnvironments = [
   { name: "Development", slug: "development" },
   { name: "Preview", slug: "preview" },
   { name: "Production", slug: "production" }
+] as const;
+
+const teamVercelEnvironments = [
+  ...standardVercelEnvironments,
+  { name: "All Custom Environments", slug: "all-custom-environments" }
 ] as const;
 
 export const VercelSyncFields = () => {
@@ -71,7 +76,7 @@ export const VercelSyncFields = () => {
   }, [allApps, teamId]);
 
   const environmentOptions = useMemo(() => {
-    return vercelEnvironments
+    return standardVercelEnvironments
       .map((env): { key: string; type: string; name: string } => ({
         key: env.slug,
         type: env.slug,
@@ -187,13 +192,15 @@ export const VercelSyncFields = () => {
               >
                 <FilterableSelect
                   isMulti
-                  value={vercelEnvironments.filter((env) => (value || []).includes(env.slug))}
+                  value={teamVercelEnvironments.filter((env) => (value || []).includes(env.slug))}
                   onChange={(option) =>
                     onChange(
-                      (option as MultiValue<(typeof vercelEnvironments)[number]>).map((o) => o.slug)
+                      (option as MultiValue<(typeof teamVercelEnvironments)[number]>).map(
+                        (o) => o.slug
+                      )
                     )
                   }
-                  options={vercelEnvironments}
+                  options={teamVercelEnvironments}
                   placeholder="Select target environments..."
                   getOptionLabel={(option) => option.name}
                   getOptionValue={(option) => option.slug}
