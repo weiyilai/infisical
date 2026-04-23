@@ -454,7 +454,7 @@ const envSchema = z
         })
     ),
 
-    /* Reverse Proxy ----------------------------------------------------------------------------- */
+    // Reverse Proxy -----------------------------------------------------------------------------
     // Comma-separated list of trusted proxy CIDRs (e.g. "10.0.0.0/8,172.16.0.0/12") or
     // proxy-addr aliases ("loopback", "linklocal", "uniquelocal"). When set, requests whose
     // socket remote address is NOT in this set will have forwarded-IP headers ignored; the
