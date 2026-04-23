@@ -198,8 +198,6 @@ export const useReviewAccessRequest = () => {
       requestId: string;
       status: "approved" | "rejected";
       projectSlug: string;
-      envSlug?: string;
-      requestedBy?: string;
       bypassReason?: string;
     }
   >({
