@@ -1,5 +1,6 @@
 import { AxiosError } from "axios";
 import { ClipboardCheckIcon, CopyIcon, LinkIcon } from "lucide-react";
+import { twMerge } from "tailwind-merge";
 
 import {
   IconButton,
@@ -121,10 +122,16 @@ export const ResolvedSecretValuePopover = ({
             <IconButton
               variant="ghost-muted"
               size="xs"
-              className="absolute -top-1 -left-1"
+              className={twMerge(
+                "absolute -top-1 -left-1",
+                isDisabled && "cursor-not-allowed opacity-50"
+              )}
               aria-label="View resolved secret value"
-              isDisabled={isDisabled}
-              onClick={(e) => e.stopPropagation()}
+              aria-disabled={isDisabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isDisabled) e.preventDefault();
+              }}
               onMouseDown={(e) => e.preventDefault()}
             >
               <LinkIcon />
