@@ -79,7 +79,7 @@ const ResolvedValueContent = ({ environment, secretPath, secretKey }: Props) => 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-normal" htmlFor="resolved-secret-value">
+        <Label className="text-sm font-normal text-accent" htmlFor="resolved-secret-value">
           Resolved value
         </Label>
         <Tooltip>
