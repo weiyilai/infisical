@@ -21,6 +21,7 @@ import {
   CONSTRAINT_VALUE_LABELS,
   ConstraintTarget,
   ConstraintType,
+  MAX_PREVENT_VALUE_REUSE_VERSIONS,
   TRuleForm
 } from "./SecretValidationRulesTab.utils";
 
@@ -119,7 +120,7 @@ export const ConstraintCard = ({ index, onRemove }: Props) => {
                       When a secret is updated, its new value is validated against the specified
                       number of prior versions.
                     </p>
-                    <p className="mt-2 text-xs text-muted">Maximum: 100 versions</p>
+                    <p className="mt-2 text-xs text-muted">Maximum: 25 versions</p>
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -134,7 +135,7 @@ export const ConstraintCard = ({ index, onRemove }: Props) => {
                   {...field}
                   type={isNumericInput ? "number" : "text"}
                   min={isPreventValueReuse ? 1 : undefined}
-                  max={isPreventValueReuse ? 100 : undefined}
+                  max={isPreventValueReuse ? MAX_PREVENT_VALUE_REUSE_VERSIONS : undefined}
                   placeholder={placeholder?.toString() || undefined}
                   isError={Boolean(error)}
                 />

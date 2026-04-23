@@ -9,7 +9,7 @@ import {
   TSecretValidationRuleInputs
 } from "./secret-validation-rule-types";
 
-export const MAX_PREVENT_VALUE_REUSE_VERSIONS = 100;
+export const MAX_PREVENT_VALUE_REUSE_VERSIONS = 25;
 
 export const constraintSchema = z
   .object({

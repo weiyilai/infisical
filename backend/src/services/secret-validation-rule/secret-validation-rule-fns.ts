@@ -3,6 +3,7 @@ import RE2 from "re2";
 
 import { BadRequestError } from "@app/lib/errors";
 
+import { MAX_PREVENT_VALUE_REUSE_VERSIONS } from "./secret-validation-rule-schemas";
 import {
   ConstraintTarget,
   ConstraintType,
@@ -240,7 +241,7 @@ const evaluateConstraint = (constraint: TConstraint, secret: TSecretToValidate):
       if (secret.value === undefined || !secret.previousValues?.length) {
         return null;
       }
-      const versionCount = Number(constraint.value) || 100;
+      const versionCount = Number(constraint.value) || MAX_PREVENT_VALUE_REUSE_VERSIONS;
       const valuesToCheck = secret.previousValues.slice(0, versionCount);
       if (valuesToCheck.includes(secret.value)) {
         return `${targetLabel} cannot reuse any of the last ${versionCount} values`;

@@ -104,7 +104,7 @@ export const RULE_TYPE_LABELS: Record<RuleType, string> = {
   [RuleType.StaticSecrets]: "Static Secrets"
 };
 
-const MAX_NO_REUSE_VERSIONS = 100;
+export const MAX_PREVENT_VALUE_REUSE_VERSIONS = 25;
 
 export const constraintSchema = z
   .object({
@@ -120,10 +120,10 @@ export const constraintSchema = z
     (c) => {
       if (c.type !== ConstraintType.PreventValueReuse) return true;
       const num = Number(c.value);
-      return Number.isInteger(num) && num >= 1 && num <= MAX_NO_REUSE_VERSIONS;
+      return Number.isInteger(num) && num >= 1 && num <= MAX_PREVENT_VALUE_REUSE_VERSIONS;
     },
     {
-      message: `Must be a number between 1 and ${MAX_NO_REUSE_VERSIONS}`,
+      message: `Must be a number between 1 and ${MAX_PREVENT_VALUE_REUSE_VERSIONS}`,
       path: ["value"]
     }
   );
