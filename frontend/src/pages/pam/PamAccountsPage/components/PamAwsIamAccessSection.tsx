@@ -176,7 +176,7 @@ export const PamAwsIamAccessSection = ({ account, projectId, onClose }: Props) =
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-popover px-2 text-muted">OR</span>
+          <span className="bg-mineshaft-800 px-2 text-muted">OR</span>
         </div>
       </div>
 
@@ -186,7 +186,7 @@ export const PamAwsIamAccessSection = ({ account, projectId, onClose }: Props) =
           Open the AWS Console signed in as the same temporary session
         </p>
         <Button
-          variant="outline"
+          variant="project"
           size="md"
           isFullWidth
           isPending={getAwsIamConsoleUrl.isPending}
