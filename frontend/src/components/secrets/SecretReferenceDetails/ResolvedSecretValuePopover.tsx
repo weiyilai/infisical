@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { AxiosError } from "axios";
 import { ClipboardCheckIcon, CopyIcon, LinkIcon } from "lucide-react";
 import { twMerge } from "tailwind-merge";
@@ -114,6 +115,10 @@ export const ResolvedSecretValuePopover = ({
   onOpenChange,
   isDisabled
 }: PopoverProps) => {
+  useEffect(() => {
+    if (isDisabled && open) onOpenChange(false);
+  }, [isDisabled, open, onOpenChange]);
+
   return (
     <Popover open={open && !isDisabled} onOpenChange={onOpenChange}>
       <Tooltip>
@@ -142,7 +147,12 @@ export const ResolvedSecretValuePopover = ({
           {isDisabled ? "Save pending changes to view resolved value" : "View resolved value"}
         </TooltipContent>
       </Tooltip>
-      <PopoverContent align="start" className="w-96" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent
+        align="start"
+        className="w-96"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         {open && (
           <ResolvedValueContent
             environment={environment}
