@@ -42,6 +42,7 @@ import { pamKeys } from "@app/hooks/api/pam/queries";
 import { PAM_DOMAIN_TYPE_MAP, PamDomainType } from "@app/hooks/api/pamDomain";
 
 import { PamAccessAccountModal } from "../PamAccountsPage/components/PamAccessAccountModal";
+import { PamAwsIamAccessReasonModal } from "../PamAccountsPage/components/PamAwsIamAccessReasonModal";
 import { PamDeleteAccountModal } from "../PamAccountsPage/components/PamDeleteAccountModal";
 import { PamRequestAccountAccessModal } from "../PamAccountsPage/components/PamRequestAccountAccessModal";
 import { PamUpdateAccountModal } from "../PamAccountsPage/components/PamUpdateAccountModal";
@@ -75,10 +76,11 @@ const PageContent = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const { popUp, handlePopUpOpen, handlePopUpToggle } = usePopUp([
+  const { popUp, handlePopUpOpen, handlePopUpToggle, handlePopUpClose } = usePopUp([
     "accessAccount",
     "requestAccount",
     "deleteAccount",
+    "awsIamReason",
     "selectResource"
   ] as const);
 
@@ -167,7 +169,7 @@ const PageContent = () => {
     }
 
     if (account.resource?.resourceType === PamResourceType.AwsIam) {
-      accessAwsIam(account);
+      handlePopUpOpen("awsIamReason", { account });
     } else {
       handlePopUpOpen("accessAccount", { account });
     }
@@ -327,6 +329,19 @@ const PageContent = () => {
         onOpenChange={(isOpen) => handlePopUpToggle("accessAccount", isOpen)}
         account={popUp.accessAccount.data?.account}
         projectId={projectId!}
+      />
+
+      <PamAwsIamAccessReasonModal
+        isOpen={popUp.awsIamReason.isOpen}
+        onOpenChange={(isOpen) => handlePopUpToggle("awsIamReason", isOpen)}
+        account={popUp.awsIamReason.data?.account}
+        isPending={isAwsAccessPending}
+        onSubmit={async (reason) => {
+          const targetAccount = popUp.awsIamReason.data?.account;
+          if (!targetAccount) return;
+          handlePopUpClose("awsIamReason");
+          await accessAwsIam(targetAccount, reason);
+        }}
       />
 
       <PamRequestAccountAccessModal

@@ -191,6 +191,7 @@ export type TAccessPamAccountDTO = {
   accountName: string;
   projectId: string;
   duration: string;
+  reason?: string;
 };
 
 export type TAccessPamAccountResponse = {
@@ -214,7 +215,8 @@ export const useAccessPamAccount = () => {
       resourceName,
       accountName,
       projectId,
-      duration
+      duration,
+      reason
     }: TAccessPamAccountDTO) => {
       const { data } = await apiRequest.post<TAccessPamAccountResponse>(
         "/api/v1/pam/accounts/access",
@@ -223,7 +225,8 @@ export const useAccessPamAccount = () => {
           resourceName,
           accountName,
           projectId,
-          duration
+          duration,
+          reason
         }
       );
 

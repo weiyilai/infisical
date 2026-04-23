@@ -68,22 +68,23 @@ export const PamAccessAccountModal = ({ isOpen, onOpenChange, account, projectId
   }, [duration]);
 
   const command = useMemo(() => {
-    if (!account) return "";
+    if (!account?.resource) return "";
+    const { resource } = account;
+    const base = (verb: string) =>
+      `infisical pam ${verb} access --resource ${resource.name} --account ${account.name} --project-id ${projectId} --duration ${cliDuration} --domain ${siteURL}`;
 
-    if (!account.resource) return "";
-
-    switch (account.resource.resourceType) {
+    switch (resource.resourceType) {
       case PamResourceType.Postgres:
       case PamResourceType.MySQL:
       case PamResourceType.MsSQL:
       case PamResourceType.MongoDB:
-        return `infisical pam db access --resource ${account.resource.name} --account ${account.name} --project-id ${projectId} --duration ${cliDuration} --domain ${siteURL}`;
+        return base("db");
       case PamResourceType.Redis:
-        return `infisical pam redis access --resource ${account.resource.name} --account ${account.name} --project-id ${projectId} --duration ${cliDuration} --domain ${siteURL}`;
+        return base("redis");
       case PamResourceType.SSH:
-        return `infisical pam ssh access --resource ${account.resource.name} --account ${account.name} --project-id ${projectId} --duration ${cliDuration} --domain ${siteURL}`;
+        return base("ssh");
       case PamResourceType.Kubernetes:
-        return `infisical pam kubernetes access --resource ${account.resource.name} --account ${account.name} --project-id ${projectId} --duration ${cliDuration} --domain ${siteURL}`;
+        return base("kubernetes");
       default:
         return "";
     }
@@ -123,6 +124,7 @@ export const PamAccessAccountModal = ({ isOpen, onOpenChange, account, projectId
               ariaLabel="copy"
               variant="outline_bg"
               colorSchema="secondary"
+              isDisabled={!isDurationValid}
               onClick={() => {
                 navigator.clipboard.writeText(command);
 

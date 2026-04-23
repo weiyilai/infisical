@@ -33,6 +33,8 @@ import {
   PolicyViolationError
 } from "@app/lib/errors";
 import { logger } from "@app/lib/logger";
+import { requestMemoKeys } from "@app/lib/request-context/memo-keys";
+import { requestMemoize } from "@app/lib/request-context/request-memoizer";
 import { OrgServiceActor } from "@app/lib/types";
 import { TApprovalPolicyDALFactory } from "@app/services/approval-policy/approval-policy-dal";
 import { ApprovalPolicyType } from "@app/services/approval-policy/approval-policy-enums";
@@ -185,6 +187,16 @@ export const pamAccountServiceFactory = ({
     };
   };
 
+  // Resolve whether the given policy enforces RequireReason at access time.
+  // Surfaced on account responses so the UI can gate access without needing
+  // pam-account-policy:read permission.
+  const resolveRequireReason = async (policyId?: string | null) => {
+    if (!policyId) return false;
+    const policy = await pamAccountPolicyDAL.findById(policyId);
+    const policyRules = (policy?.rules ?? {}) as TPolicyRules;
+    return Boolean(policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason]);
+  };
+
   const create = async (
     {
       credentials,
@@ -312,7 +324,8 @@ export const pamAccountServiceFactory = ({
           resource: parent.isResource ? parent.raw : null,
           domain: parent.isResource ? null : parent.raw
         }),
-        metadata: insertedMetadata?.map(({ id, key, value }) => ({ id, key, value: value ?? "" })) ?? []
+        metadata: insertedMetadata?.map(({ id, key, value }) => ({ id, key, value: value ?? "" })) ?? [],
+        requireReason: await resolveRequireReason(account.policyId)
       };
     } catch (err) {
       if (err instanceof DatabaseError && (err.error as { code: string })?.code === DatabaseErrorCode.UniqueViolation) {
@@ -467,7 +480,8 @@ export const pamAccountServiceFactory = ({
           resource,
           domain: parent.isResource ? null : parent.raw
         }),
-        metadata: existingMeta[accountId] || []
+        metadata: existingMeta[accountId] || [],
+        requireReason: await resolveRequireReason(account.policyId)
       };
     }
 
@@ -501,7 +515,8 @@ export const pamAccountServiceFactory = ({
           resource,
           domain: parent.isResource ? null : parent.raw
         }),
-        metadata: freshMeta[accountId] || []
+        metadata: freshMeta[accountId] || [],
+        requireReason: await resolveRequireReason(updatedAccount.policyId)
       };
     } catch (err) {
       if (err instanceof DatabaseError && (err.error as { code: string })?.code === DatabaseErrorCode.UniqueViolation) {
@@ -688,7 +703,8 @@ export const pamAccountServiceFactory = ({
         resource: accountWithParent.resource,
         domain: accountWithParent.domain
       }),
-      metadata: accountMetadata
+      metadata: accountMetadata,
+      requireReason: await resolveRequireReason(accountWithParent.policyId)
     };
   };
 
@@ -702,7 +718,8 @@ export const pamAccountServiceFactory = ({
       actorName,
       actorUserAgent,
       duration,
-      mfaSessionId
+      mfaSessionId,
+      reason
     }: TAccessAccountDTO,
     actor: OrgServiceActor
   ) => {
@@ -724,6 +741,8 @@ export const pamAccountServiceFactory = ({
         message: `Account with name '${inputAccountName}' not found for resource '${inputResourceName}'`
       });
     }
+
+    const trimmedReason = reason?.trim() || null;
 
     const fac = APPROVAL_POLICY_FACTORY_MAP[ApprovalPolicyType.PamAccess](ApprovalPolicyType.PamAccess);
 
@@ -773,15 +792,28 @@ export const pamAccountServiceFactory = ({
       );
     }
 
-    const project = await projectDAL.findById(account.projectId);
-    if (!project) throw new NotFoundError({ message: `Project with ID '${account.projectId}' not found` });
+    // Reason check is intentionally placed after the approval/permission gates so
+    // its distinct error code does not leak policy configuration to unauthorized actors.
+    if (account.policyId) {
+      const policy = await pamAccountPolicyDAL.findById(account.policyId);
+      const policyRules = (policy?.rules ?? {}) as TPolicyRules;
+      if (policy?.isActive && policyRules[PamAccountPolicyRuleType.RequireReason] && !trimmedReason) {
+        throw new BadRequestError({
+          message: "A reason is required to access this account",
+          name: "PAM_REASON_REQUIRED"
+        });
+      }
+    }
 
     const actorUser = await userDAL.findById(actor.id);
     if (!actorUser) throw new NotFoundError({ message: `User with ID '${actor.id}' not found` });
 
     // If no mfaSessionId is provided, create a new MFA session
     if (!mfaSessionId && account.requireMfa) {
-      // Get organization to check if MFA is enforced at org level
+      const project = await requestMemoize(requestMemoKeys.projectFindById(account.projectId), () =>
+        projectDAL.findById(account.projectId)
+      );
+      if (!project) throw new NotFoundError({ message: `Project with ID '${account.projectId}' not found` });
       const org = await orgDAL.findOrgById(project.orgId);
       if (!org) throw new NotFoundError({ message: `Organization with ID '${project.orgId}' not found` });
 
@@ -885,7 +917,8 @@ export const pamAccountServiceFactory = ({
         resourceId: resource.id,
         userId: actor.id,
         expiresAt,
-        startedAt: new Date()
+        startedAt: new Date(),
+        reason: trimmedReason
       });
 
       // Schedule session expiration job to run at expiresAt
@@ -919,7 +952,8 @@ export const pamAccountServiceFactory = ({
       accountId: account.id,
       resourceId: resource.id,
       userId: actor.id,
-      expiresAt: new Date(Date.now() + duration)
+      expiresAt: new Date(Date.now() + duration),
+      reason: trimmedReason
     });
 
     if (!gatewayId) {
@@ -1055,7 +1089,9 @@ export const pamAccountServiceFactory = ({
     const session = await pamSessionDAL.findById(sessionId);
     if (!session) throw new NotFoundError({ message: `Session with ID '${sessionId}' not found` });
 
-    const project = await projectDAL.findById(session.projectId);
+    const project = await requestMemoize(requestMemoKeys.projectFindById(session.projectId), () =>
+      projectDAL.findById(session.projectId)
+    );
     if (!project) throw new NotFoundError({ message: `Project with ID '${session.projectId}' not found` });
 
     if (actor.type === ActorType.IDENTITY) {
@@ -1111,13 +1147,17 @@ export const pamAccountServiceFactory = ({
       const policy = await pamAccountPolicyDAL.findById(account.policyId);
       if (policy && policy.isActive) {
         const rules = (policy.rules ?? {}) as TPolicyRules;
-        for (const ruleType of Object.values(PamAccountPolicyRuleType)) {
+
+        const gatewayRuleTypes = [
+          PamAccountPolicyRuleType.CommandBlocking,
+          PamAccountPolicyRuleType.SessionLogMasking
+        ] as const;
+        for (const ruleType of gatewayRuleTypes) {
           const ruleConfig = rules[ruleType];
-          if (ruleConfig) {
-            const supported = PAM_ACCOUNT_POLICY_RULE_SUPPORTED_RESOURCES[ruleType];
-            if (supported === "all" || supported.includes(resource.resourceType as PamResource)) {
-              policyRules[ruleType] = ruleConfig;
-            }
+          const supported = PAM_ACCOUNT_POLICY_RULE_SUPPORTED_RESOURCES[ruleType];
+          const isSupported = supported === "all" || supported.includes(resource.resourceType as PamResource);
+          if (ruleConfig && isSupported) {
+            policyRules[ruleType] = ruleConfig;
           }
         }
       }
@@ -1580,14 +1620,13 @@ export const pamAccountServiceFactory = ({
     }
 
     if (!mfaSessionId && accountWithParent.requireMfa) {
-      const project = await projectDAL.findById(accountWithParent.projectId);
-      if (!project) throw new NotFoundError({ message: `Project with ID '${accountWithParent.projectId}' not found` });
-
+      // actorOrgId equals project.orgId: getProjectPermission above guarantees project existence
+      // and org membership, so no separate project lookup is needed to resolve the org ID.
       const actorUser = await userDAL.findById(actorId);
       if (!actorUser) throw new NotFoundError({ message: `User with ID '${actorId}' not found` });
 
-      const org = await orgDAL.findOrgById(project.orgId);
-      if (!org) throw new NotFoundError({ message: `Organization with ID '${project.orgId}' not found` });
+      const org = await orgDAL.findOrgById(actorOrgId);
+      if (!org) throw new NotFoundError({ message: `Organization with ID '${actorOrgId}' not found` });
 
       const orgMfaMethod = org.enforceMfa ? (org.selectedMfaMethod as MfaMethod | null) : undefined;
       const userMfaMethod = actorUser.isMfaEnabled ? (actorUser.selectedMfaMethod as MfaMethod | null) : undefined;
