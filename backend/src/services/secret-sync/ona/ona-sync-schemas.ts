@@ -11,26 +11,19 @@ import {
 import { TSyncOptionsConfig } from "@app/services/secret-sync/secret-sync-types";
 
 import { SECRET_SYNC_NAME_MAP } from "../secret-sync-maps";
-import { OnaSyncScope } from "./ona-sync-enums";
 
-const OnaSyncDestinationConfigSchema = z.discriminatedUnion("scope", [
-  z.object({
-    scope: z.literal(OnaSyncScope.Project).describe(SecretSyncs.DESTINATION_CONFIG.ONA.scope),
-    projectId: z
-      .string()
-      .trim()
-      .min(1, "Ona project ID is required")
-      .describe(SecretSyncs.DESTINATION_CONFIG.ONA.projectId),
-    projectName: z
-      .string()
-      .trim()
-      .min(1, "Ona project name is required")
-      .describe(SecretSyncs.DESTINATION_CONFIG.ONA.projectName)
-  }),
-  z.object({
-    scope: z.literal(OnaSyncScope.User).describe(SecretSyncs.DESTINATION_CONFIG.ONA.scope)
-  })
-]);
+const OnaSyncDestinationConfigSchema = z.object({
+  projectId: z
+    .string()
+    .trim()
+    .min(1, "Ona project ID is required")
+    .describe(SecretSyncs.DESTINATION_CONFIG.ONA.projectId),
+  projectName: z
+    .string()
+    .trim()
+    .min(1, "Ona project name is required")
+    .describe(SecretSyncs.DESTINATION_CONFIG.ONA.projectName)
+});
 
 const OnaSyncOptionsConfig: TSyncOptionsConfig = { canImportSecrets: false };
 

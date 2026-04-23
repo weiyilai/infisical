@@ -9,7 +9,6 @@ import {
 import { GitLabSyncScope } from "@app/hooks/api/secretSyncs/types/gitlab-sync";
 import { HumanitecSyncScope } from "@app/hooks/api/secretSyncs/types/humanitec-sync";
 import { OctopusDeploySyncScope } from "@app/hooks/api/secretSyncs/types/octopus-deploy-sync";
-import { OnaSyncScope } from "@app/hooks/api/secretSyncs/types/ona-sync";
 import { RenderSyncScope } from "@app/hooks/api/secretSyncs/types/render-sync";
 import { VercelSyncScope } from "@app/hooks/api/secretSyncs/types/vercel-sync";
 
@@ -235,13 +234,8 @@ export const getSecretSyncDestinationColValues = (secretSync: TSecretSync) => {
       secondaryText = `${destinationConfig.environment} - ${destinationConfig.secretPath}`;
       break;
     case SecretSync.Ona:
-      if (destinationConfig.scope === OnaSyncScope.Project) {
-        primaryText = destinationConfig.projectName;
-        secondaryText = "Ona Project";
-      } else {
-        primaryText = "User Secrets";
-        secondaryText = "Ona User";
-      }
+      primaryText = destinationConfig.projectName;
+      secondaryText = "Ona Project";
       break;
     default:
       throw new Error(`Unhandled Destination Col Values ${destination}`);

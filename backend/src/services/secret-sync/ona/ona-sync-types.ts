@@ -16,7 +16,6 @@ export type TOnaSyncWithCredentials = TOnaSync & {
 
 export type TOnaScopeFilter = {
   projectId?: string;
-  userId?: string;
 };
 
 export type TOnaSecret = {
@@ -40,11 +39,4 @@ export type TOnaListSecretsResponse = {
 
 export type TOnaGetSecretValueResponse = {
   value?: string;
-};
-
-export type TOnaAuthenticatedIdentityResponse = {
-  subject?: {
-    id?: string;
-    principal?: string;
-  };
 };

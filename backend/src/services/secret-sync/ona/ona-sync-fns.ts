@@ -1,28 +1,22 @@
 import { AxiosError } from "axios";
 
 import { request } from "@app/lib/config/request";
-import { IntegrationUrls } from "@app/services/integration-auth/integration-list";
 import { SecretSyncError } from "@app/services/secret-sync/secret-sync-errors";
 import { matchesSchema } from "@app/services/secret-sync/secret-sync-fns";
 import { TSecretMap } from "@app/services/secret-sync/secret-sync-types";
 
-import { ONA_PAGE_SIZE, OnaSyncScope } from "./ona-sync-enums";
-import {
-  TOnaAuthenticatedIdentityResponse,
-  TOnaListSecretsResponse,
-  TOnaScopeFilter,
-  TOnaSecret,
-  TOnaSyncWithCredentials
-} from "./ona-sync-types";
+import { ONA_PAGE_SIZE } from "./ona-sync-enums";
+import { TOnaListSecretsResponse, TOnaScopeFilter, TOnaSecret, TOnaSyncWithCredentials } from "./ona-sync-types";
 
 const ONA_LIST_SECRETS_PATH = "/gitpod.v1.SecretService/ListSecrets";
 const ONA_CREATE_SECRET_PATH = "/gitpod.v1.SecretService/CreateSecret";
 const ONA_UPDATE_SECRET_VALUE_PATH = "/gitpod.v1.SecretService/UpdateSecretValue";
 const ONA_DELETE_SECRET_PATH = "/gitpod.v1.SecretService/DeleteSecret";
-const ONA_GET_AUTHENTICATED_IDENTITY_PATH = "/gitpod.v1.IdentityService/GetAuthenticatedIdentity";
 
 const ONA_MAX_RETRIES = 3;
 const ONA_BASE_RETRY_DELAY_MS = 500;
+
+const ONA_URL = "https://app.gitpod.io/api";
 
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => {
@@ -54,31 +48,6 @@ const getAuthHeaders = (secretSync: TOnaSyncWithCredentials) => ({
   "Content-Type": "application/json"
 });
 
-const resolveUserId = async (secretSync: TOnaSyncWithCredentials): Promise<string> => {
-  const { data } = await withOnaRetry(() =>
-    request.post<TOnaAuthenticatedIdentityResponse>(
-      `${IntegrationUrls.ONA_API_URL}${ONA_GET_AUTHENTICATED_IDENTITY_PATH}`,
-      {},
-      { headers: getAuthHeaders(secretSync) }
-    )
-  );
-  const userId = data?.subject?.id;
-  if (!userId) {
-    throw new SecretSyncError({
-      message: "Unable to resolve authenticated Ona user ID for user-scoped sync.",
-      shouldRetry: false
-    });
-  }
-  return userId;
-};
-
-const buildScopeFilter = async (secretSync: TOnaSyncWithCredentials): Promise<TOnaScopeFilter> => {
-  if (secretSync.destinationConfig.scope === OnaSyncScope.Project) {
-    return { projectId: secretSync.destinationConfig.projectId };
-  }
-  return { userId: await resolveUserId(secretSync) };
-};
-
 const listEnvVarSecrets = async (
   secretSync: TOnaSyncWithCredentials,
   scope: TOnaScopeFilter
@@ -89,16 +58,18 @@ const listEnvVarSecrets = async (
 
   while (hasMore) {
     // eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-loop-func
-    const { data } = await withOnaRetry(() =>
-      request.post<TOnaListSecretsResponse>(
-        `${IntegrationUrls.ONA_API_URL}${ONA_LIST_SECRETS_PATH}`,
+    const { data } = await withOnaRetry(async () => {
+      const res = await request.post<TOnaListSecretsResponse>(
+        `${ONA_URL}${ONA_LIST_SECRETS_PATH}`,
         {
           filter: { scope },
           pagination: { pageSize: ONA_PAGE_SIZE, ...(token ? { token } : {}) }
         },
         { headers: getAuthHeaders(secretSync) }
-      )
-    );
+      );
+
+      return res;
+    });
 
     if (data?.secrets?.length) all.push(...data.secrets);
 
@@ -115,9 +86,9 @@ const createEnvVarSecret = async (
   name: string,
   value: string
 ): Promise<void> => {
-  await withOnaRetry(() =>
-    request.post(
-      `${IntegrationUrls.ONA_API_URL}${ONA_CREATE_SECRET_PATH}`,
+  await withOnaRetry(async () => {
+    const res = await request.post(
+      `${ONA_URL}${ONA_CREATE_SECRET_PATH}`,
       {
         name,
         value,
@@ -125,8 +96,9 @@ const createEnvVarSecret = async (
         environmentVariable: true
       },
       { headers: getAuthHeaders(secretSync) }
-    )
-  );
+    );
+    return res;
+  });
 };
 
 const updateSecretValue = async (
@@ -134,42 +106,30 @@ const updateSecretValue = async (
   secretId: string,
   value: string
 ): Promise<void> => {
-  await withOnaRetry(() =>
-    request.post(
-      `${IntegrationUrls.ONA_API_URL}${ONA_UPDATE_SECRET_VALUE_PATH}`,
+  await withOnaRetry(async () => {
+    const res = await request.post(
+      `${ONA_URL}${ONA_UPDATE_SECRET_VALUE_PATH}`,
       { secretId, value },
       { headers: getAuthHeaders(secretSync) }
-    )
-  );
+    );
+    return res;
+  });
 };
 
 const deleteSecret = async (secretSync: TOnaSyncWithCredentials, secretId: string): Promise<void> => {
-  await withOnaRetry(() =>
-    request.post(
-      `${IntegrationUrls.ONA_API_URL}${ONA_DELETE_SECRET_PATH}`,
+  await withOnaRetry(async () => {
+    const res = await request.post(
+      `${ONA_URL}${ONA_DELETE_SECRET_PATH}`,
       { secretId },
       { headers: getAuthHeaders(secretSync) }
-    )
-  );
-};
-
-const wrapApiError = (error: unknown, secretKey: string): never => {
-  if (error instanceof SecretSyncError) throw error;
-  if (error instanceof AxiosError) {
-    throw new SecretSyncError({
-      error,
-      secretKey
-    });
-  }
-  throw new SecretSyncError({
-    error,
-    secretKey
+    );
+    return res;
   });
 };
 
 export const OnaSyncFns = {
   syncSecrets: async (secretSync: TOnaSyncWithCredentials, secretMap: TSecretMap) => {
-    const scope = await buildScopeFilter(secretSync);
+    const scope: TOnaScopeFilter = { projectId: secretSync.destinationConfig.projectId };
 
     const existingSecrets = await listEnvVarSecrets(secretSync, scope);
     const existingByName = new Map(existingSecrets.map((s) => [s.name, s]));
@@ -185,7 +145,8 @@ export const OnaSyncFns = {
           await updateSecretValue(secretSync, prior.id, secretMap[key].value);
         }
       } catch (error) {
-        wrapApiError(error, key);
+        if (error instanceof SecretSyncError) throw error;
+        throw new SecretSyncError({ error, secretKey: key });
       }
     }
 
@@ -204,7 +165,8 @@ export const OnaSyncFns = {
         // eslint-disable-next-line no-await-in-loop
         await deleteSecret(secretSync, existing.id);
       } catch (error) {
-        wrapApiError(error, existing.name);
+        if (error instanceof SecretSyncError) throw error;
+        throw new SecretSyncError({ error, secretKey: existing.name });
       }
     }
   },
@@ -217,7 +179,7 @@ export const OnaSyncFns = {
   },
 
   removeSecrets: async (secretSync: TOnaSyncWithCredentials, secretMap: TSecretMap) => {
-    const scope = await buildScopeFilter(secretSync);
+    const scope: TOnaScopeFilter = { projectId: secretSync.destinationConfig.projectId };
     const existingSecrets = await listEnvVarSecrets(secretSync, scope);
 
     for (const existing of existingSecrets) {
@@ -229,7 +191,8 @@ export const OnaSyncFns = {
         // eslint-disable-next-line no-await-in-loop
         await deleteSecret(secretSync, existing.id);
       } catch (error) {
-        wrapApiError(error, existing.name);
+        if (error instanceof SecretSyncError) throw error;
+        throw new SecretSyncError({ error, secretKey: existing.name });
       }
     }
   }

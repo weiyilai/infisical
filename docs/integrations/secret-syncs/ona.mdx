@@ -8,9 +8,6 @@ description: "Learn how to configure an Ona Sync for Infisical."
 - Set up and add secrets to [Infisical Cloud](https://app.infisical.com)
 - Create an [Ona Connection](/integrations/app-connections/ona)
 
-<Note>
-    Ona Sync is **one-way** (Infisical → Ona). Importing existing Ona secrets into Infisical is not supported because Ona only exposes secret values from within active workspaces. Manage the source of truth in Infisical.
-</Note>
 
 <Tabs>
     <Tab title="Infisical UI">
@@ -38,9 +35,7 @@ description: "Learn how to configure an Ona Sync for Infisical."
                 ![Configure Destination](/images/secret-syncs/ona/ona-destination.png)
 
                 - **Ona Connection**: The Ona Connection to authenticate with.
-                - **Scope**: Where secrets should be stored in Ona.
-                    - **Project**: Sync secrets to a specific Ona project as project-level environment variables. Select the target project from the dropdown populated by your connection.
-                    - **User**: Sync secrets to the authenticated user's personal environment variables. The user is resolved automatically from the Personal Access Token on the connection.
+                - **Ona Project**: Sync secrets to the selected Ona project as project-level environment variables. Choose the target project from the dropdown populated by your connection.
             </Step>
             <Step title="Configure sync options">
                 Configure the **Sync Options** to specify how secrets should be synced, then click **Next**.
@@ -78,7 +73,7 @@ description: "Learn how to configure an Ona Sync for Infisical."
     <Tab title="API">
         To create an **Ona Sync**, make an API request to the [Create Ona Sync](/api-reference/endpoints/secret-syncs/ona/create) API endpoint.
 
-        ### Sample request (project scope)
+        ### Sample request
 
         ```bash Request
         curl    --request POST \
@@ -97,31 +92,8 @@ description: "Learn how to configure an Ona Sync for Infisical."
                         "keySchema": "INFISICAL_{{secretKey}}"
                     },
                     "destinationConfig": {
-                        "scope": "project",
                         "projectId": "ona-project-uuid",
                         "projectName": "my-ona-project"
-                    }
-                }'
-        ```
-
-        ### Sample request (user scope)
-
-        ```bash Request
-        curl    --request POST \
-                --url https://app.infisical.com/api/v1/secret-syncs/ona \
-                --header 'Content-Type: application/json' \
-                --data '{
-                    "name": "my-ona-user-sync",
-                    "projectId": "3c90c3cc-0d44-4b50-8888-8dd25736052a",
-                    "connectionId": "3c90c3cc-0d44-4b50-8888-8dd25736052a",
-                    "environment": "dev",
-                    "secretPath": "/my-secrets",
-                    "isAutoSyncEnabled": true,
-                    "syncOptions": {
-                        "initialSyncBehavior": "overwrite-destination"
-                    },
-                    "destinationConfig": {
-                        "scope": "user"
                     }
                 }'
         ```
@@ -174,7 +146,6 @@ description: "Learn how to configure an Ona Sync for Infisical."
                 },
                 "destination": "ona",
                 "destinationConfig": {
-                    "scope": "project",
                     "projectId": "ona-project-uuid",
                     "projectName": "my-ona-project"
                 }

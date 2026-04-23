@@ -72,7 +72,6 @@ export enum IntegrationUrls {
   GITLAB_API_URL = `${GITLAB_URL}/api`,
   GITHUB_API_URL = "https://api.github.com",
   VERCEL_API_URL = "https://api.vercel.com",
-  ONA_API_URL = "https://app.gitpod.io/api",
   NETLIFY_API_URL = "https://api.netlify.com",
   RENDER_API_URL = "https://api.render.com",
   RAILWAY_API_URL = "https://backboard.railway.app/graphql/v2",
@@ -431,15 +430,6 @@ export const getIntegrationOptions = async () => {
       image: "Octopus Deploy.png",
       isAvailable: true,
       type: "sat",
-      clientId: "",
-      docsLink: ""
-    },
-    {
-      name: "Ona GitPod",
-      slug: "ona-gitpod",
-      image: "Ona.png",
-      isAvailable: true,
-      type: "pat",
       clientId: "",
       docsLink: ""
     }
