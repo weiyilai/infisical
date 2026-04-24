@@ -1,7 +1,7 @@
 import { Knex } from "knex";
 
 import { TDbClient } from "@app/db";
-import { TableName, TSecretSharing } from "@app/db/schemas";
+import { TableName } from "@app/db/schemas";
 import { DatabaseError, NotFoundError } from "@app/lib/errors";
 import { ormify, selectAllTableCols } from "@app/lib/knex";
 import { logger } from "@app/lib/logger";
@@ -93,13 +93,8 @@ export const secretSharingDALFactory = (db: TDbClient) => {
       const today = new Date();
       const docs = await (tx || db)(TableName.SecretSharing)
         .where("expiresAt", "<", today)
-        .andWhere("encryptedValue", "<>", "")
         .andWhere("type", SecretSharingType.Share)
-        .update({
-          encryptedValue: "",
-          tag: "",
-          iv: ""
-        });
+        .del();
       logger.info(`${QueueName.DailyResourceCleanUp}: pruning expired shared secret completed`);
       return docs;
     } catch (error) {
@@ -115,7 +110,6 @@ export const secretSharingDALFactory = (db: TDbClient) => {
       const docs = await (tx || db)(TableName.SecretSharing)
         .whereNotNull("expiresAt")
         .andWhere("expiresAt", "<", today)
-        .andWhere("encryptedSecret", null)
         .andWhere("type", SecretSharingType.Request)
         .delete();
 
@@ -127,24 +121,6 @@ export const secretSharingDALFactory = (db: TDbClient) => {
     }
   };
 
-  const findActiveSharedSecrets = async (filters: Partial<TSecretSharing>, tx?: Knex) => {
-    try {
-      const now = new Date();
-      return await (tx || db.replicaNode())(TableName.SecretSharing)
-        .where(filters)
-        .andWhere("expiresAt", ">", now)
-        .andWhere("encryptedValue", "<>", "")
-        .andWhere("type", SecretSharingType.Share)
-        .select(selectAllTableCols(TableName.SecretSharing))
-        .orderBy("expiresAt", "asc");
-    } catch (error) {
-      throw new DatabaseError({
-        error,
-        name: "Find Active Shared Secrets"
-      });
-    }
-  };
-
   const softDeleteById = async (id: string, tx?: Knex) => {
     try {
       await sharedSecretOrm.updateById(
@@ -152,7 +128,8 @@ export const secretSharingDALFactory = (db: TDbClient) => {
         {
           encryptedValue: "",
           iv: "",
-          tag: ""
+          tag: "",
+          encryptedSecret: null
         },
         tx
       );
@@ -170,7 +147,6 @@ export const secretSharingDALFactory = (db: TDbClient) => {
     pruneExpiredSharedSecrets,
     pruneExpiredSecretRequests,
     softDeleteById,
-    findActiveSharedSecrets,
     getSecretRequestById
   };
 };
