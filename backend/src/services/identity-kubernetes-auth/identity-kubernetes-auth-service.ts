@@ -1182,15 +1182,8 @@ export const identityKubernetesAuthServiceFactory = ({
     // Resolve the gateway ID to validate through (either direct or from pool)
     let validationGatewayId: string | null = effectiveGatewayId ?? null;
     if (!validationGatewayId && effectiveGatewayPoolId) {
-      try {
-        const picked = await gatewayPoolService.pickRandomHealthyGateway(effectiveGatewayPoolId);
-        validationGatewayId = picked.id;
-      } catch {
-        logger.warn(
-          { gatewayPoolId: effectiveGatewayPoolId },
-          "No healthy gateways in pool, skipping connectivity validation for k8s auth update"
-        );
-      }
+      const picked = await gatewayPoolService.pickRandomHealthyGateway(effectiveGatewayPoolId);
+      validationGatewayId = picked.id;
     }
 
     if (validationGatewayId) {
