@@ -38,7 +38,7 @@ export async function up(knex: Knex): Promise<void> {
   if (!hasGatewayPoolId) {
     await knex.schema.alterTable(TableName.IdentityKubernetesAuth, (t) => {
       t.uuid("gatewayPoolId").nullable();
-      t.foreign("gatewayPoolId").references("id").inTable(TableName.GatewayPool).onDelete("SET NULL");
+      t.foreign("gatewayPoolId").references("id").inTable(TableName.GatewayPool).onDelete("RESTRICT");
     });
   }
 }

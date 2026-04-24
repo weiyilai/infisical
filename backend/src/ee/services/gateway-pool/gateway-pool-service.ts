@@ -165,19 +165,19 @@ export const gatewayPoolServiceFactory = ({
       throw new NotFoundError({ message: `Gateway pool with ID ${poolId} not found` });
     }
 
-    await gatewayPoolDAL.transaction(async (tx) => {
-      // Check for referencing consumer configs inside transaction to prevent race conditions
-      // Add more DAL counts here as pool support expands
-      const k8sAuthCount = await identityKubernetesAuthDAL.countByGatewayPoolId(poolId, tx);
-      const totalReferences = k8sAuthCount;
-      if (totalReferences > 0) {
+    try {
+      await gatewayPoolDAL.deleteById(poolId);
+    } catch (error) {
+      if (
+        error instanceof DatabaseError &&
+        (error.error as { code?: string })?.code === DatabaseErrorCode.ForeignKeyViolation
+      ) {
         throw new BadRequestError({
-          message: `Cannot delete pool "${existingPool.name}" because it is referenced by ${totalReferences} consumer configuration(s). Remove the pool reference from those configs first.`
+          message: `Cannot delete pool "${existingPool.name}" because it is referenced by one or more consumer configurations. Remove the pool reference from those configs first.`
         });
       }
-
-      await gatewayPoolDAL.deleteById(poolId, tx);
-    });
+      throw error;
+    }
 
     return existingPool;
   };
