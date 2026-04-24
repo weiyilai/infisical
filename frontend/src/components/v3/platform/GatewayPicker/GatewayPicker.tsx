@@ -101,10 +101,13 @@ export const GatewayPicker = ({ value, onChange, isDisabled, className }: Props)
           </SectionLabel>
           {pools.map((pool) => (
             <SelectItem value={`pool:${pool.id}`} key={`pool-${pool.id}`}>
-              <div className="flex items-center gap-2">
-                <FontAwesomeIcon icon={faLayerGroup} className="size-3.5 text-mineshaft-400" />
-                <span>{pool.name}</span>
-                <span className="text-xs">
+              <div className="flex min-w-0 items-center gap-2">
+                <FontAwesomeIcon
+                  icon={faLayerGroup}
+                  className="size-3.5 shrink-0 text-mineshaft-400"
+                />
+                <span className="truncate">{pool.name}</span>
+                <span className="shrink-0 text-xs">
                   <PoolHealthBadge pool={pool} />
                 </span>
               </div>
@@ -124,10 +127,15 @@ export const GatewayPicker = ({ value, onChange, isDisabled, className }: Props)
           </SectionLabel>
           {v2Gateways.map((gw) => (
             <SelectItem value={`gateway:${gw.id}`} key={`gw-${gw.id}`}>
-              <div className="flex items-center gap-2">
-                <FontAwesomeIcon icon={faServer} className="size-3.5 text-mineshaft-400" />
-                <span>{gw.name}</span>
-                <span className={`text-xs ${isOnline(gw) ? "text-green-500" : "text-red-400"}`}>
+              <div className="flex min-w-0 items-center gap-2">
+                <FontAwesomeIcon
+                  icon={faServer}
+                  className="size-3.5 shrink-0 text-mineshaft-400"
+                />
+                <span className="truncate">{gw.name}</span>
+                <span
+                  className={`shrink-0 text-xs ${isOnline(gw) ? "text-green-500" : "text-red-400"}`}
+                >
                   {isOnline(gw) ? "Online" : "Offline"}
                 </span>
               </div>
