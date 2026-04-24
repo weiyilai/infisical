@@ -475,6 +475,7 @@ export enum EventType {
   CMEK_LIST_SIGNING_ALGORITHMS = "cmek-list-signing-algorithms",
   CMEK_GET_PUBLIC_KEY = "cmek-get-public-key",
   CMEK_GET_PRIVATE_KEY = "cmek-get-private-key",
+  CMEK_BULK_EXPORT_PRIVATE_KEYS = "cmek-bulk-export-private-keys",
 
   UPDATE_EXTERNAL_GROUP_ORG_ROLE_MAPPINGS = "update-external-group-org-role-mapping",
   GET_EXTERNAL_GROUP_ORG_ROLE_MAPPINGS = "get-external-group-org-role-mapping",
@@ -623,6 +624,7 @@ export enum EventType {
   PAM_ACCOUNT_LIST = "pam-account-list",
   PAM_ACCOUNT_GET = "pam-account-get",
   PAM_ACCOUNT_ACCESS = "pam-account-access",
+  PAM_ACCOUNT_AWS_CONSOLE_URL_GENERATED = "pam-account-aws-console-url-generated",
   PAM_ACCOUNT_CREATE = "pam-account-create",
   PAM_ACCOUNT_UPDATE = "pam-account-update",
   PAM_ACCOUNT_DELETE = "pam-account-delete",
@@ -3659,6 +3661,13 @@ interface CmekGetPrivateKeyEvent {
   };
 }
 
+interface CmekBulkGetPrivateKeysEvent {
+  type: EventType.CMEK_BULK_EXPORT_PRIVATE_KEYS;
+  metadata: {
+    keys: { keyId: string; name: string }[];
+  };
+}
+
 interface GetExternalGroupOrgRoleMappingsEvent {
   type: EventType.GET_EXTERNAL_GROUP_ORG_ROLE_MAPPINGS;
   metadata?: Record<string, never>; // not needed, based off orgId
@@ -4934,12 +4943,23 @@ interface PamAccountAccessEvent {
     resourceName: string;
     accountName: string;
     duration?: string;
+    reason?: string;
   };
 }
 
 interface PamWebAccessSessionTicketCreatedEvent {
   type: EventType.PAM_WEB_ACCESS_SESSION_TICKET_CREATED;
   metadata: {
+    accountId: string;
+    resourceName: string;
+    accountName: string;
+  };
+}
+
+interface PamAccountAwsConsoleUrlGeneratedEvent {
+  type: EventType.PAM_ACCOUNT_AWS_CONSOLE_URL_GENERATED;
+  metadata: {
+    sessionId: string;
     accountId: string;
     resourceName: string;
     accountName: string;
@@ -6381,6 +6401,7 @@ export type Event =
   | CmekListSigningAlgorithmsEvent
   | CmekGetPublicKeyEvent
   | CmekGetPrivateKeyEvent
+  | CmekBulkGetPrivateKeysEvent
   | GetExternalGroupOrgRoleMappingsEvent
   | UpdateExternalGroupOrgRoleMappingsEvent
   | GetProjectTemplatesEvent
@@ -6539,6 +6560,7 @@ export type Event =
   | PamAccountListEvent
   | PamAccountGetEvent
   | PamAccountAccessEvent
+  | PamAccountAwsConsoleUrlGeneratedEvent
   | PamWebAccessSessionTicketCreatedEvent
   | PamAccountCreateEvent
   | PamAccountUpdateEvent

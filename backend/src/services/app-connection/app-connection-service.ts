@@ -142,6 +142,8 @@ import { ValidateTeamCityConnectionCredentialsSchema } from "./teamcity";
 import { teamcityConnectionService } from "./teamcity/teamcity-connection-service";
 import { ValidateTerraformCloudConnectionCredentialsSchema } from "./terraform-cloud";
 import { terraformCloudConnectionService } from "./terraform-cloud/terraform-cloud-connection-service";
+import { ValidateTravisCIConnectionCredentialsSchema } from "./travis-ci";
+import { travisCIConnectionService } from "./travis-ci/travis-ci-connection-service";
 import { ValidateVenafiConnectionCredentialsSchema } from "./venafi/venafi-connection-schema";
 import { venafiConnectionService } from "./venafi/venafi-connection-service";
 import { ValidateVercelConnectionCredentialsSchema } from "./vercel";
@@ -225,7 +227,8 @@ const VALIDATE_APP_CONNECTION_CREDENTIALS_MAP: Record<AppConnection, TValidateAp
   [AppConnection.Doppler]: ValidateDopplerConnectionCredentialsSchema,
   [AppConnection.NetScaler]: ValidateNetScalerConnectionCredentialsSchema,
   [AppConnection.Anthropic]: ValidateAnthropicConnectionCredentialsSchema,
-  [AppConnection.DigiCert]: ValidateDigiCertConnectionCredentialsSchema
+  [AppConnection.DigiCert]: ValidateDigiCertConnectionCredentialsSchema,
+  [AppConnection.TravisCI]: ValidateTravisCIConnectionCredentialsSchema
 };
 
 export const appConnectionServiceFactory = ({
@@ -1105,6 +1108,7 @@ export const appConnectionServiceFactory = ({
     circleci: circleciConnectionService(connectAppConnectionById),
     azureEntraId: azureEntraIdConnectionService(connectAppConnectionById, appConnectionDAL, kmsService),
     doppler: dopplerConnectionService(connectAppConnectionById),
-    digicert: digicertConnectionService(connectAppConnectionById)
+    digicert: digicertConnectionService(connectAppConnectionById),
+    travisCI: travisCIConnectionService(connectAppConnectionById)
   };
 };

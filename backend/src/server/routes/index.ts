@@ -699,7 +699,6 @@ export const registerRoutes = async (
   });
 
   const assumePrivilegeService = assumePrivilegeServiceFactory({
-    projectDAL,
     permissionService
   });
 
@@ -879,7 +878,6 @@ export const registerRoutes = async (
   });
   const groupProjectService = groupProjectServiceFactory({
     groupDAL,
-    projectDAL,
     permissionService
   });
 
@@ -985,7 +983,8 @@ export const registerRoutes = async (
   const totpService = totpServiceFactory({
     totpConfigDAL,
     userDAL,
-    kmsService
+    kmsService,
+    keyStore
   });
 
   const webAuthnService = webAuthnServiceFactory({
@@ -1589,7 +1588,6 @@ export const registerRoutes = async (
     projectEnvDAL,
     keyStore,
     licenseService,
-    projectDAL,
     folderDAL,
     accessApprovalPolicyEnvironmentDAL,
     secretApprovalPolicyEnvironmentDAL: sapEnvironmentDAL
@@ -1630,7 +1628,8 @@ export const registerRoutes = async (
     permissionService,
     kmsService,
     folderDAL,
-    secretDAL: secretV2BridgeDAL
+    secretDAL: secretV2BridgeDAL,
+    secretVersionV2BridgeDAL
   });
   const folderService = secretFolderServiceFactory({
     permissionService,
@@ -2300,7 +2299,6 @@ export const registerRoutes = async (
     appConnectionService,
     kmsService,
     permissionService,
-    projectDAL,
     orgDAL,
     folderDAL,
     secretSyncQueue,
@@ -2322,7 +2320,6 @@ export const registerRoutes = async (
   const kmipOperationService = kmipOperationServiceFactory({
     kmsService,
     kmsDAL,
-    projectDAL,
     kmipClientDAL,
     permissionService
   });
@@ -2663,6 +2660,7 @@ export const registerRoutes = async (
     scepEnrollmentConfigDAL,
     scepDynamicChallengeDAL,
     scepTransactionDAL,
+    certificateDAL,
     certificateAuthorityDAL,
     certificateAuthorityCertDAL,
     certificateRequestDAL,
@@ -2760,7 +2758,6 @@ export const registerRoutes = async (
   const pkiDiscoveryService = pkiDiscoveryServiceFactory({
     pkiDiscoveryConfigDAL,
     pkiDiscoveryScanHistoryDAL,
-    projectDAL,
     permissionService,
     gatewayV2DAL,
     queuePkiDiscoveryScan: pkiDiscoveryQueue.queuePkiDiscoveryScan
@@ -2943,7 +2940,8 @@ export const registerRoutes = async (
     approvalPolicyDAL,
     pamSessionExpirationService,
     resourceMetadataDAL,
-    pamAccountDependenciesDAL
+    pamAccountDependenciesDAL,
+    keyStore
   });
 
   const pamAccountRotation = pamAccountRotationServiceFactory({
@@ -2964,6 +2962,7 @@ export const registerRoutes = async (
 
   const pamWebAccessService = pamWebAccessServiceFactory({
     pamAccountDAL,
+    pamAccountPolicyDAL,
     pamResourceDAL,
     permissionService,
     auditLogService,

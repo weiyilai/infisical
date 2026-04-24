@@ -247,6 +247,10 @@ export type TDigiCertConnectionOption = TAppConnectionOptionBase & {
   app: AppConnection.DigiCert;
 };
 
+export type TTravisCIConnectionOption = TAppConnectionOptionBase & {
+  app: AppConnection.TravisCI;
+};
+
 export type TAppConnectionOption =
   | TAwsConnectionOption
   | TGitHubConnectionOption
@@ -305,7 +309,8 @@ export type TAppConnectionOption =
   | TDopplerConnectionOption
   | TNetScalerConnectionOption
   | TAnthropicConnectionOption
-  | TDigiCertConnectionOption;
+  | TDigiCertConnectionOption
+  | TTravisCIConnectionOption;
 
 export type TAppConnectionOptionMap = {
   [AppConnection.AWS]: TAwsConnectionOption;
@@ -366,4 +371,5 @@ export type TAppConnectionOptionMap = {
   [AppConnection.NetScaler]: TNetScalerConnectionOption;
   [AppConnection.Anthropic]: TAnthropicConnectionOption;
   [AppConnection.DigiCert]: TDigiCertConnectionOption;
+  [AppConnection.TravisCI]: TTravisCIConnectionOption;
 };
