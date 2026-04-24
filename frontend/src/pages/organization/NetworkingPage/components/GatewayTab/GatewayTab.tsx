@@ -173,7 +173,13 @@ export const GatewayTab = withPermission(
         <div className="mb-2 flex items-center justify-between">
           <div className="flex grow items-center gap-x-2">
             <h3 className="text-lg font-medium text-mineshaft-100">Gateways</h3>
-            <DocumentationLinkBadge href="https://infisical.com/docs/documentation/platform/gateways/overview" />
+            <DocumentationLinkBadge
+              href={
+                activeSubTab === "gateway-pools"
+                  ? "https://infisical.com/docs/documentation/platform/gateways/gateway-pools"
+                  : "https://infisical.com/docs/documentation/platform/gateways/overview"
+              }
+            />
             <div className="ml-2 flex gap-x-0.5 rounded-md border border-mineshaft-600 bg-mineshaft-800 p-0.5">
               <Button
                 variant="outline_bg"
