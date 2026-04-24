@@ -145,13 +145,17 @@ export const secretSharingDALFactory = (db: TDbClient) => {
     }
   };
 
-  const softDeleteById = async (id: string) => {
+  const softDeleteById = async (id: string, tx?: Knex) => {
     try {
-      await sharedSecretOrm.updateById(id, {
-        encryptedValue: "",
-        iv: "",
-        tag: ""
-      });
+      await sharedSecretOrm.updateById(
+        id,
+        {
+          encryptedValue: "",
+          iv: "",
+          tag: ""
+        },
+        tx
+      );
     } catch (error) {
       throw new DatabaseError({
         error,
