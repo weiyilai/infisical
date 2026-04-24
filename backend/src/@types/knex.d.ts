@@ -41,9 +41,6 @@ import {
   TAiMcpServerUserCredentials,
   TAiMcpServerUserCredentialsInsert,
   TAiMcpServerUserCredentialsUpdate,
-  TApiKeys,
-  TApiKeysInsert,
-  TApiKeysUpdate,
   TAppConnectionCredentialRotations,
   TAppConnectionCredentialRotationsInsert,
   TAppConnectionCredentialRotationsUpdate,
@@ -1044,7 +1041,6 @@ declare module "knex/types/tables" {
     >;
     [TableName.UserAction]: KnexOriginal.CompositeTableType<TUserActions, TUserActionsInsert, TUserActionsUpdate>;
     [TableName.SuperAdmin]: KnexOriginal.CompositeTableType<TSuperAdmin, TSuperAdminInsert, TSuperAdminUpdate>;
-    [TableName.ApiKey]: KnexOriginal.CompositeTableType<TApiKeys, TApiKeysInsert, TApiKeysUpdate>;
     [TableName.Project]: KnexOriginal.CompositeTableType<TProjects, TProjectsInsert, TProjectsUpdate>;
     [TableName.ProjectSshConfig]: KnexOriginal.CompositeTableType<
       TProjectSshConfigs,
