@@ -725,7 +725,7 @@ export const projectServiceFactory = ({
       };
     });
 
-    await keyStore.deleteItem(`infisical-cloud-plan-${actorOrgId}`);
+    await keyStore.deleteItem(KeyStorePrefixes.LicenseCloudPlan(actorOrgId));
     return results;
   };
 
@@ -799,7 +799,7 @@ export const projectServiceFactory = ({
         return delProject;
       });
 
-      await keyStore.deleteItem(`infisical-cloud-plan-${actorOrgId}`);
+      await keyStore.deleteItem(KeyStorePrefixes.LicenseCloudPlan(actorOrgId));
       return deletedProject;
     } finally {
       await lock.release();

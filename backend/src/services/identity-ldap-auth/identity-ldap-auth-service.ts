@@ -1016,7 +1016,7 @@ export const identityLdapAuthServiceFactory = ({
     }
 
     const deleted = await keyStore.deleteItems({
-      pattern: `lockout:identity:${identityId}:${IdentityAuthMethod.LDAP_AUTH}:*`
+      pattern: KeyStorePrefixes.IdentityLockoutStateByMethodPattern(identityId, IdentityAuthMethod.LDAP_AUTH)
     });
 
     return { deleted, identityId, orgId: identityMembershipOrg.scopeOrgId };

@@ -58,7 +58,7 @@ const getBucketForDistinctId = (distinctId: string): string => {
 
 export const createTelemetryEventKey = (event: string, distinctId: string): string => {
   const bucketId = getBucketForDistinctId(distinctId);
-  return `telemetry-event-${event}-${bucketId}-${distinctId}-${crypto.nativeCrypto.randomUUID()}`;
+  return KeyStorePrefixes.TelemetryEvent(event, bucketId, distinctId, crypto.nativeCrypto.randomUUID());
 };
 
 export enum DeploymentType {
@@ -369,7 +369,7 @@ To opt into telemetry, you can set "TELEMETRY_ENABLED=true" within the environme
     if (!postHog) return 0;
 
     try {
-      const bucketPattern = `telemetry-event-${eventType}-${bucketId}-*`;
+      const bucketPattern = KeyStorePrefixes.TelemetryEventByBucketPattern(eventType, bucketId);
       const bucketKeys = await keyStore.getKeysByPattern(bucketPattern);
 
       if (bucketKeys.length === 0) return 0;

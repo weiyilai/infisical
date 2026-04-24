@@ -115,7 +115,14 @@ export const KeyStorePrefixes = {
   AuditLogMigrationAlert: "audit-log-migration-alert-last-row-count",
   LicenseCloudPlan: (orgId: string) => `infisical-cloud-plan-${orgId}` as const,
   IdentityLockoutState: (identityId: string, authMethod: string, slug: string) =>
-    `lockout:identity:${identityId}:${authMethod}:${slug}` as const
+    `lockout:identity:${identityId}:${authMethod}:${slug}` as const,
+  IdentityLockoutStateByMethodPattern: (identityId: string, authMethod: string) =>
+    `lockout:identity:${identityId}:${authMethod}:*` as const,
+  IdentityLockoutStatePattern: (identityId: string) => `lockout:identity:${identityId}:*` as const,
+
+  TelemetryEvent: (event: string, bucketId: string, distinctId: string, uuid: string) =>
+    `telemetry-event-${event}-${bucketId}-${distinctId}-${uuid}` as const,
+  TelemetryEventByBucketPattern: (event: string, bucketId: string) => `telemetry-event-${event}-${bucketId}-*` as const
 };
 
 export const KeyStoreTtls = {
@@ -141,7 +148,11 @@ export const KeyStoreTtls = {
   ProjectEnvironmentOperationMarkerInSeconds: 10,
   UserMfaUnlockEmailSentInSeconds: 300, // 5 minutes
   TelemetryGroupIdentifyInSeconds: 3600, // 1 hour
-  TelemetryAggregatedEventInSeconds: 600 // 10 minutes
+  TelemetryAggregatedEventInSeconds: 600, // 10 minutes
+  SecretEtagInSeconds: 900, // 15 minutes
+  PkiAcmeNonceInSeconds: 300, // 5 minutes
+  GatewayRelayCredentialInSeconds: 600, // 10 minutes - TURN credential lifetime
+  SecretReplicationSuccessInSeconds: 10
 };
 
 type TDeleteItems = {
