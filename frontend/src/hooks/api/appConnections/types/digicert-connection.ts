@@ -5,9 +5,15 @@ export enum DigiCertConnectionMethod {
   ApiKey = "api-key"
 }
 
+export enum DigiCertRegion {
+  US = "us",
+  EU = "eu"
+}
+
 export type TDigiCertConnection = TRootAppConnection & { app: AppConnection.DigiCert } & {
   method: DigiCertConnectionMethod.ApiKey;
   credentials: {
     apiKey: string;
+    region: DigiCertRegion;
   };
 };

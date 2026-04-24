@@ -12,25 +12,31 @@ import { TAppConnectionDALFactory } from "@app/services/app-connection/app-conne
 import { AppConnection } from "@app/services/app-connection/app-connection-enums";
 import { decryptAppConnectionCredentials } from "@app/services/app-connection/app-connection-fns";
 import { TAppConnectionServiceFactory } from "@app/services/app-connection/app-connection-service";
+import { getDigiCertApiBaseUrl } from "@app/services/app-connection/digicert/digicert-connection-fns";
 import { TDigiCertConnection } from "@app/services/app-connection/digicert/digicert-connection-types";
 import { TCertificateBodyDALFactory } from "@app/services/certificate/certificate-body-dal";
 import { TCertificateDALFactory } from "@app/services/certificate/certificate-dal";
 import { TCertificateSecretDALFactory } from "@app/services/certificate/certificate-secret-dal";
 import {
   CertExtendedKeyUsage,
+  CertExtendedKeyUsageOIDToName,
   CertKeyAlgorithm,
   CertKeyUsage,
   CertStatus,
   CrlReason,
   TAltNameType
 } from "@app/services/certificate/certificate-types";
+import {
+  DigiCertExternalMetadataSchema,
+  TDigiCertExternalMetadata
+} from "@app/services/certificate-common/external-metadata-schemas";
 import { TKmsServiceFactory } from "@app/services/kms/kms-service";
 import { TProjectDALFactory } from "@app/services/project/project-dal";
 import { getProjectKmsCertificateKeyId } from "@app/services/project/project-fns";
 
 import { TCertificateAuthorityDALFactory } from "../certificate-authority-dal";
 import { CaStatus, CaType } from "../certificate-authority-enums";
-import { keyAlgorithmToAlgCfg } from "../certificate-authority-fns";
+import { keyAlgorithmToAlgCfg, parseDistinguishedName } from "../certificate-authority-fns";
 import { TExternalCertificateAuthorityDALFactory } from "../external-certificate-authority-dal";
 import { createDigiCertApiClient } from "./digicert-api-client";
 import {
@@ -57,8 +63,6 @@ type TDigiCertCertificateAuthorityFnsDeps = {
   >;
   projectDAL: Pick<TProjectDALFactory, "findById" | "findOne" | "updateById" | "transaction">;
 };
-
-const DEFAULT_VALIDITY_YEARS = 1;
 
 export const castDbEntryToDigiCertCertificateAuthority = (
   ca: Awaited<ReturnType<TCertificateAuthorityDALFactory["findByIdWithAssociatedCa"]>>
@@ -100,11 +104,11 @@ export const castDbEntryToDigiCertCertificateAuthority = (
   };
 };
 
-const getDigiCertApiKey = async (
+const getDigiCertClientCredentials = async (
   appConnectionId: string,
   appConnectionDAL: Pick<TAppConnectionDALFactory, "findById">,
   kmsService: Pick<TKmsServiceFactory, "createCipherPairWithDataKey">
-): Promise<string> => {
+): Promise<{ apiKey: string; baseUrl: string }> => {
   const appConnection = await appConnectionDAL.findById(appConnectionId);
   if (!appConnection) {
     throw new NotFoundError({ message: `DigiCert app connection with ID '${appConnectionId}' not found` });
@@ -120,10 +124,79 @@ const getDigiCertApiKey = async (
     kmsService
   })) as TDigiCertConnection["credentials"];
 
-  return credentials.apiKey;
+  return {
+    apiKey: credentials.apiKey,
+    baseUrl: getDigiCertApiBaseUrl(credentials.region)
+  };
 };
 
 const PEM_CERTIFICATE_RE2 = new RE2("-----BEGIN CERTIFICATE-----[\\s\\S]*?-----END CERTIFICATE-----", "g");
+
+const TTL_RE2 = new RE2("^(\\d+)([dhm])$");
+const parseTtlToDays = (ttl: string): number => {
+  const match = ttl.match(TTL_RE2);
+  if (!match) {
+    throw new BadRequestError({ message: `Invalid TTL format: ${ttl}` });
+  }
+  const [, value, unit] = match;
+  const num = Number.parseInt(value, 10);
+  if (!Number.isFinite(num) || num <= 0) {
+    throw new BadRequestError({ message: `Invalid TTL value: ${ttl}` });
+  }
+  switch (unit) {
+    case "d":
+      return num;
+    case "h":
+      return Math.max(1, Math.ceil(num / 24));
+    case "m":
+      return Math.max(1, Math.ceil(num / (24 * 60)));
+    default:
+      throw new BadRequestError({ message: `Invalid TTL unit: ${unit}` });
+  }
+};
+
+const extractIssuedCertificateFields = (certObj: x509.X509Certificate) => {
+  const subject = parseDistinguishedName(certObj.subject);
+  const commonName = subject.commonName ?? "";
+
+  const sanExt = certObj.getExtension("2.5.29.17");
+  const altNames: string[] = [];
+  if (sanExt) {
+    const sanNames = new x509.GeneralNames(sanExt.value);
+    for (const item of sanNames.items) {
+      if (
+        item.type === TAltNameType.DNS ||
+        item.type === TAltNameType.IP ||
+        item.type === TAltNameType.EMAIL ||
+        item.type === TAltNameType.URL
+      ) {
+        altNames.push(item.value);
+      }
+    }
+  }
+
+  const keyUsages: CertKeyUsage[] = [];
+  const keyUsagesExt = certObj.getExtension(x509.KeyUsagesExtension);
+  if (keyUsagesExt) {
+    for (const keyUsage of Object.values(CertKeyUsage)) {
+      // eslint-disable-next-line no-bitwise
+      if ((x509.KeyUsageFlags[keyUsage] & keyUsagesExt.usages) !== 0) {
+        keyUsages.push(keyUsage);
+      }
+    }
+  }
+
+  const extendedKeyUsages: CertExtendedKeyUsage[] = [];
+  const ekuExt = certObj.getExtension(x509.ExtendedKeyUsageExtension);
+  if (ekuExt) {
+    for (const oid of ekuExt.usages) {
+      const mapped = CertExtendedKeyUsageOIDToName[oid as string];
+      if (mapped) extendedKeyUsages.push(mapped);
+    }
+  }
+
+  return { commonName, altNames, keyUsages, extendedKeyUsages };
+};
 
 const extractLeafAndChain = (pemBundle: string): { leaf: string; chain: string } => {
   const matches = pemBundle.match(PEM_CERTIFICATE_RE2);
@@ -339,6 +412,7 @@ export const DigiCertCertificateAuthorityFns = ({
     signatureAlgorithm,
     keyAlgorithm = CertKeyAlgorithm.RSA_2048,
     csr,
+    ttl,
     renewalOfOrderId
   }: {
     caId: string;
@@ -347,6 +421,7 @@ export const DigiCertCertificateAuthorityFns = ({
     signatureAlgorithm?: string;
     keyAlgorithm?: CertKeyAlgorithm;
     csr?: string;
+    ttl: string;
     renewalOfOrderId?: number;
   }): Promise<{
     metadata: TDigiCertCertificateRequestMetadata;
@@ -398,8 +473,12 @@ export const DigiCertCertificateAuthorityFns = ({
       csrPem = csrObj.toString("pem");
     }
 
-    const apiKey = await getDigiCertApiKey(digicertCa.configuration.appConnectionId, appConnectionDAL, kmsService);
-    const client = createDigiCertApiClient(apiKey);
+    const { apiKey, baseUrl } = await getDigiCertClientCredentials(
+      digicertCa.configuration.appConnectionId,
+      appConnectionDAL,
+      kmsService
+    );
+    const client = createDigiCertApiClient(apiKey, baseUrl);
 
     const extraSans = altNames.filter((value) => value.toLowerCase() !== effectiveCommonName.toLowerCase());
 
@@ -407,6 +486,8 @@ export const DigiCertCertificateAuthorityFns = ({
     let signatureHash: "sha256" | "sha384" | "sha512" = "sha256";
     if (normalizedSignature.includes("sha512")) signatureHash = "sha512";
     else if (normalizedSignature.includes("sha384")) signatureHash = "sha384";
+
+    const validityDays = parseTtlToDays(ttl);
 
     const baseOrderPayload = {
       certificate: {
@@ -416,7 +497,7 @@ export const DigiCertCertificateAuthorityFns = ({
         signature_hash: signatureHash
       },
       organization: { id: digicertCa.configuration.organizationId },
-      order_validity: { years: DEFAULT_VALIDITY_YEARS },
+      order_validity: { days: validityDays },
       dcv_method: "dns-txt-token" as const,
       skip_approval: true
     };
@@ -496,13 +577,18 @@ export const DigiCertCertificateAuthorityFns = ({
     }
     const digicertCa = castDbEntryToDigiCertCertificateAuthority(ca);
 
-    const apiKey = await getDigiCertApiKey(digicertCa.configuration.appConnectionId, appConnectionDAL, kmsService);
-    const client = createDigiCertApiClient(apiKey);
+    const { apiKey, baseUrl } = await getDigiCertClientCredentials(
+      digicertCa.configuration.appConnectionId,
+      appConnectionDAL,
+      kmsService
+    );
+    const client = createDigiCertApiClient(apiKey, baseUrl);
 
     const pemBundle = await client.downloadCertificatePem(digicertCertificateId);
     const { leaf, chain } = extractLeafAndChain(pemBundle);
 
     const certObj = new x509.X509Certificate(leaf);
+    const issued = extractIssuedCertificateFields(certObj);
 
     const certificateManagerKmsId = await getProjectKmsCertificateKeyId({
       projectId: ca.projectId,
@@ -524,18 +610,21 @@ export const DigiCertCertificateAuthorityFns = ({
           caId: ca.id,
           profileId: certificateRequest.profileId ?? undefined,
           status: CertStatus.ACTIVE,
-          friendlyName: certificateRequest.commonName ?? "",
-          commonName: certificateRequest.commonName ?? "",
-          altNames: certificateRequest.altNames ?? "",
+          friendlyName: issued.commonName || "",
+          commonName: issued.commonName || "",
+          altNames: issued.altNames.length > 0 ? issued.altNames.join(",") : "",
           serialNumber: certObj.serialNumber,
           notBefore: certObj.notBefore,
           notAfter: certObj.notAfter,
-          keyUsages: (certificateRequest.keyUsages ?? []) as CertKeyUsage[],
-          extendedKeyUsages: (certificateRequest.extendedKeyUsages ?? []) as CertExtendedKeyUsage[],
+          keyUsages: issued.keyUsages,
+          extendedKeyUsages: issued.extendedKeyUsages,
           keyAlgorithm: certificateRequest.keyAlgorithm ?? undefined,
           signatureAlgorithm: certificateRequest.signatureAlgorithm ?? undefined,
           projectId: ca.projectId,
-          externalOrderId: String(digicertOrderId),
+          externalMetadata: {
+            type: CaType.DIGICERT,
+            orderId: digicertOrderId
+          } satisfies TDigiCertExternalMetadata,
           renewedFromCertificateId: isRenewal && originalCertificateId ? originalCertificateId : null
         },
         tx
@@ -590,23 +679,35 @@ export const DigiCertCertificateAuthorityFns = ({
         message: `Certificate not found for revocation [caId=${caId}] [serialNumber=${serialNumber}]`
       });
     }
-    if (!cert.externalOrderId) {
+    const parsedMetadata = DigiCertExternalMetadataSchema.safeParse(cert.externalMetadata);
+    if (!parsedMetadata.success) {
       throw new BadRequestError({
-        message: `Certificate has no DigiCert order reference — cannot revoke on DigiCert [certificateId=${cert.id}]`
+        message: `Certificate has no DigiCert order reference in externalMetadata — cannot revoke on DigiCert [certificateId=${cert.id}]`
       });
     }
-    const orderId = Number.parseInt(cert.externalOrderId, 10);
-    if (!Number.isFinite(orderId)) {
-      throw new BadRequestError({
-        message: `Certificate has an invalid DigiCert order id [certificateId=${cert.id}] [externalOrderId=${cert.externalOrderId}]`
-      });
-    }
+    const { orderId } = parsedMetadata.data;
 
     const digicertCa = castDbEntryToDigiCertCertificateAuthority(ca);
-    const apiKey = await getDigiCertApiKey(digicertCa.configuration.appConnectionId, appConnectionDAL, kmsService);
-    const client = createDigiCertApiClient(apiKey);
+    const { apiKey, baseUrl } = await getDigiCertClientCredentials(
+      digicertCa.configuration.appConnectionId,
+      appConnectionDAL,
+      kmsService
+    );
+    const client = createDigiCertApiClient(apiKey, baseUrl);
 
-    await client.revokeOrder(orderId, `Revoked via Infisical — reason: ${reason}`);
+    try {
+      await client.revokeOrder(orderId, `Revoked via Infisical — reason: ${reason}`);
+    } catch (err) {
+      const message = (err as Error)?.message ?? "";
+      if (message.includes("order_already_revoked") || message.includes("order_is_revoked")) {
+        logger.info(
+          `DigiCert order already revoked upstream — treating as success [caId=${caId}] [certificateId=${cert.id}] [orderId=${orderId}]`
+        );
+      } else {
+        throw err;
+      }
+    }
+
     logger.info(
       `DigiCert order revocation submitted [caId=${caId}] [certificateId=${cert.id}] [orderId=${orderId}] [reason=${reason}]`
     );

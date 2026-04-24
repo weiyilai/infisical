@@ -2470,7 +2470,9 @@ export const registerRoutes = async (
     pkiSubscriberDAL,
     projectDAL,
     pkiSyncDAL,
-    pkiSyncQueue
+    pkiSyncQueue,
+    certificateRequestDAL,
+    resourceMetadataDAL
   });
 
   const certificateEstService = certificateEstServiceFactory({
@@ -2532,11 +2534,7 @@ export const registerRoutes = async (
     certificateDAL,
     certificateService,
     permissionService,
-    resourceMetadataDAL,
-    certificateAuthorityDAL,
-    appConnectionDAL,
-    kmsService,
-    digicertFns: digicertCaFns
+    resourceMetadataDAL
   });
 
   const certificateIssuanceQueue = certificateIssuanceQueueFactory({

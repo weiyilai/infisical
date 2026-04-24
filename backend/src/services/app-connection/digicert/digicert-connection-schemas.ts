@@ -9,10 +9,11 @@ import {
 } from "@app/services/app-connection/app-connection-schemas";
 
 import { APP_CONNECTION_NAME_MAP } from "../app-connection-maps";
-import { DigiCertConnectionMethod } from "./digicert-connection-enums";
+import { DigiCertConnectionMethod, DigiCertRegion } from "./digicert-connection-enums";
 
 export const DigiCertConnectionApiKeyCredentialsSchema = z.object({
-  apiKey: z.string().trim().min(1, "API Key required").describe(AppConnections.CREDENTIALS.DIGICERT.apiKey)
+  apiKey: z.string().trim().min(1, "API Key required").describe(AppConnections.CREDENTIALS.DIGICERT.apiKey),
+  region: z.nativeEnum(DigiCertRegion).describe(AppConnections.CREDENTIALS.DIGICERT.region)
 });
 
 const BaseDigiCertConnectionSchema = BaseAppConnectionSchema.extend({
@@ -27,7 +28,7 @@ export const DigiCertConnectionSchema = BaseDigiCertConnectionSchema.extend({
 export const SanitizedDigiCertConnectionSchema = z.discriminatedUnion("method", [
   BaseDigiCertConnectionSchema.extend({
     method: z.literal(DigiCertConnectionMethod.ApiKey),
-    credentials: DigiCertConnectionApiKeyCredentialsSchema.pick({})
+    credentials: DigiCertConnectionApiKeyCredentialsSchema.pick({ region: true })
   }).describe(JSON.stringify({ title: `${APP_CONNECTION_NAME_MAP[AppConnection.DigiCert]} (API Key)` }))
 ]);
 

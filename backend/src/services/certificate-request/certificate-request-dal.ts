@@ -9,6 +9,7 @@ import {
   applyProcessedPermissionRulesToQuery,
   type ProcessedPermissionRules
 } from "@app/lib/knex/permission-filter-utils";
+import { CaStatus } from "@app/services/certificate-authority/certificate-authority-enums";
 import { applyMetadataFilter } from "@app/services/resource-metadata/resource-metadata-fns";
 
 import { CertificateRequestStatus } from "./certificate-request-types";
@@ -411,6 +412,7 @@ export const certificateRequestDALFactory = (db: TDbClient) => {
         )
         .where(`${TableName.CertificateRequests}.status`, CertificateRequestStatus.PENDING_VALIDATION)
         .where(`${TableName.ExternalCertificateAuthority}.type`, caType)
+        .where(`${TableName.CertificateAuthority}.status`, CaStatus.ACTIVE)
         .select(selectAllTableCols(TableName.CertificateRequests))
         .orderBy(`${TableName.CertificateRequests}.createdAt`, "asc");
 

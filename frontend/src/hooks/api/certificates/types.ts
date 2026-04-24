@@ -1,4 +1,10 @@
-import { CertExtendedKeyUsage, CertKeyUsage, CertSource, CertStatus } from "./enums";
+import {
+  CertExtendedKeyUsage,
+  CertificateRequestStatus,
+  CertKeyUsage,
+  CertSource,
+  CertStatus
+} from "./enums";
 
 export type TCertificateSubject = {
   commonName?: string;
@@ -292,4 +298,9 @@ export type TPqcTrendPoint = {
 
 export type TPqcTrendResponse = {
   periods: TPqcTrendPoint[];
+};
+
+export type TTriggerCertificateRequestValidationResponse = {
+  status: CertificateRequestStatus;
+  orderStatus?: string;
 };

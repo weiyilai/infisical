@@ -60,6 +60,7 @@ Infisical supports connecting to [DigiCert CertCentral](https://dev.digicert.com
         Complete the form with:
         - A **name** for the connection (e.g. `digicert-prod`)
         - An optional **description**
+        - The **CertCentral Region** matching your account, **US** or **EU**
         - Your **CertCentral API Key**
 
         ![DigiCert Connection Form](/images/app-connections/digicert/digicert-app-connection-form.png)
@@ -86,7 +87,8 @@ Infisical supports connecting to [DigiCert CertCentral](https://dev.digicert.com
         "name": "my-digicert-connection",
         "method": "api-key",
         "credentials": {
-          "apiKey": "<YOUR-CERTCENTRAL-API-KEY>"
+          "apiKey": "<YOUR-CERTCENTRAL-API-KEY>",
+          "region": "us"
         }
       }'
     ```

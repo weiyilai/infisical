@@ -21,6 +21,7 @@ import { TAppConnectionServiceFactory } from "../app-connection/app-connection-s
 import { TCertificateBodyDALFactory } from "../certificate/certificate-body-dal";
 import { TCertificateSecretDALFactory } from "../certificate/certificate-secret-dal";
 import { CertKeyAlgorithm } from "../certificate-common/certificate-constants";
+import { DigiCertExternalMetadataSchema } from "../certificate-common/external-metadata-schemas";
 import { TCertificateRequestDALFactory } from "../certificate-request/certificate-request-dal";
 import { TCertificateRequestServiceFactory } from "../certificate-request/certificate-request-service";
 import { CertificateRequestStatus } from "../certificate-request/certificate-request-types";
@@ -575,18 +576,12 @@ export const certificateIssuanceQueueFactory = ({
         let renewalOfOrderId: number | undefined;
         if (isRenewal && originalCertificateId) {
           const originalCert = await certificateDAL.findById(originalCertificateId);
-          if (originalCert?.externalOrderId) {
-            const parsed = Number(originalCert.externalOrderId);
-            if (Number.isFinite(parsed)) {
-              renewalOfOrderId = parsed;
-            } else {
-              logger.warn(
-                `DigiCert renewal requested but previous certificate's externalOrderId is not numeric — falling back to a new order [originalCertificateId=${originalCertificateId}] [externalOrderId=${originalCert.externalOrderId}]`
-              );
-            }
+          const parsedMetadata = DigiCertExternalMetadataSchema.safeParse(originalCert?.externalMetadata);
+          if (parsedMetadata.success) {
+            renewalOfOrderId = parsedMetadata.data.orderId;
           } else {
             logger.warn(
-              `DigiCert renewal requested but previous certificate has no externalOrderId — falling back to a new order [originalCertificateId=${originalCertificateId}]`
+              `DigiCert renewal requested but previous certificate has no DigiCert order reference in externalMetadata — falling back to a new order [originalCertificateId=${originalCertificateId}]`
             );
           }
         }
@@ -597,6 +592,7 @@ export const certificateIssuanceQueueFactory = ({
           altNames: altNames?.map((san) => san.value) || [],
           signatureAlgorithm,
           keyAlgorithm: keyAlgorithm as CertKeyAlgorithm,
+          ttl,
           ...(csr && { csr }),
           ...(renewalOfOrderId !== undefined && { renewalOfOrderId })
         });

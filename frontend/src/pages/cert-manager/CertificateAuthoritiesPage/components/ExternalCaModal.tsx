@@ -187,8 +187,8 @@ const caTypes = [
   { label: "ACME", value: CaType.ACME },
   { label: "Active Directory Certificate Services (AD CS)", value: CaType.AZURE_AD_CS },
   { label: "AWS Private CA (PCA)", value: CaType.AWS_PCA },
-  { label: "DigiCert CertCentral", value: CaType.DIGICERT },
-  { label: "AWS ACM Public CA", value: CaType.AWS_ACM_PUBLIC_CA }
+  { label: "AWS ACM Public CA", value: CaType.AWS_ACM_PUBLIC_CA },
+  { label: "DigiCert CertCentral", value: CaType.DIGICERT }
 ];
 
 export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
@@ -1059,7 +1059,7 @@ export const ExternalCaModal = ({ popUp, handlePopUpToggle }: Props) => {
                   >
                     <FilterableSelect
                       isLoading={isDigiCertProductsPending && !!digicertConnectionId}
-                      isDisabled={!digicertConnectionId || Boolean(ca)}
+                      isDisabled={!digicertConnectionId}
                       value={digicertProducts.find((product) => product.nameId === value) ?? null}
                       onChange={(option) => {
                         onChange((option as SingleValue<TDigiCertProduct>)?.nameId ?? "");

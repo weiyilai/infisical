@@ -1,7 +1,5 @@
 import { AxiosError } from "axios";
 
-export const DIGICERT_AUTH_HEADER = "X-DC-DEVKEY";
-
 type TDigiCertErrorResponse = { errors?: { code?: string; message?: string }[] };
 
 export const extractDigiCertErrorMessage = (error: unknown) => {

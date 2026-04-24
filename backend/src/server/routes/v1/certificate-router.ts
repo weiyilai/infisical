@@ -459,7 +459,7 @@ export const registerCertificateRouter = async (server: FastifyZodProvider) => {
     },
     onRequest: verifyAuth([AuthMode.JWT, AuthMode.IDENTITY_ACCESS_TOKEN]),
     handler: async (req) => {
-      const result = await server.services.certificateRequest.triggerCertificateRequestValidation({
+      const result = await server.services.certificateAuthority.triggerCertificateRequestValidation({
         actor: req.permission.type,
         actorId: req.permission.id,
         actorAuthMethod: req.permission.authMethod,

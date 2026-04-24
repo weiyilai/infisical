@@ -14,6 +14,7 @@ import { APP_CONNECTION_MAP, getAppConnectionMethodDetails } from "@app/helpers/
 import { AppConnection } from "@app/hooks/api/appConnections/enums";
 import {
   DigiCertConnectionMethod,
+  DigiCertRegion,
   TDigiCertConnection
 } from "@app/hooks/api/appConnections/types/digicert-connection";
 
@@ -35,7 +36,8 @@ const formSchema = z.discriminatedUnion("method", [
   rootSchema.extend({
     method: z.literal(DigiCertConnectionMethod.ApiKey),
     credentials: z.object({
-      apiKey: z.string().trim().min(1, "API Key required")
+      apiKey: z.string().trim().min(1, "API Key required"),
+      region: z.nativeEnum(DigiCertRegion)
     })
   })
 ]);
@@ -49,7 +51,8 @@ export const DigiCertConnectionForm = ({ appConnection, onSubmit }: Props) => {
     resolver: zodResolver(formSchema),
     defaultValues: appConnection ?? {
       app: AppConnection.DigiCert,
-      method: DigiCertConnectionMethod.ApiKey
+      method: DigiCertConnectionMethod.ApiKey,
+      credentials: { apiKey: "", region: DigiCertRegion.US }
     }
   });
 
@@ -90,6 +93,30 @@ export const DigiCertConnectionForm = ({ appConnection, onSubmit }: Props) => {
                     </SelectItem>
                   );
                 })}
+              </Select>
+            </FormControl>
+          )}
+        />
+        <Controller
+          name="credentials.region"
+          control={control}
+          shouldUnregister
+          render={({ field: { value, onChange }, fieldState: { error } }) => (
+            <FormControl
+              errorText={error?.message}
+              isError={Boolean(error?.message)}
+              label="CertCentral Region"
+              tooltipText="Select the CertCentral tenant your API key was issued in. US and EU are independent — a US key cannot be used against EU and vice-versa."
+            >
+              <Select
+                value={value}
+                onValueChange={(val) => onChange(val)}
+                className="w-full border border-mineshaft-500"
+                position="popper"
+                dropdownContainerClassName="max-w-none"
+              >
+                <SelectItem value={DigiCertRegion.US}>US</SelectItem>
+                <SelectItem value={DigiCertRegion.EU}>EU</SelectItem>
               </Select>
             </FormControl>
           )}

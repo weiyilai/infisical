@@ -2,11 +2,8 @@ import { AxiosError } from "axios";
 
 import { request } from "@app/lib/config/request";
 import { BadRequestError } from "@app/lib/errors";
-import {
-  DIGICERT_AUTH_HEADER,
-  extractDigiCertErrorMessage
-} from "@app/services/app-connection/digicert/digicert-connection-errors";
-import { IntegrationUrls } from "@app/services/integration-auth/integration-list";
+import { DIGICERT_AUTH_HEADER } from "@app/services/app-connection/digicert/digicert-connection-constants";
+import { extractDigiCertErrorMessage } from "@app/services/app-connection/digicert/digicert-connection-errors";
 
 type TPlaceOrderRequest = {
   certificate: {
@@ -16,7 +13,8 @@ type TPlaceOrderRequest = {
     signature_hash?: string;
   };
   organization: { id: number };
-  order_validity: { years: number };
+
+  order_validity: { days: number } | { years: number };
   dcv_method: "dns-txt-token";
   skip_approval?: boolean;
   renewal_of_order_id?: number;
@@ -60,8 +58,7 @@ type TCheckValidationResponse = {
 
 export type TDigiCertApiClient = ReturnType<typeof createDigiCertApiClient>;
 
-export const createDigiCertApiClient = (apiKey: string) => {
-  const baseURL = IntegrationUrls.DIGICERT_SERVICES_API_URL;
+export const createDigiCertApiClient = (apiKey: string, baseURL: string) => {
   const headers = {
     [DIGICERT_AUTH_HEADER]: apiKey,
     "Content-Type": "application/json"

@@ -510,8 +510,6 @@ export const getAppConnectionMethodName = (method: TAppConnection["method"]) => 
     case CircleCIConnectionMethod.ApiToken:
     case TravisCIConnectionMethod.ApiToken:
       return "API Token";
-    case DigiCertConnectionMethod.ApiKey:
-      return "API Key";
     case DNSMadeEasyConnectionMethod.APIKeySecret:
       return "API Key & Secret";
     case AzureDnsConnectionMethod.ClientSecret:
@@ -544,12 +542,12 @@ export const getAppConnectionMethodName = (method: TAppConnection["method"]) => 
     case SmbConnectionMethod.Credentials:
       return "Credentials";
     case VenafiConnectionMethod.ApiKey:
-      return "API Key";
     case RenderConnectionMethod.ApiKey:
     case ChecklyConnectionMethod.ApiKey:
     case OctopusDeployConnectionMethod.ApiKey:
     case OpenRouterConnectionMethod.ApiKey:
     case AnthropicConnectionMethod.ApiKey:
+    case DigiCertConnectionMethod.ApiKey:
       return "API Key";
     case ChefConnectionMethod.UserKey:
       return "User Key";

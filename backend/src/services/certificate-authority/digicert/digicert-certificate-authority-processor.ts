@@ -3,6 +3,7 @@ import { logger } from "@app/lib/logger";
 import { TAppConnectionDALFactory } from "@app/services/app-connection/app-connection-dal";
 import { AppConnection } from "@app/services/app-connection/app-connection-enums";
 import { decryptAppConnectionCredentials } from "@app/services/app-connection/app-connection-fns";
+import { getDigiCertApiBaseUrl } from "@app/services/app-connection/digicert/digicert-connection-fns";
 import { TDigiCertConnection } from "@app/services/app-connection/digicert/digicert-connection-types";
 import { TKmsServiceFactory } from "@app/services/kms/kms-service";
 
@@ -25,6 +26,7 @@ import {
   castDbEntryToDigiCertCertificateAuthority,
   TDigiCertCertificateAuthorityFns
 } from "./digicert-certificate-authority-fns";
+import { DigiCertCertificateRequestMetadataSchema } from "./digicert-certificate-authority-schemas";
 
 export type TDigiCertCertificateRequestServiceDep = {
   updateCertificateRequestStatus: (args: TUpdateCertificateRequestStatusDTO) => Promise<unknown>;
@@ -89,7 +91,7 @@ const getOrCreateClient = async (
     kmsService: deps.kmsService
   })) as TDigiCertConnection["credentials"];
 
-  const client = createDigiCertApiClient(credentials.apiKey);
+  const client = createDigiCertApiClient(credentials.apiKey, getDigiCertApiBaseUrl(credentials.region));
   clientCache?.set(request.caId, client);
   return client;
 };
@@ -103,21 +105,24 @@ export const processDigiCertPendingValidationRequest = async (
     return { status: DigiCertProcessorOutcome.Skipped, reason: "missing caId or metadata" };
   }
 
-  let parsed: TDigiCertOrderMetadata;
+  let rawMetadata: unknown;
   try {
-    parsed = JSON.parse(request.metadata) as TDigiCertOrderMetadata;
+    rawMetadata = JSON.parse(request.metadata);
   } catch {
     logger.warn(`DigiCert request metadata could not be parsed [certificateRequestId=${request.id}]`);
     return { status: DigiCertProcessorOutcome.Skipped, reason: "unparseable metadata" };
   }
 
-  if (!parsed.digicert?.orderId) {
-    return { status: DigiCertProcessorOutcome.Skipped, reason: "missing DigiCert order id" };
+  const parseResult = DigiCertCertificateRequestMetadataSchema.safeParse(rawMetadata);
+  if (!parseResult.success) {
+    logger.warn(
+      { err: parseResult.error },
+      `DigiCert request metadata failed schema validation [certificateRequestId=${request.id}]`
+    );
+    return { status: DigiCertProcessorOutcome.Skipped, reason: "metadata did not match schema" };
   }
+  const parsed = parseResult.data as TDigiCertOrderMetadata;
 
-  if (!parsed.digicert.orderPlacedAt) {
-    return { status: DigiCertProcessorOutcome.Skipped, reason: "missing orderPlacedAt" };
-  }
   const age = Date.now() - new Date(parsed.digicert.orderPlacedAt).getTime();
   if (age >= DIGICERT_VALIDATION_TIMEOUT_MS) {
     await deps.certificateRequestService.updateCertificateRequestStatus({

@@ -14,6 +14,7 @@ import {
   TRenewCertificateDTO,
   TRenewCertificateResponse,
   TRevokeCertDTO,
+  TTriggerCertificateRequestValidationResponse,
   TUnifiedCertificateIssuanceDTO,
   TUnifiedCertificateIssuanceResponse,
   TUpdateCertificateDTO,
@@ -273,11 +274,6 @@ export const useUnifiedCertificateIssuance = () => {
       });
     }
   });
-};
-
-type TTriggerCertificateRequestValidationResponse = {
-  status: string;
-  orderStatus?: string;
 };
 
 export const useTriggerCertificateRequestValidation = () => {

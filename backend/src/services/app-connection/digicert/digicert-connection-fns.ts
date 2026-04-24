@@ -5,8 +5,9 @@ import { BadRequestError } from "@app/lib/errors";
 import { AppConnection } from "@app/services/app-connection/app-connection-enums";
 import { IntegrationUrls } from "@app/services/integration-auth/integration-list";
 
-import { DigiCertConnectionMethod } from "./digicert-connection-enums";
-import { DIGICERT_AUTH_HEADER, extractDigiCertErrorMessage } from "./digicert-connection-errors";
+import { DIGICERT_AUTH_HEADER } from "./digicert-connection-constants";
+import { DigiCertConnectionMethod, DigiCertRegion } from "./digicert-connection-enums";
+import { extractDigiCertErrorMessage } from "./digicert-connection-errors";
 import {
   TDigiCertConnection,
   TDigiCertConnectionConfig,
@@ -22,11 +23,22 @@ export const getDigiCertConnectionListItem = () => {
   };
 };
 
+export const getDigiCertApiBaseUrl = (region: DigiCertRegion): string => {
+  switch (region) {
+    case DigiCertRegion.EU:
+      return IntegrationUrls.DIGICERT_SERVICES_API_URL_EU;
+    case DigiCertRegion.US:
+    default:
+      return IntegrationUrls.DIGICERT_SERVICES_API_URL;
+  }
+};
+
 export const validateDigiCertConnectionCredentials = async (config: TDigiCertConnectionConfig) => {
   const { credentials: inputCredentials } = config;
+  const baseUrl = getDigiCertApiBaseUrl(inputCredentials.region);
 
   try {
-    await request.get(`${IntegrationUrls.DIGICERT_SERVICES_API_URL}/organization`, {
+    await request.get(`${baseUrl}/organization`, {
       headers: {
         [DIGICERT_AUTH_HEADER]: inputCredentials.apiKey,
         "Content-Type": "application/json"
@@ -58,18 +70,16 @@ type TDigiCertOrganizationsResponse = {
 export const listDigiCertOrganizations = async (
   appConnection: TDigiCertConnection
 ): Promise<TDigiCertOrganization[]> => {
-  const { apiKey } = appConnection.credentials;
+  const { apiKey, region } = appConnection.credentials;
+  const baseUrl = getDigiCertApiBaseUrl(region);
 
   try {
-    const { data } = await request.get<TDigiCertOrganizationsResponse>(
-      `${IntegrationUrls.DIGICERT_SERVICES_API_URL}/organization`,
-      {
-        headers: {
-          [DIGICERT_AUTH_HEADER]: apiKey,
-          "Content-Type": "application/json"
-        }
+    const { data } = await request.get<TDigiCertOrganizationsResponse>(`${baseUrl}/organization`, {
+      headers: {
+        [DIGICERT_AUTH_HEADER]: apiKey,
+        "Content-Type": "application/json"
       }
-    );
+    });
 
     return (data.organizations ?? []).map((org) => ({
       id: org.id,
@@ -97,26 +107,28 @@ type TDigiCertProductsResponse = {
   }[];
 };
 
+const DIGICERT_SSL_PRODUCT_TYPE = "ssl_certificate";
+
 export const listDigiCertProducts = async (appConnection: TDigiCertConnection): Promise<TDigiCertProduct[]> => {
-  const { apiKey } = appConnection.credentials;
+  const { apiKey, region } = appConnection.credentials;
+  const baseUrl = getDigiCertApiBaseUrl(region);
 
   try {
-    const { data } = await request.get<TDigiCertProductsResponse>(
-      `${IntegrationUrls.DIGICERT_SERVICES_API_URL}/product`,
-      {
-        headers: {
-          [DIGICERT_AUTH_HEADER]: apiKey,
-          "Content-Type": "application/json"
-        }
+    const { data } = await request.get<TDigiCertProductsResponse>(`${baseUrl}/product`, {
+      headers: {
+        [DIGICERT_AUTH_HEADER]: apiKey,
+        "Content-Type": "application/json"
       }
-    );
+    });
 
-    return (data.products ?? []).map((product) => ({
-      nameId: product.name_id,
-      name: product.name,
-      type: product.type,
-      validationType: product.validation_type
-    }));
+    return (data.products ?? [])
+      .filter((product) => product.type === DIGICERT_SSL_PRODUCT_TYPE)
+      .map((product) => ({
+        nameId: product.name_id,
+        name: product.name,
+        type: product.type,
+        validationType: product.validation_type
+      }));
   } catch (error: unknown) {
     if (error instanceof AxiosError) {
       throw new BadRequestError({
