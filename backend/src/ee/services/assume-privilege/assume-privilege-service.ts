@@ -101,10 +101,18 @@ export const assumePrivilegeServiceFactory = ({
       actorOrgId,
       actionProjectType: ActionProjectType.Any
     });
-    ForbiddenError.from(requesterPermission.permission).throwUnlessCan(
-      ProjectPermissionMemberActions.AssumePrivileges,
-      ProjectPermissionSub.Member
-    );
+
+    if (decodedToken.actorType === ActorType.USER) {
+      ForbiddenError.from(requesterPermission.permission).throwUnlessCan(
+        ProjectPermissionMemberActions.AssumePrivileges,
+        ProjectPermissionSub.Member
+      );
+    } else {
+      ForbiddenError.from(requesterPermission.permission).throwUnlessCan(
+        ProjectPermissionIdentityActions.AssumePrivileges,
+        subject(ProjectPermissionSub.Identity, { identityId: decodedToken.actorId })
+      );
+    }
 
     return decodedToken;
   };
