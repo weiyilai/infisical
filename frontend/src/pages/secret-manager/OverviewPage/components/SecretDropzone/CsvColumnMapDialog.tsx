@@ -191,7 +191,7 @@ const MatrixImportModalTableRow = ({
       </td>
       <td className="whitespace-nowrap">
         <div className="flex h-full items-center justify-center gap-1.5">
-          <Badge className="flex-1" variant="neutral">
+          <Badge className="flex-1 justify-center" variant="neutral">
             {icon}
             {label}
           </Badge>
