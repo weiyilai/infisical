@@ -57,11 +57,14 @@ const TRUTHY_VALUES = new Set(["true", "1", "yes", "y", "t"]);
 const pickInnerSeparator = (primaryDelimiter: string): string =>
   primaryDelimiter === ";" ? "|" : ";";
 
-const parseTagCell = (cell: string, innerSeparator: string): string[] =>
-  cell
-    .split(innerSeparator)
-    .map((s) => s.trim())
-    .filter(Boolean);
+const parseTagCell = (cell: string, innerSeparator: string): string[] => [
+  ...new Set(
+    cell
+      .split(innerSeparator)
+      .map((s) => s.trim())
+      .filter(Boolean)
+  )
+];
 
 const parseMetadataCell = (
   cell: string,
@@ -274,9 +277,8 @@ const CsvColumnMapContent = ({
       }
 
       if (importSecretMatrixMap.skipMultilineEncoding !== null) {
-        entry.skipMultilineEncoding = parseBooleanCell(
-          row[importSecretMatrixMap.skipMultilineEncoding] || ""
-        );
+        const raw = row[importSecretMatrixMap.skipMultilineEncoding];
+        if (raw?.trim()) entry.skipMultilineEncoding = parseBooleanCell(raw);
       }
 
       env[key] = entry;

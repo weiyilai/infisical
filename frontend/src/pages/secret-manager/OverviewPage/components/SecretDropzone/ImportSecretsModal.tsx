@@ -110,7 +110,9 @@ const ImportSecretsContent = ({
 
   const canReadTags = permission.can(ProjectPermissionActions.Read, ProjectPermissionSub.Tags);
   const canCreateTags = permission.can(ProjectPermissionActions.Create, ProjectPermissionSub.Tags);
-  const { data: projectTags } = useGetWsTags(canReadTags ? projectId : "");
+  const { data: projectTags, isPending: isTagsLoading } = useGetWsTags(
+    canReadTags ? projectId : ""
+  );
 
   const allowedEnvironments = environments.filter((env) =>
     permission.can(
@@ -126,6 +128,10 @@ const ImportSecretsContent = ({
 
   const activeSecrets = initialParsedSecrets || parsedSecrets;
   const secretCount = activeSecrets ? Object.keys(activeSecrets).length : 0;
+  const hasTagsToResolve = activeSecrets
+    ? Object.values(activeSecrets).some((s) => s.tagSlugs?.length)
+    : false;
+  const isWaitingForTags = canReadTags && hasTagsToResolve && isTagsLoading;
 
   const handleParsedSecrets = useCallback((env: TParsedEnv) => {
     if (!Object.keys(env).length) {
@@ -683,8 +689,8 @@ const ImportSecretsContent = ({
           <Button
             variant="project"
             onClick={handleImport}
-            isDisabled={!selectedEnvs.length || isImporting}
-            isPending={isImporting}
+            isDisabled={!selectedEnvs.length || isImporting || isWaitingForTags}
+            isPending={isImporting || isWaitingForTags}
           >
             Upload {secretCount} Secret{secretCount !== 1 ? "s" : ""}
           </Button>
