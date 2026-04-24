@@ -14,6 +14,10 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -21,16 +25,12 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  UnstableDropdownMenu,
-  UnstableDropdownMenuContent,
-  UnstableDropdownMenuItem,
-  UnstableDropdownMenuTrigger,
-  UnstableTable,
-  UnstableTableBody,
-  UnstableTableCell,
-  UnstableTableHead,
-  UnstableTableHeader,
-  UnstableTableRow
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@app/components/v3";
 import {
   OrgGatewayPoolPermissionActions,
@@ -191,21 +191,21 @@ export const PoolDetailSheet = ({ isOpen, onOpenChange, pool }: Props) => {
             </OrgPermissionCan>
           </div>
 
-          <UnstableTable>
-            <UnstableTableHeader>
-              <UnstableTableRow>
-                <UnstableTableHead>Name</UnstableTableHead>
-                <UnstableTableHead>Status</UnstableTableHead>
-                <UnstableTableHead className="w-5" />
-              </UnstableTableRow>
-            </UnstableTableHeader>
-            <UnstableTableBody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-5" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {memberGateways.length === 0 && (
-                <UnstableTableRow>
-                  <UnstableTableCell colSpan={3} className="text-center text-sm text-accent">
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-sm text-accent">
                     No gateways in this pool
-                  </UnstableTableCell>
-                </UnstableTableRow>
+                  </TableCell>
+                </TableRow>
               )}
               {memberGateways.map((gw) => {
                 const hasHeartbeat =
@@ -218,21 +218,21 @@ export const PoolDetailSheet = ({ isOpen, onOpenChange, pool }: Props) => {
                 const isOnline = hasHeartbeat && isNotFailed;
 
                 return (
-                  <UnstableTableRow key={gw.id}>
-                    <UnstableTableCell>
+                  <TableRow key={gw.id}>
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <span>{gw.name}</span>
                         <Badge variant="neutral">Gateway v{gw.isV1 ? "1" : "2"}</Badge>
                       </div>
-                    </UnstableTableCell>
-                    <UnstableTableCell>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={isOnline ? "success" : "danger"}>
                         {isOnline ? "Healthy" : "Unreachable"}
                       </Badge>
-                    </UnstableTableCell>
-                    <UnstableTableCell>
-                      <UnstableDropdownMenu>
-                        <UnstableDropdownMenuTrigger asChild>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
                           <IconButton
                             ariaLabel="Options"
                             variant="plain"
@@ -241,15 +241,15 @@ export const PoolDetailSheet = ({ isOpen, onOpenChange, pool }: Props) => {
                           >
                             <FontAwesomeIcon icon={faEllipsisV} />
                           </IconButton>
-                        </UnstableDropdownMenuTrigger>
-                        <UnstableDropdownMenuContent align="end" className="z-[60] min-w-[180px]">
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="z-[60] min-w-[180px]">
                           {!gw.isV1 && (
-                            <UnstableDropdownMenuItem onSelect={() => handleHealthCheck(gw.id)}>
+                            <DropdownMenuItem onSelect={() => handleHealthCheck(gw.id)}>
                               <FontAwesomeIcon icon={faHeartPulse} />
                               Trigger health check
-                            </UnstableDropdownMenuItem>
+                            </DropdownMenuItem>
                           )}
-                          <UnstableDropdownMenuItem
+                          <DropdownMenuItem
                             variant="danger"
                             onSelect={() =>
                               handlePopUpOpen("removeGateway", { id: gw.id, name: gw.name })
@@ -257,15 +257,15 @@ export const PoolDetailSheet = ({ isOpen, onOpenChange, pool }: Props) => {
                           >
                             <FontAwesomeIcon icon={faTrash} />
                             Remove from pool
-                          </UnstableDropdownMenuItem>
-                        </UnstableDropdownMenuContent>
-                      </UnstableDropdownMenu>
-                    </UnstableTableCell>
-                  </UnstableTableRow>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </UnstableTableBody>
-          </UnstableTable>
+            </TableBody>
+          </Table>
         </div>
 
         <DeleteActionModal

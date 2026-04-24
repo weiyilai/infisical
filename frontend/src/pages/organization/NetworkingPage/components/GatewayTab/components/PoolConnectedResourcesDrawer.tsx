@@ -3,16 +3,16 @@ import { ExternalLinkIcon } from "lucide-react";
 
 import { Spinner } from "@app/components/v2";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
   Badge,
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
-  SheetTitle,
-  UnstableAccordion,
-  UnstableAccordionContent,
-  UnstableAccordionItem,
-  UnstableAccordionTrigger
+  SheetTitle
 } from "@app/components/v3";
 import { useOrganization } from "@app/context";
 import {
@@ -94,14 +94,14 @@ export const PoolConnectedResourcesDrawer = ({ isOpen, onOpenChange, poolId, poo
               </p>
 
               {totalCount > 0 && (
-                <UnstableAccordion type="multiple" defaultValue={defaultOpenSections}>
+                <Accordion type="multiple" defaultValue={defaultOpenSections}>
                   {(resources?.kubernetesAuths.length ?? 0) > 0 && (
-                    <UnstableAccordionItem value="kubernetes-auth">
-                      <UnstableAccordionTrigger>
+                    <AccordionItem value="kubernetes-auth">
+                      <AccordionTrigger>
                         <span className="flex-1">Kubernetes Auth</span>
                         <Badge variant="neutral">{resources?.kubernetesAuths.length}</Badge>
-                      </UnstableAccordionTrigger>
-                      <UnstableAccordionContent className="p-0">
+                      </AccordionTrigger>
+                      <AccordionContent className="p-0">
                         {resources?.kubernetesAuths.map((auth, idx) => (
                           <ResourceRow
                             key={auth.id}
@@ -115,10 +115,10 @@ export const PoolConnectedResourcesDrawer = ({ isOpen, onOpenChange, poolId, poo
                             isLast={idx === (resources?.kubernetesAuths.length ?? 0) - 1}
                           />
                         ))}
-                      </UnstableAccordionContent>
-                    </UnstableAccordionItem>
+                      </AccordionContent>
+                    </AccordionItem>
                   )}
-                </UnstableAccordion>
+                </Accordion>
               )}
             </div>
           )}
