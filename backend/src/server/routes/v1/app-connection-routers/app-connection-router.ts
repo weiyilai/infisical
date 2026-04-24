@@ -75,6 +75,10 @@ import {
 } from "@app/services/app-connection/databricks";
 import { DbtConnectionListItemSchema, SanitizedDbtConnectionSchema } from "@app/services/app-connection/dbt";
 import {
+  DigiCertConnectionListItemSchema,
+  SanitizedDigiCertConnectionSchema
+} from "@app/services/app-connection/digicert";
+import {
   DigitalOceanConnectionListItemSchema,
   SanitizedDigitalOceanConnectionSchema
 } from "@app/services/app-connection/digital-ocean";
@@ -238,6 +242,7 @@ const SanitizedAppConnectionSchema = z.union([
   ...SanitizedExternalInfisicalConnectionSchema.options,
   ...SanitizedNetScalerConnectionSchema.options,
   ...SanitizedDopplerConnectionSchema.options,
+  ...SanitizedDigiCertConnectionSchema.options,
   ...SanitizedTravisCIConnectionSchema.options
 ]);
 
@@ -299,6 +304,7 @@ const AppConnectionOptionsSchema = z.discriminatedUnion("app", [
   DopplerConnectionListItemSchema,
   NetScalerConnectionListItemSchema,
   AnthropicConnectionListItemSchema,
+  DigiCertConnectionListItemSchema,
   TravisCIConnectionListItemSchema
 ]);
 

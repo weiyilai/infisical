@@ -21,6 +21,7 @@ import { registerCircleCIConnectionRouter } from "./circleci-connection-router";
 import { registerCloudflareConnectionRouter } from "./cloudflare-connection-router";
 import { registerDatabricksConnectionRouter } from "./databricks-connection-router";
 import { registerDbtConnectionRouter } from "./dbt-connection-router";
+import { registerDigiCertConnectionRouter } from "./digicert-connection-router";
 import { registerDigitalOceanConnectionRouter } from "./digital-ocean-connection-router";
 import { registerDNSMadeEasyConnectionRouter } from "./dns-made-easy-connection-router";
 import { registerDopplerConnectionRouter } from "./doppler-connection-router";
@@ -120,5 +121,6 @@ export const APP_CONNECTION_REGISTER_ROUTER_MAP: Record<AppConnection, (server: 
     [AppConnection.Doppler]: registerDopplerConnectionRouter,
     [AppConnection.NetScaler]: registerNetScalerConnectionRouter,
     [AppConnection.Anthropic]: registerAnthropicConnectionRouter,
+    [AppConnection.DigiCert]: registerDigiCertConnectionRouter,
     [AppConnection.TravisCI]: registerTravisCIConnectionRouter
   };

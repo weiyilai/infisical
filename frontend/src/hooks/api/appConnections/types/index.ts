@@ -19,6 +19,7 @@ import { TCircleCIConnection } from "./circleci-connection";
 import { TCloudflareConnection } from "./cloudflare-connection";
 import { TDatabricksConnection } from "./databricks-connection";
 import { TDbtConnection } from "./dbt-connection";
+import { TDigiCertConnection } from "./digicert-connection";
 import { TDigitalOceanConnection } from "./digital-ocean";
 import { TDNSMadeEasyConnection } from "./dns-made-easy-connection";
 import { TDopplerConnection } from "./doppler-connection";
@@ -77,6 +78,7 @@ export * from "./circleci-connection";
 export * from "./cloudflare-connection";
 export * from "./databricks-connection";
 export * from "./dbt-connection";
+export * from "./digicert-connection";
 export * from "./dns-made-easy-connection";
 export * from "./doppler-connection";
 export * from "./external-infisical-connection";
@@ -174,6 +176,7 @@ export type TAppConnection =
   | TExternalInfisicalConnection
   | TNetScalerConnection
   | TDopplerConnection
+  | TDigiCertConnection
   | TTravisCIConnection;
 
 export type TAvailableAppConnection = Pick<TAppConnection, "name" | "id" | "projectId">;

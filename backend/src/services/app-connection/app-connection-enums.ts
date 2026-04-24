@@ -56,6 +56,7 @@ export enum AppConnection {
   Doppler = "doppler",
   NetScaler = "netscaler",
   Anthropic = "anthropic",
+  DigiCert = "digicert",
   TravisCI = "travis-ci"
 }
 

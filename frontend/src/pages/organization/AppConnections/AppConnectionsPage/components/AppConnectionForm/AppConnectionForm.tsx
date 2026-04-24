@@ -33,6 +33,7 @@ import { CircleCIConnectionForm } from "./CircleCIConnectionForm";
 import { CloudflareConnectionForm } from "./CloudflareConnectionForm";
 import { DatabricksConnectionForm } from "./DatabricksConnectionForm";
 import { DbtConnectionForm } from "./DbtConnectionForm";
+import { DigiCertConnectionForm } from "./DigiCertConnectionForm";
 import { DigitalOceanConnectionForm } from "./DigitalOceanConnectionForm";
 import { DNSMadeEasyConnectionForm } from "./DNSMadeEasyConnectionForm";
 import { DopplerConnectionForm } from "./DopplerConnectionForm";
@@ -280,6 +281,8 @@ const CreateForm = ({ app, onComplete, projectId }: CreateFormProps) => {
         return <DopplerConnectionForm onSubmit={onSubmit} />;
       case AppConnection.NetScaler:
         return <NetScalerConnectionForm onSubmit={onSubmit} />;
+      case AppConnection.DigiCert:
+        return <DigiCertConnectionForm onSubmit={onSubmit} />;
       case AppConnection.TravisCI:
         return <TravisCIConnectionForm onSubmit={onSubmit} />;
       default:
@@ -495,6 +498,8 @@ const UpdateForm = ({ appConnection, onComplete }: UpdateFormProps) => {
         return <DopplerConnectionForm onSubmit={onSubmit} appConnection={appConnection} />;
       case AppConnection.NetScaler:
         return <NetScalerConnectionForm onSubmit={onSubmit} appConnection={appConnection} />;
+      case AppConnection.DigiCert:
+        return <DigiCertConnectionForm onSubmit={onSubmit} appConnection={appConnection} />;
       case AppConnection.TravisCI:
         return <TravisCIConnectionForm onSubmit={onSubmit} appConnection={appConnection} />;
       default:

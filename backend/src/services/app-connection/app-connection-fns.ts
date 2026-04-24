@@ -109,6 +109,11 @@ import {
 } from "./databricks/databricks-connection-fns";
 import { DbtConnectionMethod, getDbtConnectionListItem, validateDbtConnectionCredentials } from "./dbt";
 import {
+  DigiCertConnectionMethod,
+  getDigiCertConnectionListItem,
+  validateDigiCertConnectionCredentials
+} from "./digicert";
+import {
   DigitalOceanConnectionMethod,
   getDigitalOceanConnectionListItem,
   validateDigitalOceanConnectionCredentials
@@ -238,7 +243,8 @@ const PKI_APP_CONNECTIONS = [
   AppConnection.DNSMadeEasy,
   AppConnection.AzureDNS,
   AppConnection.Venafi,
-  AppConnection.NetScaler
+  AppConnection.NetScaler,
+  AppConnection.DigiCert
 ];
 
 export const listAppConnectionOptions = (projectType?: ProjectType) => {
@@ -300,6 +306,7 @@ export const listAppConnectionOptions = (projectType?: ProjectType) => {
     getExternalInfisicalConnectionListItem(),
     getDopplerConnectionListItem(),
     getNetScalerConnectionListItem(),
+    getDigiCertConnectionListItem(),
     getTravisCIConnectionListItem()
   ]
     .filter((option) => {
@@ -453,7 +460,8 @@ export const validateAppConnectionCredentials = async (
         config as TExternalInfisicalConnectionConfig,
         deps.identityUaDAL
       )) as TAppConnectionCredentialsValidator,
-    [AppConnection.Doppler]: validateDopplerConnectionCredentials as TAppConnectionCredentialsValidator
+    [AppConnection.Doppler]: validateDopplerConnectionCredentials as TAppConnectionCredentialsValidator,
+    [AppConnection.DigiCert]: validateDigiCertConnectionCredentials as TAppConnectionCredentialsValidator
   };
 
   return VALIDATE_APP_CONNECTION_CREDENTIALS_MAP[appConnection.app](appConnection, gatewayService, gatewayV2Service);
@@ -534,12 +542,12 @@ export const getAppConnectionMethodName = (method: TAppConnection["method"]) => 
     case SmbConnectionMethod.Credentials:
       return "Credentials";
     case VenafiConnectionMethod.ApiKey:
-      return "API Key";
     case RenderConnectionMethod.ApiKey:
     case ChecklyConnectionMethod.ApiKey:
     case OctopusDeployConnectionMethod.ApiKey:
     case OpenRouterConnectionMethod.ApiKey:
     case AnthropicConnectionMethod.ApiKey:
+    case DigiCertConnectionMethod.ApiKey:
       return "API Key";
     case ChefConnectionMethod.UserKey:
       return "User Key";
@@ -662,6 +670,7 @@ export const TRANSITION_CONNECTION_CREDENTIALS_TO_PLATFORM: Record<
   [AppConnection.ExternalInfisical]: platformManagedCredentialsNotSupported,
   [AppConnection.NetScaler]: platformManagedCredentialsNotSupported,
   [AppConnection.Doppler]: platformManagedCredentialsNotSupported,
+  [AppConnection.DigiCert]: platformManagedCredentialsNotSupported,
   [AppConnection.TravisCI]: platformManagedCredentialsNotSupported
 };
 
