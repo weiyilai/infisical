@@ -331,8 +331,10 @@ const setsEqual = (a: readonly string[] | undefined, b: readonly string[] | unde
 };
 
 const isTeamSharedEnvVarOwnedByThisSync = (envVar: VercelSharedEnvVar, destinationConfig: TeamDestinationConfig) => {
-  const isSensitive = destinationConfig.sensitive || envVar.type === "sensitive";
-  const effectiveTargets = isSensitive
+  const expectedType = destinationConfig.sensitive ? "sensitive" : "encrypted";
+  if (envVar.type !== expectedType) return false;
+
+  const effectiveTargets = destinationConfig.sensitive
     ? destinationConfig.targetEnvironments?.filter((env) => env !== VercelEnvironmentType.Development)
     : destinationConfig.targetEnvironments;
 
