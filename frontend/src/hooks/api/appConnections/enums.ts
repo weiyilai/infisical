@@ -57,5 +57,6 @@ export enum AppConnection {
   NetScaler = "netscaler",
   Anthropic = "anthropic",
   Ona = "ona",
+  DigiCert = "digicert",
   TravisCI = "travis-ci"
 }

@@ -55,6 +55,7 @@ import { BitbucketConnectionMethod } from "@app/hooks/api/appConnections/types/b
 import { ChecklyConnectionMethod } from "@app/hooks/api/appConnections/types/checkly-connection";
 import { ChefConnectionMethod } from "@app/hooks/api/appConnections/types/chef-connection";
 import { CircleCIConnectionMethod } from "@app/hooks/api/appConnections/types/circleci-connection";
+import { DigiCertConnectionMethod } from "@app/hooks/api/appConnections/types/digicert-connection";
 import { DigitalOceanConnectionMethod } from "@app/hooks/api/appConnections/types/digital-ocean";
 import { DNSMadeEasyConnectionMethod } from "@app/hooks/api/appConnections/types/dns-made-easy-connection";
 import { DopplerConnectionMethod } from "@app/hooks/api/appConnections/types/doppler-connection";
@@ -167,6 +168,7 @@ export const APP_CONNECTION_MAP: Record<
   [AppConnection.NetScaler]: { name: "NetScaler", image: "NetScaler.png" },
   [AppConnection.Anthropic]: { name: "Anthropic", image: "Anthropic.png" },
   [AppConnection.Ona]: { name: "Ona", image: "Ona.png", aliases: ["gitpod"] },
+  [AppConnection.DigiCert]: { name: "DigiCert", image: "DigiCert.png" },
   [AppConnection.TravisCI]: { name: "Travis CI", image: "Travis CI.png" }
 };
 
@@ -249,6 +251,7 @@ export const getAppConnectionMethodDetails = (method: TAppConnection["method"]) 
     case ChecklyConnectionMethod.ApiKey:
     case OpenRouterConnectionMethod.ApiKey:
     case AnthropicConnectionMethod.ApiKey:
+    case DigiCertConnectionMethod.ApiKey:
       return { name: "API Key", icon: faKey };
     case ChefConnectionMethod.UserKey:
       return { name: "User Key", icon: faKey };

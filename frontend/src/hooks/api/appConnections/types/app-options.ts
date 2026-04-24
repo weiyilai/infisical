@@ -247,6 +247,10 @@ export type TOnaConnectionOption = TAppConnectionOptionBase & {
   app: AppConnection.Ona;
 };
 
+export type TDigiCertConnectionOption = TAppConnectionOptionBase & {
+  app: AppConnection.DigiCert;
+};
+
 export type TTravisCIConnectionOption = TAppConnectionOptionBase & {
   app: AppConnection.TravisCI;
 };
@@ -310,6 +314,7 @@ export type TAppConnectionOption =
   | TNetScalerConnectionOption
   | TAnthropicConnectionOption
   | TOnaConnectionOption
+  | TDigiCertConnectionOption
   | TTravisCIConnectionOption;
 
 export type TAppConnectionOptionMap = {
@@ -371,5 +376,6 @@ export type TAppConnectionOptionMap = {
   [AppConnection.NetScaler]: TNetScalerConnectionOption;
   [AppConnection.Anthropic]: TAnthropicConnectionOption;
   [AppConnection.Ona]: TOnaConnectionOption;
+  [AppConnection.DigiCert]: TDigiCertConnectionOption;
   [AppConnection.TravisCI]: TTravisCIConnectionOption;
 };

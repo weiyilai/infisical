@@ -86,6 +86,8 @@ import { ValidateDatabricksConnectionCredentialsSchema } from "./databricks";
 import { databricksConnectionService } from "./databricks/databricks-connection-service";
 import { ValidateDbtConnectionCredentialsSchema } from "./dbt";
 import { dbtConnectionService } from "./dbt/dbt-connection-service";
+import { ValidateDigiCertConnectionCredentialsSchema } from "./digicert/digicert-connection-schemas";
+import { digicertConnectionService } from "./digicert/digicert-connection-service";
 import { ValidateDigitalOceanConnectionCredentialsSchema } from "./digital-ocean";
 import { digitalOceanAppPlatformConnectionService } from "./digital-ocean/digital-ocean-connection-service";
 import { ValidateDNSMadeEasyConnectionCredentialsSchema } from "./dns-made-easy/dns-made-easy-connection-schema";
@@ -228,6 +230,7 @@ const VALIDATE_APP_CONNECTION_CREDENTIALS_MAP: Record<AppConnection, TValidateAp
   [AppConnection.NetScaler]: ValidateNetScalerConnectionCredentialsSchema,
   [AppConnection.Anthropic]: ValidateAnthropicConnectionCredentialsSchema,
   [AppConnection.Ona]: ValidateOnaConnectionCredentialsSchema,
+  [AppConnection.DigiCert]: ValidateDigiCertConnectionCredentialsSchema,
   [AppConnection.TravisCI]: ValidateTravisCIConnectionCredentialsSchema
 };
 
@@ -1109,6 +1112,7 @@ export const appConnectionServiceFactory = ({
     circleci: circleciConnectionService(connectAppConnectionById),
     azureEntraId: azureEntraIdConnectionService(connectAppConnectionById, appConnectionDAL, kmsService),
     doppler: dopplerConnectionService(connectAppConnectionById),
+    digicert: digicertConnectionService(connectAppConnectionById),
     travisCI: travisCIConnectionService(connectAppConnectionById)
   };
 };

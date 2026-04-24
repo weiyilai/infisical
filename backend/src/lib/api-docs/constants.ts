@@ -2653,6 +2653,10 @@ export const AppConnections = {
     ONA: {
       personalAccessToken: "The Personal Access Token used to authenticate with Ona."
     },
+    DIGICERT: {
+      apiKey: "The CertCentral API Key used to authenticate with DigiCert.",
+      region: "The CertCentral region the API key belongs to (us or eu)."
+    },
     TRAVISCI: {
       apiToken: "The API token used to authenticate with Travis CI."
     },
