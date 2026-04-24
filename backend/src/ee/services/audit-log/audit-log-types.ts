@@ -6164,7 +6164,9 @@ interface GatewayPoolAddMemberEvent {
   type: EventType.GATEWAY_POOL_ADD_MEMBER;
   metadata: {
     poolId: string;
+    poolName: string;
     gatewayId: string;
+    gatewayName: string;
   };
 }
 
@@ -6172,7 +6174,9 @@ interface GatewayPoolRemoveMemberEvent {
   type: EventType.GATEWAY_POOL_REMOVE_MEMBER;
   metadata: {
     poolId: string;
+    poolName: string;
     gatewayId: string;
+    gatewayName: string;
   };
 }
 

@@ -211,7 +211,7 @@ export const registerGatewayPoolRouter = async (server: FastifyZodProvider) => {
     config: { rateLimit: writeLimit },
     onRequest: verifyAuth([AuthMode.JWT, AuthMode.IDENTITY_ACCESS_TOKEN]),
     handler: async (req) => {
-      const membership = await server.services.gatewayPool.addGatewayToPool({
+      const { membership, poolName, gatewayName } = await server.services.gatewayPool.addGatewayToPool({
         poolId: req.params.poolId,
         gatewayId: req.body.gatewayId,
         ...req.permission
@@ -224,7 +224,9 @@ export const registerGatewayPoolRouter = async (server: FastifyZodProvider) => {
           type: EventType.GATEWAY_POOL_ADD_MEMBER,
           metadata: {
             poolId: req.params.poolId,
-            gatewayId: req.body.gatewayId
+            poolName,
+            gatewayId: req.body.gatewayId,
+            gatewayName
           }
         }
       });
@@ -255,7 +257,7 @@ export const registerGatewayPoolRouter = async (server: FastifyZodProvider) => {
     config: { rateLimit: writeLimit },
     onRequest: verifyAuth([AuthMode.JWT, AuthMode.IDENTITY_ACCESS_TOKEN]),
     handler: async (req) => {
-      const membership = await server.services.gatewayPool.removeGatewayFromPool({
+      const { membership, poolName, gatewayName } = await server.services.gatewayPool.removeGatewayFromPool({
         poolId: req.params.poolId,
         gatewayId: req.params.gatewayId,
         ...req.permission
@@ -268,7 +270,9 @@ export const registerGatewayPoolRouter = async (server: FastifyZodProvider) => {
           type: EventType.GATEWAY_POOL_REMOVE_MEMBER,
           metadata: {
             poolId: req.params.poolId,
-            gatewayId: req.params.gatewayId
+            poolName,
+            gatewayId: req.params.gatewayId,
+            gatewayName
           }
         }
       });

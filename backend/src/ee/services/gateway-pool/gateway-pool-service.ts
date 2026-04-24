@@ -198,7 +198,7 @@ export const gatewayPoolServiceFactory = ({
 
     try {
       const membership = await gatewayPoolMembershipDAL.create({ gatewayPoolId: poolId, gatewayId });
-      return membership;
+      return { membership, poolName: pool.name, gatewayName: gateway.name };
     } catch (error) {
       if (
         error instanceof DatabaseError &&
@@ -219,12 +219,17 @@ export const gatewayPoolServiceFactory = ({
       throw new NotFoundError({ message: `Gateway pool with ID ${poolId} not found` });
     }
 
+    const gateway = await gatewayV2DAL.findById(gatewayId);
+    if (!gateway || gateway.orgId !== actor.orgId) {
+      throw new NotFoundError({ message: `Gateway with ID ${gatewayId} not found` });
+    }
+
     const [deleted] = await gatewayPoolMembershipDAL.delete({ gatewayPoolId: poolId, gatewayId });
     if (!deleted) {
       throw new NotFoundError({ message: "Gateway is not a member of this pool." });
     }
 
-    return deleted;
+    return { membership: deleted, poolName: pool.name, gatewayName: gateway.name };
   };
 
   const pickRandomHealthyGateway = async (poolId: string) => {
