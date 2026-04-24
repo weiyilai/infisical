@@ -180,7 +180,10 @@ function detectSeparator(csvContent: string): string {
   return detected.count > 0 ? detected.separator : ",";
 }
 
-export function parseCsvToMatrix(src: ArrayBuffer | string): string[][] {
+export function parseCsvToMatrix(src: ArrayBuffer | string): {
+  matrix: string[][];
+  delimiter: string;
+} {
   let csvContent: string;
   if (typeof src === "string") {
     csvContent = src;
@@ -189,37 +192,45 @@ export function parseCsvToMatrix(src: ArrayBuffer | string): string[][] {
   }
 
   const separator = detectSeparator(csvContent);
-  const lines = csvContent.replace(/\r\n?/g, "\n").split("\n");
+  const normalized = csvContent.replace(/\r\n?/g, "\n");
   const matrix: string[][] = [];
 
-  lines.forEach((line) => {
-    if (line.trim() !== "") {
-      const cells: string[] = [];
-      let currentCell = "";
-      let inQuote = false;
+  let cells: string[] = [];
+  let currentCell = "";
+  let inQuote = false;
 
-      for (let i = 0; i < line.length; i += 1) {
-        const char = line[i];
-        const nextChar = line[i + 1];
+  for (let i = 0; i < normalized.length; i += 1) {
+    const char = normalized[i];
+    const nextChar = normalized[i + 1];
 
-        if (char === '"') {
-          if (inQuote && nextChar === '"') {
-            currentCell += '"';
-            i += 1;
-          } else {
-            inQuote = !inQuote;
-          }
-        } else if (char === separator && !inQuote) {
-          cells.push(currentCell.trim());
-          currentCell = "";
-        } else {
-          currentCell += char;
-        }
+    if (char === '"') {
+      if (inQuote && nextChar === '"') {
+        currentCell += '"';
+        i += 1;
+      } else {
+        inQuote = !inQuote;
       }
+    } else if (char === separator && !inQuote) {
       cells.push(currentCell.trim());
+      currentCell = "";
+    } else if (char === "\n" && !inQuote) {
+      cells.push(currentCell.trim());
+      if (cells.some((c) => c !== "")) {
+        matrix.push(cells);
+      }
+      cells = [];
+      currentCell = "";
+    } else {
+      currentCell += char;
+    }
+  }
+
+  if (currentCell.length > 0 || cells.length > 0) {
+    cells.push(currentCell.trim());
+    if (cells.some((c) => c !== "")) {
       matrix.push(cells);
     }
-  });
+  }
 
-  return matrix;
+  return { matrix, delimiter: separator };
 }

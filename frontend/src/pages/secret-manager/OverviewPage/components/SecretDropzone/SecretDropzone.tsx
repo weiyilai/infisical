@@ -27,8 +27,7 @@ import { useToggle } from "@app/hooks";
 
 import { CsvColumnMapDialog } from "./CsvColumnMapDialog";
 import { PasteSecretsDialog } from "./PasteSecretsDialog";
-
-type TParsedEnv = Record<string, { value: string; comments: string[] }>;
+import { TParsedEnv } from "./types";
 
 type Props = {
   onParsedSecrets: (env: TParsedEnv) => void;
@@ -38,7 +37,11 @@ type Props = {
 export const SecretDropzone = ({ onParsedSecrets, onAddSecret }: Props) => {
   const [isDragActive, setDragActive] = useToggle();
   const [isPasteOpen, setIsPasteOpen] = useState(false);
-  const [csvData, setCsvData] = useState<{ headers: string[]; matrix: string[][] } | null>(null);
+  const [csvData, setCsvData] = useState<{
+    headers: string[];
+    matrix: string[][];
+    delimiter: string;
+  } | null>(null);
 
   const handleParsedSecrets = (env: TParsedEnv) => {
     if (!Object.keys(env).length) {
@@ -78,7 +81,7 @@ export const SecretDropzone = ({ onParsedSecrets, onAddSecret }: Props) => {
           handleParsedSecrets(parseYaml(src));
           break;
         case "text/csv": {
-          const fullMatrix = parseCsvToMatrix(src);
+          const { matrix: fullMatrix, delimiter } = parseCsvToMatrix(src);
           if (!fullMatrix.length) {
             createNotification({
               type: "error",
@@ -86,7 +89,7 @@ export const SecretDropzone = ({ onParsedSecrets, onAddSecret }: Props) => {
             });
             return;
           }
-          setCsvData({ headers: fullMatrix[0], matrix: fullMatrix.slice(1) });
+          setCsvData({ headers: fullMatrix[0], matrix: fullMatrix.slice(1), delimiter });
           return;
         }
         default:
@@ -204,6 +207,7 @@ export const SecretDropzone = ({ onParsedSecrets, onAddSecret }: Props) => {
           }}
           headers={csvData.headers}
           matrix={csvData.matrix}
+          delimiter={csvData.delimiter}
           onParsedSecrets={(env) => {
             setCsvData(null);
             handleParsedSecrets(env);

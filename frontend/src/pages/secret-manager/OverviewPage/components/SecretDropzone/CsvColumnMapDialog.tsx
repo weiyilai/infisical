@@ -1,5 +1,14 @@
-import { Dispatch, SetStateAction, useState } from "react";
-import { ArrowRightIcon, AsteriskIcon, KeyIcon, MessageSquareIcon } from "lucide-react";
+import { Dispatch, ReactNode, SetStateAction, useState } from "react";
+import {
+  ArrowRightIcon,
+  AsteriskIcon,
+  CodeXmlIcon,
+  InfoIcon,
+  KeyIcon,
+  MessageSquareIcon,
+  TagsIcon,
+  WrapTextIcon
+} from "lucide-react";
 
 import { createNotification } from "@app/components/notifications";
 import { FormLabel } from "@app/components/v2";
@@ -15,35 +24,140 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
 } from "@app/components/v3";
 
-type TParsedEnv = Record<string, { value: string; comments: string[] }>;
+import { TParsedEnv } from "./types";
 
 type SecretMatrixMap = {
   key: number;
   value: number | null;
   comment: number | null;
+  tags: number | null;
+  metadata: number | null;
+  skipMultilineEncoding: number | null;
 };
+
+type MapKey = keyof SecretMatrixMap;
 
 type Props = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   headers: string[];
   matrix: string[][];
+  delimiter: string;
   onParsedSecrets: (env: TParsedEnv) => void;
 };
+
+const TRUTHY_VALUES = new Set(["true", "1", "yes", "y", "t"]);
+
+const pickInnerSeparator = (primaryDelimiter: string): string =>
+  primaryDelimiter === ";" ? "|" : ";";
+
+const parseTagCell = (cell: string, innerSeparator: string): string[] =>
+  cell
+    .split(innerSeparator)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const parseMetadataCell = (
+  cell: string,
+  innerSeparator: string
+): { pairs: { key: string; value: string }[]; malformed: boolean } => {
+  if (!cell.trim()) return { pairs: [], malformed: false };
+  const pairs: { key: string; value: string }[] = [];
+  let malformed = false;
+  cell.split(innerSeparator).forEach((chunk) => {
+    const trimmed = chunk.trim();
+    if (!trimmed) return;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) {
+      malformed = true;
+      return;
+    }
+    const key = trimmed.slice(0, eqIdx).trim();
+    const value = trimmed.slice(eqIdx + 1).trim();
+    if (!key) {
+      malformed = true;
+      return;
+    }
+    pairs.push({ key, value });
+  });
+  return { pairs, malformed };
+};
+
+const parseBooleanCell = (cell: string): boolean => TRUTHY_VALUES.has(cell.trim().toLowerCase());
+
+type MatrixRow = {
+  mapKey: MapKey;
+  label: string;
+  icon: ReactNode;
+  hint?: (innerSeparator: string) => ReactNode;
+};
+
+const MATRIX_ROWS: MatrixRow[] = [
+  { mapKey: "key", label: "Secret Key", icon: <KeyIcon /> },
+  { mapKey: "value", label: "Secret Value", icon: <AsteriskIcon /> },
+  { mapKey: "comment", label: "Comment", icon: <MessageSquareIcon /> },
+  {
+    mapKey: "tags",
+    label: "Tags",
+    icon: <TagsIcon />,
+    hint: (sep) => (
+      <>
+        Separate multiple tag slugs with{" "}
+        <code className="rounded bg-bunker-400/30 px-1">{sep}</code> (e.g.{" "}
+        <code className="rounded bg-bunker-400/30 px-1">prod{sep}api</code>). Missing tags are
+        auto-created if you have permission.
+      </>
+    )
+  },
+  {
+    mapKey: "metadata",
+    label: "Metadata",
+    icon: <CodeXmlIcon />,
+    hint: (sep) => (
+      <>
+        Provide <code className="rounded bg-bunker-400/30 px-1">key=value</code> pairs separated by{" "}
+        <code className="rounded bg-bunker-400/30 px-1">{sep}</code> (e.g.{" "}
+        <code className="rounded bg-bunker-400/30 px-1">owner=team-a{sep}tier=p0</code>).
+      </>
+    )
+  },
+  {
+    mapKey: "skipMultilineEncoding",
+    label: "Multi-line Encoding",
+    icon: <WrapTextIcon />,
+    hint: () => (
+      <>
+        Truthy cells (<code className="rounded bg-bunker-400/30 px-1">true</code>,{" "}
+        <code className="rounded bg-bunker-400/30 px-1">1</code>,{" "}
+        <code className="rounded bg-bunker-400/30 px-1">yes</code>) enable multi-line encoding;
+        anything else leaves it disabled.
+      </>
+    )
+  }
+];
 
 const MatrixImportModalTableRow = ({
   importSecretMatrixMap,
   setImportSecretMatrixMap,
   headers,
-  mapKey
+  mapKey,
+  label,
+  icon,
+  hint
 }: {
   importSecretMatrixMap: SecretMatrixMap;
   setImportSecretMatrixMap: Dispatch<SetStateAction<SecretMatrixMap>>;
   headers: string[];
-  mapKey: keyof SecretMatrixMap;
+  mapKey: MapKey;
+  label: string;
+  icon: ReactNode;
+  hint?: ReactNode;
 }) => {
   return (
     <tr>
@@ -76,27 +190,21 @@ const MatrixImportModalTableRow = ({
         </div>
       </td>
       <td className="whitespace-nowrap">
-        <div className="flex h-full items-start justify-center">
-          <Badge isFullWidth variant="neutral">
-            {mapKey === "key" && (
-              <>
-                <KeyIcon />
-                Secret Key
-              </>
-            )}
-            {mapKey === "value" && (
-              <>
-                <AsteriskIcon />
-                Secret Value
-              </>
-            )}
-            {mapKey === "comment" && (
-              <>
-                <MessageSquareIcon />
-                Comment
-              </>
-            )}
+        <div className="flex h-full items-center justify-center gap-1.5">
+          <Badge className="flex-1" variant="neutral">
+            {icon}
+            {label}
           </Badge>
+          {hint && (
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <span className="flex size-4 shrink-0 items-center justify-center text-muted">
+                  <InfoIcon className="size-3.5" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">{hint}</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </td>
     </tr>
@@ -106,16 +214,28 @@ const MatrixImportModalTableRow = ({
 type ContentProps = {
   headers: string[];
   matrix: string[][];
+  delimiter: string;
   onParsedSecrets: (env: TParsedEnv) => void;
   onClose: () => void;
 };
 
-const CsvColumnMapContent = ({ headers, matrix, onParsedSecrets, onClose }: ContentProps) => {
+const CsvColumnMapContent = ({
+  headers,
+  matrix,
+  delimiter,
+  onParsedSecrets,
+  onClose
+}: ContentProps) => {
   const [importSecretMatrixMap, setImportSecretMatrixMap] = useState<SecretMatrixMap>({
     key: 0,
     value: null,
-    comment: null
+    comment: null,
+    tags: null,
+    metadata: null,
+    skipMultilineEncoding: null
   });
+
+  const innerSeparator = pickInnerSeparator(delimiter);
 
   const handleImport = () => {
     if (!matrix.length) {
@@ -127,18 +247,56 @@ const CsvColumnMapContent = ({ headers, matrix, onParsedSecrets, onClose }: Cont
     }
 
     const env: TParsedEnv = {};
+    let malformedMetadataRows = 0;
+
     matrix.forEach((row) => {
       const key = row[importSecretMatrixMap.key];
-      if (key) {
-        env[key] = {
-          value: importSecretMatrixMap.value !== null ? row[importSecretMatrixMap.value] || "" : "",
-          comments:
-            importSecretMatrixMap.comment !== null ? [row[importSecretMatrixMap.comment] || ""] : []
-        };
+      if (!key) return;
+
+      const entry: TParsedEnv[string] = {
+        value: importSecretMatrixMap.value !== null ? row[importSecretMatrixMap.value] || "" : "",
+        comments:
+          importSecretMatrixMap.comment !== null ? [row[importSecretMatrixMap.comment] || ""] : []
+      };
+
+      if (importSecretMatrixMap.tags !== null) {
+        const tagSlugs = parseTagCell(row[importSecretMatrixMap.tags] || "", innerSeparator);
+        if (tagSlugs.length) entry.tagSlugs = tagSlugs;
       }
+
+      if (importSecretMatrixMap.metadata !== null) {
+        const { pairs, malformed } = parseMetadataCell(
+          row[importSecretMatrixMap.metadata] || "",
+          innerSeparator
+        );
+        if (malformed) malformedMetadataRows += 1;
+        if (pairs.length) entry.secretMetadata = pairs;
+      }
+
+      if (importSecretMatrixMap.skipMultilineEncoding !== null) {
+        entry.skipMultilineEncoding = parseBooleanCell(
+          row[importSecretMatrixMap.skipMultilineEncoding] || ""
+        );
+      }
+
+      env[key] = entry;
     });
 
-    setImportSecretMatrixMap({ key: 0, value: null, comment: null });
+    if (malformedMetadataRows > 0) {
+      createNotification({
+        type: "warning",
+        text: `Skipped malformed metadata in ${malformedMetadataRows} row${malformedMetadataRows > 1 ? "s" : ""}. Expected format: key=value${innerSeparator}key=value`
+      });
+    }
+
+    setImportSecretMatrixMap({
+      key: 0,
+      value: null,
+      comment: null,
+      tags: null,
+      metadata: null,
+      skipMultilineEncoding: null
+    });
     onClose();
     onParsedSecrets(env);
   };
@@ -148,7 +306,7 @@ const CsvColumnMapContent = ({ headers, matrix, onParsedSecrets, onClose }: Cont
       <DialogHeader>
         <DialogTitle>Import Column Mapping</DialogTitle>
         <p className="text-sm text-accent">
-          Map your data columns to different parts of the secret
+          Map your data columns to different parts of the secret.
         </p>
       </DialogHeader>
       <div className="w-full overflow-hidden">
@@ -165,24 +323,18 @@ const CsvColumnMapContent = ({ headers, matrix, onParsedSecrets, onClose }: Cont
             </tr>
           </thead>
           <tbody>
-            <MatrixImportModalTableRow
-              importSecretMatrixMap={importSecretMatrixMap}
-              setImportSecretMatrixMap={setImportSecretMatrixMap}
-              headers={headers}
-              mapKey="key"
-            />
-            <MatrixImportModalTableRow
-              importSecretMatrixMap={importSecretMatrixMap}
-              setImportSecretMatrixMap={setImportSecretMatrixMap}
-              headers={headers}
-              mapKey="value"
-            />
-            <MatrixImportModalTableRow
-              importSecretMatrixMap={importSecretMatrixMap}
-              setImportSecretMatrixMap={setImportSecretMatrixMap}
-              headers={headers}
-              mapKey="comment"
-            />
+            {MATRIX_ROWS.map((row) => (
+              <MatrixImportModalTableRow
+                key={row.mapKey}
+                importSecretMatrixMap={importSecretMatrixMap}
+                setImportSecretMatrixMap={setImportSecretMatrixMap}
+                headers={headers}
+                mapKey={row.mapKey}
+                label={row.label}
+                icon={row.icon}
+                hint={row.hint?.(innerSeparator)}
+              />
+            ))}
           </tbody>
         </table>
       </div>
@@ -203,6 +355,7 @@ export const CsvColumnMapDialog = ({
   onOpenChange,
   headers,
   matrix,
+  delimiter,
   onParsedSecrets
 }: Props) => {
   return (
@@ -211,6 +364,7 @@ export const CsvColumnMapDialog = ({
         <CsvColumnMapContent
           headers={headers}
           matrix={matrix}
+          delimiter={delimiter}
           onParsedSecrets={onParsedSecrets}
           onClose={() => onOpenChange(false)}
         />
