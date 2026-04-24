@@ -73,9 +73,6 @@ If all gateways in a pool are unhealthy when a request is made, the request fail
 ## FAQ
 
 <AccordionGroup>
-  <Accordion title="Which features support gateway pools?">
-    Gateway pools can currently be selected in **Kubernetes Auth** configurations. Support for additional consumers such as dynamic secrets, PAM, and app connections is coming soon.
-  </Accordion>
   <Accordion title="Can I delete a pool that is in use?">
     No. A pool cannot be deleted if it is referenced by any consumer configurations (e.g., Kubernetes Auth). You must first update those configurations to use a different gateway or pool before deleting.
   </Accordion>
