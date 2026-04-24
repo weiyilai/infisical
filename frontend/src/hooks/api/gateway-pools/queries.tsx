@@ -10,7 +10,7 @@ export const gatewayPoolsQueryKeys = {
   list: () => ({
     queryKey: gatewayPoolsQueryKeys.listKey(),
     queryFn: async () => {
-      const { data } = await apiRequest.get<TGatewayPool[]>("/api/v2/gateway-pools");
+      const { data } = await apiRequest.get<TGatewayPool[]>("/api/v1/gateway-pools");
       return data;
     }
   }),
@@ -19,7 +19,7 @@ export const gatewayPoolsQueryKeys = {
     queryKey: gatewayPoolsQueryKeys.detailKey(poolId),
     queryFn: async () => {
       const { data } = await apiRequest.get<TGatewayPoolWithMembers>(
-        `/api/v2/gateway-pools/${poolId}`
+        `/api/v1/gateway-pools/${poolId}`
       );
       return data;
     },
@@ -43,7 +43,7 @@ export const useGetGatewayPoolConnectedResources = (poolId: string) => {
     queryKey: [...gatewayPoolsQueryKeys.allKey(), "connected-resources", poolId],
     queryFn: async () => {
       const { data } = await apiRequest.get<TGatewayPoolConnectedResources>(
-        `/api/v2/gateway-pools/${poolId}/resources`
+        `/api/v1/gateway-pools/${poolId}/resources`
       );
       return data;
     },

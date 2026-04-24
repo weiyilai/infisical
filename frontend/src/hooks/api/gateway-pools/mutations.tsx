@@ -17,7 +17,7 @@ export const useCreateGatewayPool = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: TCreateGatewayPoolDTO) => {
-      const { data } = await apiRequest.post<TGatewayPool>("/api/v2/gateway-pools", dto);
+      const { data } = await apiRequest.post<TGatewayPool>("/api/v1/gateway-pools", dto);
       return data;
     },
     onSuccess: () => {
@@ -30,7 +30,7 @@ export const useUpdateGatewayPool = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ poolId, ...dto }: TUpdateGatewayPoolDTO) => {
-      const { data } = await apiRequest.patch<TGatewayPool>(`/api/v2/gateway-pools/${poolId}`, dto);
+      const { data } = await apiRequest.patch<TGatewayPool>(`/api/v1/gateway-pools/${poolId}`, dto);
       return data;
     },
     onSuccess: () => {
@@ -43,7 +43,7 @@ export const useDeleteGatewayPool = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (poolId: string) => {
-      const { data } = await apiRequest.delete<TGatewayPool>(`/api/v2/gateway-pools/${poolId}`);
+      const { data } = await apiRequest.delete<TGatewayPool>(`/api/v1/gateway-pools/${poolId}`);
       return data;
     },
     onSuccess: () => {
@@ -57,7 +57,7 @@ export const useAddGatewayToPool = () => {
   return useMutation({
     mutationFn: async ({ poolId, gatewayId }: TAddGatewayToPoolDTO) => {
       const { data } = await apiRequest.post<TGatewayPoolMembership>(
-        `/api/v2/gateway-pools/${poolId}/memberships`,
+        `/api/v1/gateway-pools/${poolId}/memberships`,
         { gatewayId }
       );
       return data;
@@ -74,7 +74,7 @@ export const useRemoveGatewayFromPool = () => {
   return useMutation({
     mutationFn: async ({ poolId, gatewayId }: TRemoveGatewayFromPoolDTO) => {
       const { data } = await apiRequest.delete<TGatewayPoolMembership>(
-        `/api/v2/gateway-pools/${poolId}/memberships/${gatewayId}`
+        `/api/v1/gateway-pools/${poolId}/memberships/${gatewayId}`
       );
       return data;
     },
