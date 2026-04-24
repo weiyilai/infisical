@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { faEllipsisV, faMagnifyingGlass, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faEllipsisV, faMagnifyingGlass, faPen, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { UpgradePlanModal } from "@app/components/license/UpgradePlanModal";
@@ -160,7 +160,10 @@ export const GatewayPoolsContent = () => {
                         </IconButton>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handlePopUpOpen("editPool", pool)}>
+                        <DropdownMenuItem
+                          icon={<FontAwesomeIcon icon={faPen} />}
+                          onClick={() => handlePopUpOpen("editPool", pool)}
+                        >
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
