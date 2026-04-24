@@ -139,6 +139,7 @@ import {
   SanitizedOctopusDeployConnectionSchema
 } from "@app/services/app-connection/octopus-deploy";
 import { OktaConnectionListItemSchema, SanitizedOktaConnectionSchema } from "@app/services/app-connection/okta";
+import { OnaConnectionListItemSchema, SanitizedOnaConnectionSchema } from "@app/services/app-connection/ona";
 import {
   OpenRouterConnectionListItemSchema,
   SanitizedOpenRouterConnectionSchema
@@ -242,6 +243,7 @@ const SanitizedAppConnectionSchema = z.union([
   ...SanitizedExternalInfisicalConnectionSchema.options,
   ...SanitizedNetScalerConnectionSchema.options,
   ...SanitizedDopplerConnectionSchema.options,
+  ...SanitizedOnaConnectionSchema.options,
   ...SanitizedDigiCertConnectionSchema.options,
   ...SanitizedTravisCIConnectionSchema.options
 ]);
@@ -304,6 +306,7 @@ const AppConnectionOptionsSchema = z.discriminatedUnion("app", [
   DopplerConnectionListItemSchema,
   NetScalerConnectionListItemSchema,
   AnthropicConnectionListItemSchema,
+  OnaConnectionListItemSchema,
   DigiCertConnectionListItemSchema,
   TravisCIConnectionListItemSchema
 ]);

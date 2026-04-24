@@ -179,6 +179,7 @@ import {
   validateOctopusDeployConnectionCredentials
 } from "./octopus-deploy";
 import { getOktaConnectionListItem, OktaConnectionMethod, validateOktaConnectionCredentials } from "./okta";
+import { getOnaConnectionListItem, OnaConnectionMethod, validateOnaConnectionCredentials } from "./ona";
 import {
   getOpenRouterConnectionListItem,
   OpenRouterConnectionMethod,
@@ -306,6 +307,7 @@ export const listAppConnectionOptions = (projectType?: ProjectType) => {
     getExternalInfisicalConnectionListItem(),
     getDopplerConnectionListItem(),
     getNetScalerConnectionListItem(),
+    getOnaConnectionListItem(),
     getDigiCertConnectionListItem(),
     getTravisCIConnectionListItem()
   ]
@@ -454,6 +456,7 @@ export const validateAppConnectionCredentials = async (
     [AppConnection.AzureEntraId]: validateAzureEntraIdConnectionCredentials as TAppConnectionCredentialsValidator,
     [AppConnection.Venafi]: validateVenafiConnectionCredentials as TAppConnectionCredentialsValidator,
     [AppConnection.NetScaler]: validateNetScalerConnectionCredentials as TAppConnectionCredentialsValidator,
+    [AppConnection.Ona]: validateOnaConnectionCredentials as TAppConnectionCredentialsValidator,
     [AppConnection.TravisCI]: validateTravisCIConnectionCredentials as TAppConnectionCredentialsValidator,
     [AppConnection.ExternalInfisical]: ((config: TAppConnectionConfig) =>
       validateExternalInfisicalConnectionCredentials(
@@ -473,6 +476,7 @@ export const getAppConnectionMethodName = (method: TAppConnection["method"]) => 
     case GitHubRadarConnectionMethod.App:
       return "GitHub App";
     case GitHubConnectionMethod.Pat:
+    case OnaConnectionMethod.PersonalAccessToken:
       return "Personal Access Token";
     case AzureKeyVaultConnectionMethod.OAuth:
     case AzureAppConfigurationConnectionMethod.OAuth:
@@ -670,6 +674,7 @@ export const TRANSITION_CONNECTION_CREDENTIALS_TO_PLATFORM: Record<
   [AppConnection.ExternalInfisical]: platformManagedCredentialsNotSupported,
   [AppConnection.NetScaler]: platformManagedCredentialsNotSupported,
   [AppConnection.Doppler]: platformManagedCredentialsNotSupported,
+  [AppConnection.Ona]: platformManagedCredentialsNotSupported,
   [AppConnection.DigiCert]: platformManagedCredentialsNotSupported,
   [AppConnection.TravisCI]: platformManagedCredentialsNotSupported
 };

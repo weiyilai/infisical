@@ -259,6 +259,12 @@ import {
   TValidateOktaConnectionCredentialsSchema
 } from "./okta";
 import {
+  TOnaConnection,
+  TOnaConnectionConfig,
+  TOnaConnectionInput,
+  TValidateOnaConnectionCredentialsSchema
+} from "./ona";
+import {
   TOpenRouterConnection,
   TOpenRouterConnectionConfig,
   TOpenRouterConnectionInput,
@@ -406,6 +412,7 @@ export type TAppConnection = { id: string } & (
   | TDopplerConnection
   | TNetScalerConnection
   | TAnthropicConnection
+  | TOnaConnection
   | TDigiCertConnection
   | TTravisCIConnection
 );
@@ -476,6 +483,7 @@ export type TAppConnectionInput = { id: string } & (
   | TDopplerConnectionInput
   | TNetScalerConnectionInput
   | TAnthropicConnectionInput
+  | TOnaConnectionInput
   | TDigiCertConnectionInput
   | TTravisCIConnectionInput
 );
@@ -575,6 +583,7 @@ export type TAppConnectionConfig =
   | TDopplerConnectionConfig
   | TNetScalerConnectionConfig
   | TAnthropicConnectionConfig
+  | TOnaConnectionConfig
   | TDigiCertConnectionConfig
   | TTravisCIConnectionConfig;
 
@@ -636,6 +645,7 @@ export type TValidateAppConnectionCredentialsSchema =
   | TValidateDopplerConnectionCredentialsSchema
   | TValidateNetScalerConnectionCredentialsSchema
   | TValidateAnthropicConnectionCredentialsSchema
+  | TValidateOnaConnectionCredentialsSchema
   | TValidateDigiCertConnectionCredentialsSchema
   | TValidateTravisCIConnectionCredentialsSchema;
 

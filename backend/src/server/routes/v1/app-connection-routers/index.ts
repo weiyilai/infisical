@@ -44,6 +44,7 @@ import { registerNetScalerConnectionRouter } from "./netscaler-connection-router
 import { registerNorthflankConnectionRouter } from "./northflank-connection-router";
 import { registerOctopusDeployConnectionRouter } from "./octopus-deploy-connection-router";
 import { registerOktaConnectionRouter } from "./okta-connection-router";
+import { registerOnaConnectionRouter } from "./ona-connection-router";
 import { registerOpenRouterConnectionRouter } from "./open-router-connection-router";
 import { registerPostgresConnectionRouter } from "./postgres-connection-router";
 import { registerRailwayConnectionRouter } from "./railway-connection-router";
@@ -121,6 +122,7 @@ export const APP_CONNECTION_REGISTER_ROUTER_MAP: Record<AppConnection, (server: 
     [AppConnection.Doppler]: registerDopplerConnectionRouter,
     [AppConnection.NetScaler]: registerNetScalerConnectionRouter,
     [AppConnection.Anthropic]: registerAnthropicConnectionRouter,
+    [AppConnection.Ona]: registerOnaConnectionRouter,
     [AppConnection.DigiCert]: registerDigiCertConnectionRouter,
     [AppConnection.TravisCI]: registerTravisCIConnectionRouter
   };
