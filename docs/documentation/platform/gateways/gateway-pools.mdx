@@ -4,7 +4,7 @@ sidebarTitle: "Gateway Pools"
 description: "High availability and automatic failover for gateways"
 ---
 
-Gateway Pools provide high availability for your gateway infrastructure. A pool is a named collection of gateways that all have connectivity to the same private network. When the platform needs to reach a resource through a pool, it automatically routes through a healthy member, providing failover if any individual gateway goes down.
+Gateway Pools provide high availability for your gateway infrastructure. A pool is a named collection of gateways that all have connectivity to the same private network. When the platform needs to reach a resource through a pool, it automatically routes through a healthy gateway, providing failover if any individual gateway goes down.
 
 <Info>
   Gateway Pools is an enterprise feature. Self-hosted users can contact
@@ -17,7 +17,7 @@ Gateway Pools provide high availability for your gateway infrastructure. A pool 
 1. You create a Gateway Pool and add multiple gateways that share network access to the same resources.
 2. When configuring a consumer (e.g., Kubernetes Auth), you select the pool instead of an individual gateway.
 3. At request time, the platform picks a random healthy gateway from the pool and routes through it.
-4. If a gateway goes down, subsequent requests automatically route through the remaining healthy members.
+4. If a gateway goes down, subsequent requests automatically route through the remaining healthy gateways.
 
 A gateway is considered healthy if it has sent a heartbeat within the last hour and its last health check did not fail.
 
@@ -54,19 +54,19 @@ A gateway can belong to multiple pools if it has connectivity to resources serve
 
 Anywhere you configure a gateway, the gateway picker dropdown shows both individual gateways and gateway pools. Pools are listed under the "Gateway Pools" section with an **HA** (high availability) badge and health status.
 
-When you select a pool, the platform validates connectivity through one of its healthy members before saving.
+When you select a pool, the platform validates connectivity through one of its healthy gateways before saving.
 
 ## Gateway Selection
 
-When a request is routed through a pool, the platform picks a gateway at random from the pool's healthy members. There is no round-robin or weighted selection.
+When a request is routed through a pool, the platform picks a gateway at random from the pool's healthy gateways. There is no round-robin or weighted selection.
 
 ## Pool Health
 
-Each pool displays an aggregate health status based on its members:
+Each pool displays an aggregate health status based on its gateways:
 
-- **Green** (e.g., "3/3 healthy") - All members are healthy
-- **Yellow** (e.g., "2/3 healthy") - Some members are unhealthy
-- **Red** (e.g., "0/3 healthy") - All members are unhealthy
+- **Green** (e.g., "3/3 healthy") - All gateways are healthy
+- **Yellow** (e.g., "2/3 healthy") - Some gateways are unhealthy
+- **Red** (e.g., "0/3 healthy") - All gateways are unhealthy
 
 If all gateways in a pool are unhealthy when a request is made, the request fails with a descriptive error.
 
