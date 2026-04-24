@@ -1,4 +1,6 @@
 import { ProjectType } from "@app/db/schemas";
+import { PamParentType } from "@app/ee/services/pam-account/pam-account-enums";
+import { ScepChallengeType } from "@app/ee/services/pki-scep/challenge";
 import {
   TCreateProjectTemplateDTO,
   TUpdateProjectTemplateDTO
@@ -447,6 +449,7 @@ export enum EventType {
   GET_CERTIFICATE_REQUEST = "get-certificate-request",
   GET_CERTIFICATE_FROM_REQUEST = "get-certificate-from-request",
   LIST_CERTIFICATE_REQUESTS = "list-certificate-requests",
+  TRIGGER_CERTIFICATE_REQUEST_VALIDATION = "trigger-certificate-request-validation",
   ATTEMPT_CREATE_SLACK_INTEGRATION = "attempt-create-slack-integration",
   ATTEMPT_REINSTALL_SLACK_INTEGRATION = "attempt-reinstall-slack-integration",
   GET_PROJECT_SLACK_CONFIG = "get-project-slack-config",
@@ -472,6 +475,7 @@ export enum EventType {
   CMEK_LIST_SIGNING_ALGORITHMS = "cmek-list-signing-algorithms",
   CMEK_GET_PUBLIC_KEY = "cmek-get-public-key",
   CMEK_GET_PRIVATE_KEY = "cmek-get-private-key",
+  CMEK_BULK_EXPORT_PRIVATE_KEYS = "cmek-bulk-export-private-keys",
 
   UPDATE_EXTERNAL_GROUP_ORG_ROLE_MAPPINGS = "update-external-group-org-role-mapping",
   GET_EXTERNAL_GROUP_ORG_ROLE_MAPPINGS = "get-external-group-org-role-mapping",
@@ -620,6 +624,7 @@ export enum EventType {
   PAM_ACCOUNT_LIST = "pam-account-list",
   PAM_ACCOUNT_GET = "pam-account-get",
   PAM_ACCOUNT_ACCESS = "pam-account-access",
+  PAM_ACCOUNT_AWS_CONSOLE_URL_GENERATED = "pam-account-aws-console-url-generated",
   PAM_ACCOUNT_CREATE = "pam-account-create",
   PAM_ACCOUNT_UPDATE = "pam-account-update",
   PAM_ACCOUNT_DELETE = "pam-account-delete",
@@ -637,6 +642,11 @@ export enum EventType {
   PAM_RESOURCE_CREATE = "pam-resource-create",
   PAM_RESOURCE_UPDATE = "pam-resource-update",
   PAM_RESOURCE_DELETE = "pam-resource-delete",
+  PAM_DOMAIN_LIST = "pam-domain-list",
+  PAM_DOMAIN_GET = "pam-domain-get",
+  PAM_DOMAIN_CREATE = "pam-domain-create",
+  PAM_DOMAIN_UPDATE = "pam-domain-update",
+  PAM_DOMAIN_DELETE = "pam-domain-delete",
   PAM_DISCOVERY_SOURCE_LIST = "pam-discovery-source-list",
   PAM_DISCOVERY_SOURCE_GET = "pam-discovery-source-get",
   PAM_DISCOVERY_SOURCE_CREATE = "pam-discovery-source-create",
@@ -746,12 +756,17 @@ export enum EventType {
   PKI_SIGNER_SIGN = "pki-signer-sign",
   SCEP_ENROLLMENT = "scep-enrollment",
   SCEP_RENEWAL = "scep-renewal",
+  SCEP_DYNAMIC_CHALLENGE_GENERATED = "scep-dynamic-challenge-generated",
 
   // Secret Validation Rules
   SECRET_VALIDATION_RULE_CREATE = "secret-validation-rule-create",
   SECRET_VALIDATION_RULE_UPDATE = "secret-validation-rule-update",
   SECRET_VALIDATION_RULE_DELETE = "secret-validation-rule-delete",
 
+  // External Migration
+  EXTERNAL_MIGRATION_CREATE = "external-migration-create",
+  EXTERNAL_MIGRATION_UPDATE = "external-migration-update",
+  EXTERNAL_MIGRATION_DELETE = "external-migration-delete",
   // Email Domains
   CREATE_EMAIL_DOMAIN = "create-email-domain",
   VERIFY_EMAIL_DOMAIN = "verify-email-domain",
@@ -3653,6 +3668,13 @@ interface CmekGetPrivateKeyEvent {
   };
 }
 
+interface CmekBulkGetPrivateKeysEvent {
+  type: EventType.CMEK_BULK_EXPORT_PRIVATE_KEYS;
+  metadata: {
+    keys: { keyId: string; name: string }[];
+  };
+}
+
 interface GetExternalGroupOrgRoleMappingsEvent {
   type: EventType.GET_EXTERNAL_GROUP_ORG_ROLE_MAPPINGS;
   metadata?: Record<string, never>; // not needed, based off orgId
@@ -4928,6 +4950,7 @@ interface PamAccountAccessEvent {
     resourceName: string;
     accountName: string;
     duration?: string;
+    reason?: string;
   };
 }
 
@@ -4940,11 +4963,22 @@ interface PamWebAccessSessionTicketCreatedEvent {
   };
 }
 
+interface PamAccountAwsConsoleUrlGeneratedEvent {
+  type: EventType.PAM_ACCOUNT_AWS_CONSOLE_URL_GENERATED;
+  metadata: {
+    sessionId: string;
+    accountId: string;
+    resourceName: string;
+    accountName: string;
+  };
+}
+
 interface PamAccountCreateEvent {
   type: EventType.PAM_ACCOUNT_CREATE;
   metadata: {
-    resourceId: string;
-    resourceType: string;
+    resourceId?: string | null;
+    domainId?: string | null;
+    parentType: PamParentType;
     folderId?: string | null;
     name: string;
     description?: string | null;
@@ -4956,8 +4990,9 @@ interface PamAccountUpdateEvent {
   type: EventType.PAM_ACCOUNT_UPDATE;
   metadata: {
     accountId: string;
-    resourceId: string;
-    resourceType: string;
+    resourceId?: string | null;
+    domainId?: string | null;
+    parentType: PamParentType;
     name?: string;
     description?: string | null;
     requireMfa?: boolean | null;
@@ -4969,8 +5004,9 @@ interface PamAccountDeleteEvent {
   metadata: {
     accountName: string;
     accountId: string;
-    resourceId: string;
-    resourceType: string;
+    resourceId?: string | null;
+    domainId?: string | null;
+    parentType: PamParentType;
   };
 }
 
@@ -5043,8 +5079,10 @@ interface PamAccountReadCredentialsEvent {
   metadata: {
     accountId: string;
     accountName: string;
-    resourceId: string;
-    resourceType: string;
+    resourceId?: string | null;
+    resourceType?: string | null;
+    domainId?: string | null;
+    domainType?: string | null;
   };
 }
 
@@ -5088,6 +5126,49 @@ interface PamResourceDeleteEvent {
   metadata: {
     resourceId: string;
     resourceType: string;
+  };
+}
+
+interface PamDomainListEvent {
+  type: EventType.PAM_DOMAIN_LIST;
+  metadata: {
+    count: number;
+  };
+}
+
+interface PamDomainGetEvent {
+  type: EventType.PAM_DOMAIN_GET;
+  metadata: {
+    domainId: string;
+    domainType: string;
+    name: string;
+  };
+}
+
+interface PamDomainCreateEvent {
+  type: EventType.PAM_DOMAIN_CREATE;
+  metadata: {
+    domainType: string;
+    gatewayId?: string;
+    name: string;
+  };
+}
+
+interface PamDomainUpdateEvent {
+  type: EventType.PAM_DOMAIN_UPDATE;
+  metadata: {
+    domainId: string;
+    domainType: string;
+    gatewayId?: string;
+    name?: string;
+  };
+}
+
+interface PamDomainDeleteEvent {
+  type: EventType.PAM_DOMAIN_DELETE;
+  metadata: {
+    domainId: string;
+    domainType: string;
   };
 }
 
@@ -5308,6 +5389,15 @@ interface GetCertificateFromRequestEvent {
   metadata: {
     certificateRequestId: string;
     certificateId?: string;
+  };
+}
+
+interface TriggerCertificateRequestValidationEvent {
+  type: EventType.TRIGGER_CERTIFICATE_REQUEST_VALIDATION;
+  metadata: {
+    certificateRequestId: string;
+    status: string;
+    orderStatus?: string;
   };
 }
 
@@ -5908,7 +5998,7 @@ interface ScepEnrollmentEvent {
     profileSlug: string;
     transactionId: string;
     csrSubject: string;
-    challengeType: "static";
+    challengeType: ScepChallengeType;
     status: "success" | "pending" | "failure";
     failReason?: string;
     issuedCertificateId?: string;
@@ -5930,6 +6020,15 @@ interface ScepRenewalEvent {
     issuedCertificateId?: string;
     issuedSerialNumber?: string;
     clientIp: string;
+  };
+}
+
+interface ScepDynamicChallengeGeneratedEvent {
+  type: EventType.SCEP_DYNAMIC_CHALLENGE_GENERATED;
+  metadata: {
+    profileId: string;
+    profileSlug: string;
+    expiresAt: string;
   };
 }
 
@@ -5964,6 +6063,31 @@ interface SecretValidationRuleDeleteEvent {
   };
 }
 
+interface ExternalMigrationCreateEvent {
+  type: EventType.EXTERNAL_MIGRATION_CREATE;
+  metadata: {
+    configId: string;
+    provider: string;
+    connectionId: string | null;
+  };
+}
+
+interface ExternalMigrationUpdateEvent {
+  type: EventType.EXTERNAL_MIGRATION_UPDATE;
+  metadata: {
+    configId: string;
+    provider: string;
+    connectionId: string | null;
+  };
+}
+
+interface ExternalMigrationDeleteEvent {
+  type: EventType.EXTERNAL_MIGRATION_DELETE;
+  metadata: {
+    configId: string;
+    provider: string;
+  };
+}
 interface CreateEmailDomainEvent {
   type: EventType.CREATE_EMAIL_DOMAIN;
   metadata: {
@@ -6324,6 +6448,7 @@ export type Event =
   | CmekListSigningAlgorithmsEvent
   | CmekGetPublicKeyEvent
   | CmekGetPrivateKeyEvent
+  | CmekBulkGetPrivateKeysEvent
   | GetExternalGroupOrgRoleMappingsEvent
   | UpdateExternalGroupOrgRoleMappingsEvent
   | GetProjectTemplatesEvent
@@ -6482,6 +6607,7 @@ export type Event =
   | PamAccountListEvent
   | PamAccountGetEvent
   | PamAccountAccessEvent
+  | PamAccountAwsConsoleUrlGeneratedEvent
   | PamWebAccessSessionTicketCreatedEvent
   | PamAccountCreateEvent
   | PamAccountUpdateEvent
@@ -6499,6 +6625,11 @@ export type Event =
   | PamResourceCreateEvent
   | PamResourceUpdateEvent
   | PamResourceDeleteEvent
+  | PamDomainListEvent
+  | PamDomainGetEvent
+  | PamDomainCreateEvent
+  | PamDomainUpdateEvent
+  | PamDomainDeleteEvent
   | PamDiscoverySourceListEvent
   | PamDiscoverySourceGetEvent
   | PamDiscoverySourceCreateEvent
@@ -6521,6 +6652,7 @@ export type Event =
   | GetCertificateRequestEvent
   | GetCertificateFromRequestEvent
   | ListCertificateRequestsEvent
+  | TriggerCertificateRequestValidationEvent
   | AutomatedRenewCertificate
   | AutomatedRenewCertificateFailed
   | UserLoginEvent
@@ -6588,9 +6720,13 @@ export type Event =
   | CertificateCleanupCompletedEvent
   | ScepEnrollmentEvent
   | ScepRenewalEvent
+  | ScepDynamicChallengeGeneratedEvent
   | SecretValidationRuleCreateEvent
   | SecretValidationRuleUpdateEvent
   | SecretValidationRuleDeleteEvent
+  | ExternalMigrationCreateEvent
+  | ExternalMigrationUpdateEvent
+  | ExternalMigrationDeleteEvent
   | CreateEmailDomainEvent
   | VerifyEmailDomainEvent
   | DeleteEmailDomainEvent

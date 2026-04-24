@@ -143,6 +143,9 @@ import {
   TExternalKms,
   TExternalKmsInsert,
   TExternalKmsUpdate,
+  TExternalMigrationConfigs,
+  TExternalMigrationConfigsInsert,
+  TExternalMigrationConfigsUpdate,
   TFolderCheckpointResources,
   TFolderCheckpointResourcesInsert,
   TFolderCheckpointResourcesUpdate,
@@ -380,6 +383,9 @@ import {
   TPkiEstEnrollmentConfigs,
   TPkiEstEnrollmentConfigsInsert,
   TPkiEstEnrollmentConfigsUpdate,
+  TPkiScepDynamicChallenges,
+  TPkiScepDynamicChallengesInsert,
+  TPkiScepDynamicChallengesUpdate,
   TPkiScepEnrollmentConfigs,
   TPkiScepEnrollmentConfigsInsert,
   TPkiScepEnrollmentConfigsUpdate,
@@ -500,15 +506,6 @@ import {
   TSecretReferencesV2,
   TSecretReferencesV2Insert,
   TSecretReferencesV2Update,
-  TSecretRotationOutputs,
-  TSecretRotationOutputsInsert,
-  TSecretRotationOutputsUpdate,
-  TSecretRotationOutputV2,
-  TSecretRotationOutputV2Insert,
-  TSecretRotationOutputV2Update,
-  TSecretRotations,
-  TSecretRotationsInsert,
-  TSecretRotationsUpdate,
   TSecretRotationsV2,
   TSecretRotationsV2Insert,
   TSecretRotationsV2Update,
@@ -718,6 +715,7 @@ import {
   TPamDiscoverySourcesInsert,
   TPamDiscoverySourcesUpdate
 } from "@app/db/schemas/pam-discovery-sources";
+import { TPamDomains, TPamDomainsInsert, TPamDomainsUpdate } from "@app/db/schemas/pam-domains";
 import { TPamFolders, TPamFoldersInsert, TPamFoldersUpdate } from "@app/db/schemas/pam-folders";
 import {
   TPamResourceFavorites,
@@ -892,6 +890,11 @@ declare module "knex/types/tables" {
       TPkiScepTransactions,
       TPkiScepTransactionsInsert,
       TPkiScepTransactionsUpdate
+    >;
+    [TableName.PkiScepDynamicChallenge]: KnexOriginal.CompositeTableType<
+      TPkiScepDynamicChallenges,
+      TPkiScepDynamicChallengesInsert,
+      TPkiScepDynamicChallengesUpdate
     >;
     [TableName.PkiApiEnrollmentConfig]: KnexOriginal.CompositeTableType<
       TPkiApiEnrollmentConfigs,
@@ -1276,16 +1279,6 @@ declare module "knex/types/tables" {
       TSecretApprovalPoliciesEnvironmentsInsert,
       TSecretApprovalPoliciesEnvironmentsUpdate
     >;
-    [TableName.SecretRotation]: KnexOriginal.CompositeTableType<
-      TSecretRotations,
-      TSecretRotationsInsert,
-      TSecretRotationsUpdate
-    >;
-    [TableName.SecretRotationOutput]: KnexOriginal.CompositeTableType<
-      TSecretRotationOutputs,
-      TSecretRotationOutputsInsert,
-      TSecretRotationOutputsUpdate
-    >;
     [TableName.Snapshot]: KnexOriginal.CompositeTableType<
       TSecretSnapshots,
       TSecretSnapshotsInsert,
@@ -1385,11 +1378,6 @@ declare module "knex/types/tables" {
       TSecretApprovalRequestSecretTagsV2,
       TSecretApprovalRequestSecretTagsV2Insert,
       TSecretApprovalRequestSecretTagsV2Update
-    >;
-    [TableName.SecretRotationOutputV2]: KnexOriginal.CompositeTableType<
-      TSecretRotationOutputV2,
-      TSecretRotationOutputV2Insert,
-      TSecretRotationOutputV2Update
     >;
     // KMS service
     [TableName.KmsServerRootConfig]: KnexOriginal.CompositeTableType<
@@ -1625,6 +1613,7 @@ declare module "knex/types/tables" {
       TPamResourceFavoritesInsert,
       TPamResourceFavoritesUpdate
     >;
+    [TableName.PamDomain]: KnexOriginal.CompositeTableType<TPamDomains, TPamDomainsInsert, TPamDomainsUpdate>;
     [TableName.PamAccount]: KnexOriginal.CompositeTableType<TPamAccounts, TPamAccountsInsert, TPamAccountsUpdate>;
     [TableName.PamAccountPolicy]: KnexOriginal.CompositeTableType<
       TPamAccountPolicies,
@@ -1685,10 +1674,10 @@ declare module "knex/types/tables" {
       TAdditionalPrivilegesInsert,
       TAdditionalPrivilegesUpdate
     >;
-    [TableName.VaultExternalMigrationConfig]: KnexOriginal.CompositeTableType<
-      TVaultExternalMigrationConfigs,
-      TVaultExternalMigrationConfigsInsert,
-      TVaultExternalMigrationConfigsUpdate
+    [TableName.ExternalMigrationConfig]: KnexOriginal.CompositeTableType<
+      TExternalMigrationConfigs,
+      TExternalMigrationConfigsInsert,
+      TExternalMigrationConfigsUpdate
     >;
     [TableName.WebAuthnCredential]: KnexOriginal.CompositeTableType<
       TWebauthnCredentials,
@@ -1801,6 +1790,11 @@ declare module "knex/types/tables" {
       TSecretValidationRules,
       TSecretValidationRulesInsert,
       TSecretValidationRulesUpdate
+    >;
+    [TableName.VaultExternalMigrationConfig]: KnexOriginal.CompositeTableType<
+      TVaultExternalMigrationConfigs,
+      TVaultExternalMigrationConfigsInsert,
+      TVaultExternalMigrationConfigsUpdate
     >;
   }
 }

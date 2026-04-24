@@ -78,7 +78,8 @@
     "@xmldom/xmldom": "^0.8.12",
     "lodash": "^4.18.0",
     "tar": "^7.5.11",
-    "flatted": "^3.4.2"
+    "flatted": "^3.4.2",
+    "@octokit/request-error": "^5.1.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.18.10",
@@ -139,6 +140,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",
+    "@aws-sdk/client-acm": "^3.1030.0",
     "@aws-sdk/client-acm-pca": "^3.992.0",
     "@aws-sdk/client-elasticache": "^3.637.0",
     "@aws-sdk/client-iam": "^3.525.0",
@@ -165,7 +167,7 @@
     "@fastify/swagger-ui": "^3.1.0",
     "@fastify/websocket": "^10.0.1",
     "@gitbeaker/rest": "^42.5.0",
-    "@google-cloud/kms": "^4.5.0",
+    "@google-cloud/kms": "^5.4.0",
     "@infisical/ldapjs": "3.0.11",
     "@infisical/pg-view-generator": "^1.1.0",
     "@infisical/quic": "^1.0.8",

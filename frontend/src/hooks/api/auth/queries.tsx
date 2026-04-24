@@ -80,7 +80,6 @@ export const useSelectOrganization = () => {
       // If a custom user agent is set, then this session is meant for another consuming application, not the web application.
       if (!details.userAgent && !data.isMfaEnabled) {
         SecurityClient.setToken(data.token);
-        SecurityClient.setProviderAuthToken("");
       }
 
       if (data.token && !data.isMfaEnabled) {
@@ -101,11 +100,9 @@ export const useSelectOrganization = () => {
       return data;
     },
     onSuccess: () => {
-      // Invalidate the auth token cache so the authenticate middleware
-      // re-calls fetchAuthToken (which reads the new in-memory token with orgId)
       queryClient.invalidateQueries({ queryKey: authKeys.getAuthToken });
       queryClient.invalidateQueries({ queryKey: organizationKeys.getUserOrganizations });
-      queryClient.invalidateQueries({ queryKey: projectKeys.getAllUserProjects });
+      queryClient.invalidateQueries({ queryKey: projectKeys.getAllUserProjects() });
     }
   });
 };
@@ -253,6 +250,8 @@ export const useGetAuthToken = () =>
   useQuery({
     queryKey: authKeys.getAuthToken,
     queryFn: fetchAuthToken,
+    staleTime: 0,
+    gcTime: 0,
     retry: 0
   });
 
