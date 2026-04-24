@@ -2291,6 +2291,9 @@ interface CreateWebhookEvent {
     environment: string;
     secretPath: string;
     isDisabled: boolean;
+    eventsFilter?: {
+      eventName: string;
+    }[];
   };
 }
 
@@ -2301,6 +2304,9 @@ interface UpdateWebhookStatusEvent {
     environment: string;
     secretPath: string;
     isDisabled: boolean;
+    eventsFilter?: {
+      eventName: string;
+    }[];
   };
 }
 
