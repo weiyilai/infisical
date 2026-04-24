@@ -78,9 +78,9 @@ const ResolvedValueContent = ({ environment, secretPath, secretKey }: Props) => 
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <Label className="text-sm font-normal text-accent" htmlFor="resolved-secret-value">
-          Resolved value
+      <div className="mb-2 flex items-center justify-between border-b border-border pb-2">
+        <Label className="text-sm font-normal text-foreground" htmlFor="resolved-secret-value">
+          Resolved Value
         </Label>
         <Tooltip>
           <TooltipTrigger asChild>
