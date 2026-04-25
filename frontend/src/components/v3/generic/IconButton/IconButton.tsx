@@ -17,8 +17,6 @@ const iconButtonVariants = cva(
       variant: {
         default:
           "border-foreground bg-foreground text-background hover:bg-foreground/90 hover:border-foreground/90 data-[state=open]:bg-foreground/90 data-[state=open]:border-foreground/90",
-        accent:
-          "border-accent/10 bg-accent/40 text-foreground hover:bg-accent/50 hover:border-accent/20 data-[state=open]:bg-accent/50 data-[state=open]:border-accent/20",
         outline:
           "text-foreground hover:bg-foreground/10 border-border hover:border-foreground/20 data-[state=open]:bg-foreground/10 data-[state=open]:border-foreground/20",
         ghost:
