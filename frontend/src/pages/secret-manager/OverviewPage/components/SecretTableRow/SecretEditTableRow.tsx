@@ -945,7 +945,7 @@ export const SecretEditTableRow = ({
           <div className="flex w-fit items-start justify-end self-start pl-2">
             <div className="flex items-center gap-1">
               {comment && !isImportedSecret && (
-                <Tooltip delayDuration={300}>
+                <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="flex size-5 items-center justify-center text-muted">
                       <MessageSquareIcon className="size-3.5" />
@@ -955,7 +955,7 @@ export const SecretEditTableRow = ({
                 </Tooltip>
               )}
               {canReadTags && tags?.length && !isImportedSecret ? (
-                <Tooltip delayDuration={300}>
+                <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="flex size-5 items-center justify-center text-muted">
                       <TagsIcon className="size-3.5" />
@@ -967,7 +967,7 @@ export const SecretEditTableRow = ({
                 </Tooltip>
               ) : null}
               {reminder && !isImportedSecret && (
-                <Tooltip delayDuration={300}>
+                <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="flex size-5 items-center justify-center text-muted">
                       <BellIcon className="size-3.5" />
@@ -977,7 +977,7 @@ export const SecretEditTableRow = ({
                 </Tooltip>
               )}
               {secretMetadata?.length && !isImportedSecret ? (
-                <Tooltip delayDuration={300}>
+                <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="flex size-5 items-center justify-center text-muted">
                       <CodeXmlIcon className="size-3.5" />
@@ -987,7 +987,7 @@ export const SecretEditTableRow = ({
                 </Tooltip>
               ) : null}
               {skipMultilineEncoding && !isImportedSecret && (
-                <Tooltip delayDuration={300}>
+                <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="flex size-5 items-center justify-center text-muted">
                       <WrapTextIcon className="size-3.5" />
@@ -1091,7 +1091,7 @@ export const SecretEditTableRow = ({
             isSingleEnvView ? "top-0.5 right-0.5" : "-top-[1px] -right-1.5"
           )}
         >
-          <Tooltip delayDuration={300} disableHoverableContent>
+          <Tooltip disableHoverableContent>
             <TooltipTrigger>
               <IconButton
                 isDisabled={
@@ -1123,7 +1123,7 @@ export const SecretEditTableRow = ({
                     : `${isCreatable ? "Add" : "Edit"} Value`}
             </TooltipContent>
           </Tooltip>
-          <Tooltip delayDuration={300} disableHoverableContent>
+          <Tooltip disableHoverableContent>
             <TooltipTrigger>
               <IconButton
                 isDisabled={isPendingDelete || !canCopySecret}
@@ -1149,7 +1149,7 @@ export const SecretEditTableRow = ({
             </TooltipContent>
           </Tooltip>
           <Popover open={isCommentOpen} onOpenChange={setIsCommentOpen}>
-            <Tooltip delayDuration={300} disableHoverableContent>
+            <Tooltip disableHoverableContent>
               <TooltipTrigger>
                 <PopoverTrigger asChild>
                   <IconButton
@@ -1192,7 +1192,7 @@ export const SecretEditTableRow = ({
             </PopoverContent>
           </Popover>
           <Popover modal open={isTagOpen} onOpenChange={setIsTagOpen}>
-            <Tooltip delayDuration={300} disableHoverableContent>
+            <Tooltip disableHoverableContent>
               <TooltipTrigger>
                 <PopoverTrigger asChild>
                   <IconButton
@@ -1237,7 +1237,7 @@ export const SecretEditTableRow = ({
             </PopoverContent>
           </Popover>
           <Popover open={isReminderOpen} onOpenChange={setIsReminderOpen}>
-            <Tooltip delayDuration={300} disableHoverableContent>
+            <Tooltip disableHoverableContent>
               <TooltipTrigger>
                 <PopoverTrigger asChild>
                   <IconButton
@@ -1287,7 +1287,7 @@ export const SecretEditTableRow = ({
             </PopoverContent>
           </Popover>
           <Popover open={isMetadataOpen} onOpenChange={setIsMetadataOpen}>
-            <Tooltip delayDuration={300} disableHoverableContent>
+            <Tooltip disableHoverableContent>
               <TooltipTrigger>
                 <PopoverTrigger asChild>
                   <IconButton
@@ -1337,7 +1337,7 @@ export const SecretEditTableRow = ({
               />
             </PopoverContent>
           </Popover>
-          <Tooltip delayDuration={300} disableHoverableContent>
+          <Tooltip disableHoverableContent>
             <TooltipTrigger>
               <IconButton
                 variant="ghost"
@@ -1372,7 +1372,7 @@ export const SecretEditTableRow = ({
                       : "Enable Multi-line Encoding"}
             </TooltipContent>
           </Tooltip>
-          <Tooltip delayDuration={300} disableHoverableContent>
+          <Tooltip disableHoverableContent>
             <TooltipTrigger>
               <IconButton
                 isDisabled={
@@ -1427,18 +1427,23 @@ export const SecretEditTableRow = ({
             </Tooltip>
           ) : (
             <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <IconButton
-                  variant="ghost"
-                  size="xs"
-                  className={twMerge(
-                    "w-0 overflow-hidden border-0 transition-all duration-300 group-hover:w-7",
-                    shouldStayExpanded && "w-7"
-                  )}
-                >
-                  <EllipsisIcon />
-                </IconButton>
-              </DropdownMenuTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <IconButton
+                      variant="ghost"
+                      size="xs"
+                      className={twMerge(
+                        "w-0 overflow-hidden border-0 transition-all duration-300 group-hover:w-7",
+                        shouldStayExpanded && "w-7"
+                      )}
+                    >
+                      <EllipsisIcon />
+                    </IconButton>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>More Options</TooltipContent>
+              </Tooltip>
               <DropdownMenuContent align="end">
                 <ProjectPermissionCan
                   I={ProjectPermissionActions.Create}
@@ -1456,7 +1461,6 @@ export const SecretEditTableRow = ({
                           ? undefined
                           : false
                       }
-                      delayDuration={300}
                       disableHoverableContent
                     >
                       <TooltipTrigger className="block w-full">
@@ -1484,7 +1488,6 @@ export const SecretEditTableRow = ({
                 </ProjectPermissionCan>
                 <Tooltip
                   open={!canReadSecretValue || !secretId || isEmpty ? undefined : false}
-                  delayDuration={300}
                   disableHoverableContent
                 >
                   <TooltipTrigger className="block w-full">
@@ -1511,7 +1514,6 @@ export const SecretEditTableRow = ({
                   {(isAllowed) => (
                     <Tooltip
                       open={isImportedSecret || isCreatable || !isAllowed ? undefined : false}
-                      delayDuration={300}
                       disableHoverableContent
                     >
                       <TooltipTrigger className="block w-full">
@@ -1535,7 +1537,6 @@ export const SecretEditTableRow = ({
                 </ProjectPermissionCan>
                 <Tooltip
                   open={isImportedSecret || isCreatable ? undefined : false}
-                  delayDuration={300}
                   disableHoverableContent
                 >
                   <TooltipTrigger className="block w-full">
@@ -1571,7 +1572,6 @@ export const SecretEditTableRow = ({
                   {(isAllowed) => (
                     <Tooltip
                       open={isRotatedSecret || isImportedSecret || isCreatable ? undefined : false}
-                      delayDuration={300}
                       disableHoverableContent
                     >
                       <TooltipTrigger className="block w-full">
