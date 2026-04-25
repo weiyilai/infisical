@@ -82,15 +82,10 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   ): JSX.Element => {
     const Comp = asChild ? Slot : "button";
 
-    return (
-      <Comp
-        ref={ref}
-        data-slot="button"
-        type={type}
-        className={cn(iconButtonVariants({ variant, size, isPending }), className)}
-        disabled={isPending || disabled || isDisabled}
-        {...props}
-      >
+    const content = asChild ? (
+      children
+    ) : (
+      <>
         {children}
         {isPending && (
           <Lottie
@@ -105,6 +100,19 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
             )}
           />
         )}
+      </>
+    );
+
+    return (
+      <Comp
+        ref={ref}
+        data-slot="button"
+        type={type}
+        className={cn(iconButtonVariants({ variant, size, isPending }), className)}
+        disabled={isPending || disabled || isDisabled}
+        {...props}
+      >
+        {content}
       </Comp>
     );
   }
