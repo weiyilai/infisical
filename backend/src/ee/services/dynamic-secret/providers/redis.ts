@@ -78,7 +78,8 @@ export const RedisDatabaseProvider = (): TDynamicProviderFns => {
         ...(providerInputs.ca && {
           tls: {
             ca: providerInputs.ca,
-            rejectUnauthorized: true
+            rejectUnauthorized: true,
+            servername: providerInputs.host
           }
         })
       });

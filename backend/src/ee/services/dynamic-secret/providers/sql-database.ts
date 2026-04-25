@@ -147,7 +147,7 @@ export const SqlDatabaseProvider = ({
     providerInputs: z.infer<typeof DynamicSecretSqlDBSchema> & { hostIp: string; originalHost: string }
   ) => {
     const ssl = providerInputs.ca
-      ? { rejectUnauthorized: true, ca: providerInputs.ca, servername: providerInputs.host }
+      ? { rejectUnauthorized: true, ca: providerInputs.ca, servername: providerInputs.originalHost }
       : undefined;
 
     const isMsSQLClient = providerInputs.client === SqlProviders.MsSQL;
