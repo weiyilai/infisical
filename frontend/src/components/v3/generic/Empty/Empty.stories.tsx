@@ -36,7 +36,7 @@ const meta = {
   },
   tags: ["autodocs"],
   args: {
-    className: "w-[500px]"
+    className: "w-[600px]"
   },
   argTypes: {
     children: {
@@ -206,7 +206,7 @@ export const InsideCard: Story = {
     }
   },
   render: () => (
-    <Card className="w-[500px]">
+    <Card className="w-[700px]">
       <CardHeader>
         <CardTitle>Access tokens</CardTitle>
       </CardHeader>
