@@ -145,7 +145,7 @@ export const AzureSqlDatabaseProvider = ({
     targetDatabase?: string
   ) => {
     const ssl = providerInputs.ca
-      ? { rejectUnauthorized: false, ca: providerInputs.ca, servername: providerInputs.host }
+      ? { rejectUnauthorized: true, ca: providerInputs.ca, servername: providerInputs.host }
       : undefined;
 
     /*
