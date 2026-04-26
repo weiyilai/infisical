@@ -3359,6 +3359,17 @@ const OverviewPageContent = () => {
         projectId={projectId}
         secretPath={secretPath}
         initialParsedSecrets={importParsedSecrets}
+        onComplete={(envSlugs) => {
+          const visibleSlugs = new Set(visibleEnvs.map((e) => e.slug));
+          const allTargetEnvsVisible = envSlugs.every((slug) => visibleSlugs.has(slug));
+
+          if (!allTargetEnvsVisible) {
+            const targetEnvs = userAvailableEnvs.filter((env) => envSlugs.includes(env.slug));
+            if (targetEnvs.length) {
+              setFilteredEnvs(targetEnvs);
+            }
+          }
+        }}
       />
       <ReplicateFolderFromBoard
         isOpen={popUp.replicateFolder.isOpen}

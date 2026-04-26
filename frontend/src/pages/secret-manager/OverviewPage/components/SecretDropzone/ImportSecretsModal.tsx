@@ -66,7 +66,7 @@ type Props = {
   projectId: string;
   secretPath: string;
   initialParsedSecrets?: TParsedEnv | null;
-  onComplete?: () => void;
+  onComplete?: (envSlugs: string[]) => void;
 };
 
 type ContentProps = {
@@ -74,7 +74,7 @@ type ContentProps = {
   projectId: string;
   secretPath: string;
   initialParsedSecrets?: TParsedEnv | null;
-  onComplete?: () => void;
+  onComplete?: (envSlugs: string[]) => void;
   onClose: () => void;
 };
 
@@ -343,7 +343,7 @@ const ImportSecretsContent = ({
       }
 
       onClose();
-      onComplete?.();
+      onComplete?.(selectedEnvs.map((env) => env.slug));
     } catch (err) {
       console.error(err);
       createNotification({
