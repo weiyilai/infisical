@@ -40,7 +40,7 @@ const rootSchema = genericAppConnectionFieldsSchema.extend({
 
 const formSchema = z.discriminatedUnion("method", [
   rootSchema.extend({
-    method: z.literal(VenafiTppConnectionMethod.UsernamePassword),
+    method: z.literal(VenafiTppConnectionMethod.OAuth),
     credentials: z.object({
       tppUrl: z
         .string()
@@ -63,7 +63,7 @@ export const VenafiTppConnectionForm = ({ appConnection, onSubmit }: Props) => {
     resolver: zodResolver(formSchema),
     defaultValues: appConnection ?? {
       app: AppConnection.VenafiTpp,
-      method: VenafiTppConnectionMethod.UsernamePassword,
+      method: VenafiTppConnectionMethod.OAuth,
       name: "",
       description: "",
       gatewayId: null,

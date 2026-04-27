@@ -29,6 +29,7 @@ import {
   CertStatus,
   TAltNameType
 } from "@app/services/certificate/certificate-types";
+import { calculateRenewalThreshold, parseTtlToDays } from "@app/services/certificate-common/certificate-issuance-utils";
 import { TCertificateProfileDALFactory } from "@app/services/certificate-profile/certificate-profile-dal";
 import { TKmsServiceFactory } from "@app/services/kms/kms-service";
 import { TProjectDALFactory } from "@app/services/project/project-dal";
@@ -49,6 +50,54 @@ const VENAFI_SAN_TYPE_DNS = 2;
 const VENAFI_SAN_TYPE_IP = 7;
 const VENAFI_SAN_TYPE_EMAIL = 1;
 const VENAFI_SAN_TYPE_URI = 6;
+
+const IPV4_DOTTED_QUAD_REGEX = new RE2("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$");
+
+type TNormalizedSanType = "dns" | "ip" | "email" | "uri";
+
+const parseSanEntry = (san: string): { type: TNormalizedSanType; value: string } => {
+  const colonIdx = san.indexOf(":");
+  if (colonIdx > 0) {
+    const prefix = san.substring(0, colonIdx).toLowerCase();
+    const value = san.substring(colonIdx + 1);
+    switch (prefix) {
+      case "dns":
+      case "dns_name":
+        return { type: "dns", value };
+      case "ip":
+      case "ip_address":
+        return { type: "ip", value };
+      case "email":
+        return { type: "email", value };
+      case "uri":
+        return { type: "uri", value };
+      default:
+        throw new BadRequestError({
+          message: `Unsupported Subject Alternative Name type prefix '${prefix}'. Supported prefixes: dns, dns_name, ip, ip_address, email, uri.`
+        });
+    }
+  }
+
+  if (IPV4_DOTTED_QUAD_REGEX.test(san)) {
+    return { type: "ip", value: san };
+  }
+
+  return { type: "dns", value: san };
+};
+
+const VENAFI_SAN_TYPE_BY_NORMALIZED: Record<TNormalizedSanType, number> = {
+  dns: VENAFI_SAN_TYPE_DNS,
+  ip: VENAFI_SAN_TYPE_IP,
+  email: VENAFI_SAN_TYPE_EMAIL,
+  uri: VENAFI_SAN_TYPE_URI
+};
+
+const X509_ALT_NAME_TYPE_BY_NORMALIZED: Record<TNormalizedSanType, TAltNameType> = {
+  dns: "dns" as TAltNameType,
+  ip: "ip" as TAltNameType,
+  email: "email" as TAltNameType,
+  uri: "url" as TAltNameType
+};
 
 type TVenafiTppCertificateRequest = {
   PolicyDN: string;
@@ -75,46 +124,20 @@ type TVenafiTppRetrieveResponse = {
   Format: string;
 };
 
-const parseTtlToDays = (ttl: string): number => {
-  const match = ttl.match(new RE2("^(\\d+)([dhm])$"));
-  if (!match) {
-    throw new BadRequestError({
-      message: `Invalid TTL format: ${ttl}. Expected format like '365d', '24h', or '60m'.`
-    });
-  }
-  const value = parseInt(match[1], 10);
-  const unit = match[2];
-  switch (unit) {
-    case "d":
-      return value;
-    case "h":
-      return Math.max(1, Math.ceil(value / 24));
-    case "m":
-      return Math.max(1, Math.ceil(value / (24 * 60)));
-    default:
-      return value;
-  }
-};
-
 const calculateFinalRenewBeforeDays = (
   profile: { apiConfig?: { autoRenew?: boolean; renewBeforeDays?: number } } | undefined,
   ttl: string
 ): number | undefined => {
-  const hasAutoRenewEnabled = profile?.apiConfig?.autoRenew === true;
-  if (!hasAutoRenewEnabled) {
+  if (!profile?.apiConfig?.autoRenew) {
     return undefined;
   }
 
-  const profileRenewBeforeDays = profile?.apiConfig?.renewBeforeDays;
-  if (profileRenewBeforeDays !== undefined) {
-    const certificateTtlInDays = parseTtlToDays(ttl);
-    if (profileRenewBeforeDays >= certificateTtlInDays) {
-      return Math.max(1, certificateTtlInDays - 1);
-    }
-    return profileRenewBeforeDays;
+  const profileRenewBeforeDays = profile.apiConfig.renewBeforeDays;
+  if (profileRenewBeforeDays === undefined) {
+    return undefined;
   }
 
-  return undefined;
+  return calculateRenewalThreshold(profileRenewBeforeDays, parseTtlToDays(ttl));
 };
 
 const normalizeTppUrl = (tppUrl: string): string => {
@@ -124,32 +147,9 @@ const normalizeTppUrl = (tppUrl: string): string => {
 /**
  * Parses a SAN string (e.g., "dns:example.com" or just "example.com") into Venafi TPP SAN format.
  */
-const parseSanToVenafiFormat = (san: string): { Type: number; Name: string } | null => {
-  const colonIdx = san.indexOf(":");
-  if (colonIdx > 0) {
-    const prefix = san.substring(0, colonIdx).toLowerCase();
-    const value = san.substring(colonIdx + 1);
-    switch (prefix) {
-      case "dns":
-      case "dns_name":
-        return { Type: VENAFI_SAN_TYPE_DNS, Name: value };
-      case "ip":
-      case "ip_address":
-        return { Type: VENAFI_SAN_TYPE_IP, Name: value };
-      case "email":
-        return { Type: VENAFI_SAN_TYPE_EMAIL, Name: value };
-      case "uri":
-        return { Type: VENAFI_SAN_TYPE_URI, Name: value };
-      default:
-        return { Type: VENAFI_SAN_TYPE_DNS, Name: san };
-    }
-  }
-
-  if (san.match(new RE2("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"))) {
-    return { Type: VENAFI_SAN_TYPE_IP, Name: san };
-  }
-
-  return { Type: VENAFI_SAN_TYPE_DNS, Name: san };
+const parseSanToVenafiFormat = (san: string): { Type: number; Name: string } => {
+  const { type, value } = parseSanEntry(san);
+  return { Type: VENAFI_SAN_TYPE_BY_NORMALIZED[type], Name: value };
 };
 
 const getVenafiTppConnectionCredentials = async (
@@ -220,13 +220,7 @@ const submitCertificateToTpp = async ({
   };
 
   if (altNames && altNames.length > 0) {
-    const venafiSans = altNames.map((san) => parseSanToVenafiFormat(san)).filter(Boolean) as Array<{
-      Type: number;
-      Name: string;
-    }>;
-    if (venafiSans.length > 0) {
-      requestBody.SubjectAltNames = venafiSans;
-    }
+    requestBody.SubjectAltNames = altNames.map((san) => parseSanToVenafiFormat(san));
   }
 
   logger.info(
@@ -698,30 +692,9 @@ export const VenafiTppCertificateAuthorityFns = ({
 
       const sanExtensions: x509.SubjectAlternativeNameExtension[] = [];
       if (altNames.length > 0) {
-        const sanEntries: Array<{ type: TAltNameType; value: string }> = altNames.map((name) => {
-          const colonIdx = name.indexOf(":");
-          if (colonIdx > 0) {
-            const prefix = name.substring(0, colonIdx).toLowerCase();
-            const value = name.substring(colonIdx + 1);
-            switch (prefix) {
-              case "ip":
-              case "ip_address":
-                return { type: "ip" as TAltNameType, value };
-              case "email":
-                return { type: "email" as TAltNameType, value };
-              case "uri":
-                return { type: "url" as TAltNameType, value };
-              case "dns":
-              case "dns_name":
-                return { type: "dns" as TAltNameType, value };
-              default:
-                return { type: "dns" as TAltNameType, value: name };
-            }
-          }
-          if (name.match(new RE2("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"))) {
-            return { type: "ip" as TAltNameType, value: name };
-          }
-          return { type: "dns" as TAltNameType, value: name };
+        const sanEntries = altNames.map((name) => {
+          const { type, value } = parseSanEntry(name);
+          return { type: X509_ALT_NAME_TYPE_BY_NORMALIZED[type], value };
         });
 
         sanExtensions.push(new x509.SubjectAlternativeNameExtension(sanEntries, false));

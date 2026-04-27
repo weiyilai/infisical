@@ -86,7 +86,7 @@ export const getVenafiTppConnectionListItem = () => {
   return {
     name: "Venafi TPP" as const,
     app: AppConnection.VenafiTpp as const,
-    methods: Object.values(VenafiTppConnectionMethod) as [VenafiTppConnectionMethod.UsernamePassword]
+    methods: Object.values(VenafiTppConnectionMethod) as [VenafiTppConnectionMethod.OAuth]
   };
 };
 

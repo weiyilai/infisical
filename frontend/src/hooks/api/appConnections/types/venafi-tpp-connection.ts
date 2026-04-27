@@ -2,12 +2,12 @@ import { AppConnection } from "../enums";
 import { TRootAppConnection } from "./root-connection";
 
 export enum VenafiTppConnectionMethod {
-  UsernamePassword = "username-password"
+  OAuth = "oauth"
 }
 
 export type TVenafiTppConnection = TRootAppConnection & {
   app: AppConnection.VenafiTpp;
-  method: VenafiTppConnectionMethod.UsernamePassword;
+  method: VenafiTppConnectionMethod.OAuth;
   credentials: {
     tppUrl: string;
     clientId: string;

@@ -493,6 +493,7 @@ export const getAppConnectionMethodName = (method: TAppConnection["method"]) => 
     case AzureDevOpsConnectionMethod.OAuth:
     case HerokuConnectionMethod.OAuth:
     case GitLabConnectionMethod.OAuth:
+    case VenafiTppConnectionMethod.OAuth:
       return "OAuth";
     case HerokuConnectionMethod.AuthToken:
       return "Auth Token";
@@ -534,7 +535,6 @@ export const getAppConnectionMethodName = (method: TAppConnection["method"]) => 
     case AzureADCSConnectionMethod.UsernamePassword:
     case RedisConnectionMethod.UsernameAndPassword:
     case MongoDBConnectionMethod.UsernameAndPassword:
-    case VenafiTppConnectionMethod.UsernamePassword:
       return "Username & Password";
     case WindmillConnectionMethod.AccessToken:
     case HCVaultConnectionMethod.AccessToken:

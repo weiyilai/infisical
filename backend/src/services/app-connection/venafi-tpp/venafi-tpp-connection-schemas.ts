@@ -11,7 +11,7 @@ import {
 import { APP_CONNECTION_NAME_MAP } from "../app-connection-maps";
 import { VenafiTppConnectionMethod } from "./venafi-tpp-connection-enums";
 
-export const VenafiTppUsernamePasswordCredentialsSchema = z.object({
+export const VenafiTppOAuthCredentialsSchema = z.object({
   tppUrl: z
     .string()
     .trim()
@@ -42,29 +42,25 @@ export const VenafiTppUsernamePasswordCredentialsSchema = z.object({
 const BaseVenafiTppConnectionSchema = BaseAppConnectionSchema.extend({ app: z.literal(AppConnection.VenafiTpp) });
 
 export const VenafiTppConnectionSchema = BaseVenafiTppConnectionSchema.extend({
-  method: z.literal(VenafiTppConnectionMethod.UsernamePassword),
-  credentials: VenafiTppUsernamePasswordCredentialsSchema
+  method: z.literal(VenafiTppConnectionMethod.OAuth),
+  credentials: VenafiTppOAuthCredentialsSchema
 });
 
 export const SanitizedVenafiTppConnectionSchema = z.discriminatedUnion("method", [
   BaseVenafiTppConnectionSchema.extend({
-    method: z.literal(VenafiTppConnectionMethod.UsernamePassword),
-    credentials: VenafiTppUsernamePasswordCredentialsSchema.pick({
+    method: z.literal(VenafiTppConnectionMethod.OAuth),
+    credentials: VenafiTppOAuthCredentialsSchema.pick({
       tppUrl: true,
       clientId: true,
       username: true
     })
-  }).describe(JSON.stringify({ title: `${APP_CONNECTION_NAME_MAP[AppConnection.VenafiTpp]} (Username and Password)` }))
+  }).describe(JSON.stringify({ title: `${APP_CONNECTION_NAME_MAP[AppConnection.VenafiTpp]} (OAuth)` }))
 ]);
 
 export const ValidateVenafiTppConnectionCredentialsSchema = z.discriminatedUnion("method", [
   z.object({
-    method: z
-      .literal(VenafiTppConnectionMethod.UsernamePassword)
-      .describe(AppConnections.CREATE(AppConnection.VenafiTpp).method),
-    credentials: VenafiTppUsernamePasswordCredentialsSchema.describe(
-      AppConnections.CREATE(AppConnection.VenafiTpp).credentials
-    )
+    method: z.literal(VenafiTppConnectionMethod.OAuth).describe(AppConnections.CREATE(AppConnection.VenafiTpp).method),
+    credentials: VenafiTppOAuthCredentialsSchema.describe(AppConnections.CREATE(AppConnection.VenafiTpp).credentials)
   })
 ]);
 
@@ -74,7 +70,7 @@ export const CreateVenafiTppConnectionSchema = ValidateVenafiTppConnectionCreden
 
 export const UpdateVenafiTppConnectionSchema = z
   .object({
-    credentials: VenafiTppUsernamePasswordCredentialsSchema.optional().describe(
+    credentials: VenafiTppOAuthCredentialsSchema.optional().describe(
       AppConnections.UPDATE(AppConnection.VenafiTpp).credentials
     )
   })
