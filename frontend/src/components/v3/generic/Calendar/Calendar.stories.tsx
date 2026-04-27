@@ -35,7 +35,7 @@ const meta = {
     },
     buttonVariant: {
       control: "select",
-      options: ["ghost", "outline", "neutral"]
+      options: ["ghost", "outline", "ghost-muted"]
     }
   }
 } satisfies Meta<typeof Calendar>;

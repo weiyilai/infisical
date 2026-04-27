@@ -156,27 +156,81 @@ mirror it. When picking a variant, the `Variant:` story descriptions are the
 canonical "use this when..." guidance.
 
 Run Storybook with `cd frontend && npm run storybook` (port 6006) to preview.
-The Generic / Platform sidebar is alphabetical.
 
-| Component | Source | Key specs & usage |
-| --- | --- | --- |
-| **Button** | [`Button.tsx`](frontend/src/components/v3/generic/Button/Button.tsx) | Sizes `xs`/`sm`/`md`(default)/`lg` (h-7/8/9/10). Variants: `outline` (default), `ghost`, `neutral`, `project`, `org`, `sub-org`, `success`, `info`, `warning`, `danger`. Primary actions use the scope variant of the current surface. |
-| **IconButton** | — | Sizing parity with Button; `isSquare` for icon-only actions. |
-| **Badge** | [`Badge.tsx`](frontend/src/components/v3/generic/Badge/Badge.tsx) + [stories](frontend/src/components/v3/generic/Badge/Badge.stories.tsx) | h-4.5, text-xs, rounded-sm. Variants mirror Button plus `default` (solid, key-value keys) + `outline` (values). Props: `asChild`, `isTruncatable`, `isSquare`, `isFullWidth`. Pick by intent per the stories matrix. |
-| **Card** | [`Card.tsx`](frontend/src/components/v3/generic/Card/Card.tsx) | Default section container. `p-5 gap-5 rounded-lg bg-card border-border shadow-sm`. `CardHeader` + `CardTitle` + `CardDescription` + `CardAction` (auto top-right) + `CardContent` + `CardFooter`. Tables, filters, forms, empty states all live in a Card. |
-| **Table** | [`Table.tsx`](frontend/src/components/v3/generic/Table/Table.tsx) | Semantic `<table>` in a scroll container. Rows h-[40px], `hover:bg-container-hover`. Sortable headers rotate `ChevronDownIcon`. Pair with `Empty` (zero-state) + `Pagination` (`1–10 of 19`, 10/20/50/100). |
-| **Sheet** | [`Sheet.tsx`](frontend/src/components/v3/generic/Sheet/Sheet.tsx) | Right-side panel. `bg-popover`, `w-3/4`, `sm:max-w-md`. `SheetHeader` (p-4) + `SheetContent` + `SheetFooter` (p-4, gap-2). **Use Sheet — not Dialog — for create/edit forms.** Create Secret is the reference. |
-| **Field** | [`Field.tsx`](frontend/src/components/v3/generic/Field/Field.tsx) | `Field` > `FieldLabel` + `FieldContent` + optional `FieldDescription` + `FieldError`. Never render a bare `Input` in a form. |
-| **Input / InputGroup / TextArea / Switch / Select / ReactSelect** | — | h-9, rounded-md, 3px focus ring. `InputGroup` wraps with left/right addons — use for search (`SearchIcon` + input) and key-value metadata. |
-| **DropdownMenu + ButtonGroup** | — | Split-button pattern: `Button` (rounded-right-off) + `DropdownMenuTrigger` wrapping an `IconButton` (`ChevronDown`) of matching variant, inside `ButtonGroup`. Use when an action has a default plus alternates (`Add Secret ▾`). |
-| **Sidebar** | [`Sidebar.tsx`](frontend/src/components/v3/generic/Sidebar/Sidebar.tsx) | 16rem expanded / 3rem collapsed, cookie-persisted. Scope-aware via `SidebarScope`. Below 1024px collapses into a Sheet overlay. |
-| **Alert / AlertDialog / Toast** | — | `Alert` inline in a page. `AlertDialog` for confirmations (destructive included). `Toast` for transient post-action feedback. Never `alert()`. |
-| **Scope icons** | [`ScopeIcons.tsx`](frontend/src/components/v3/platform/ScopeIcons.tsx) | `OrgIcon`, `SubOrgIcon`, `ProjectIcon`, `InstanceIcon`. Prefer these over raw Lucide when the intent is scope. |
-| **DocumentationLinkBadge** | — | `info` Badge (`asChild` → `<a>`) with `ExternalLinkIcon`, labelled "Documentation". Inline in `CardTitle`. |
+### Component inventory
 
-**Icons** — [`lucide-react`](https://lucide.dev). Sizing is bound to the
-host component; don't override unless necessary. Badge strokes are 2.25,
-Button strokes 1.5–1.75.
+Use these tables to find the component for a given intent. For props,
+variants, sizes, and class lists, open the source or its `*.stories.tsx`
+— the stories are canonical.
+
+#### Actions
+| Component | Reach for this when… |
+| --- | --- |
+| [`Button`](frontend/src/components/v3/generic/Button/Button.tsx) | A text-bearing button — primary or secondary action. |
+| [`IconButton`](frontend/src/components/v3/generic/IconButton/IconButton.tsx) | A square icon-only button — toolbars, row actions, compact triggers. Always `aria-label`. |
+| [`ButtonGroup`](frontend/src/components/v3/generic/ButtonGroup/ButtonGroup.tsx) | Visually join related controls — toolbars, segmented controls, split buttons, key-value chips. |
+| [`Dropdown`](frontend/src/components/v3/generic/Dropdown/Dropdown.tsx) | An action menu — overflow `⋯`, split-button alternates, contextual lists. |
+
+#### Forms
+| Component | Reach for this when… |
+| --- | --- |
+| [`Field`](frontend/src/components/v3/generic/Field/Field.tsx) | Wrap every form control — label + control + description + error. **Never render a bare control in a form.** |
+| [`Label`](frontend/src/components/v3/generic/Label/Label.tsx) | Standalone form label outside a `Field`. |
+| [`Input`](frontend/src/components/v3/generic/Input/Input.tsx) / [`TextArea`](frontend/src/components/v3/generic/TextArea/TextArea.tsx) | Single-line / multi-line text entry. |
+| [`InputGroup`](frontend/src/components/v3/generic/InputGroup/InputGroup.tsx) | Input with left/right addons — search bars, prefixed values. |
+| [`Select`](frontend/src/components/v3/generic/Select/Select.tsx) / [`ReactSelect`](frontend/src/components/v3/generic/ReactSelect/index.ts) | Native-style dropdown / async or searchable dropdown. |
+| [`Switch`](frontend/src/components/v3/generic/Switch/Switch.tsx) / [`Checkbox`](frontend/src/components/v3/generic/Checkbox/Checkbox.tsx) | Boolean toggle / multi-select boolean. |
+| [`Calendar`](frontend/src/components/v3/generic/Calendar/Calendar.tsx) | Date / multi-date / range picker primitive. |
+| [`DateRangeFilter`](frontend/src/components/v3/generic/DateRangeFilter/DateRangeFilter.tsx) | Date-range filter with presets — for filter bars. |
+| [`SecretInput`](frontend/src/components/v3/generic/SecretInput/SecretInput.tsx) | Secret-value editor with mask toggle and `${var}` highlighting. |
+| [`PasswordGenerator`](frontend/src/components/v3/generic/PasswordGenerator/PasswordGenerator.tsx) | Generate a password against project secret-validation rules. |
+
+#### Containers & overlays
+| Component | Reach for this when… |
+| --- | --- |
+| [`Card`](frontend/src/components/v3/generic/Card/Card.tsx) | Default section container — tables, filters, forms, empty states all live in a Card. |
+| [`Sheet`](frontend/src/components/v3/generic/Sheet/Sheet.tsx) | Right-side panel — **use for create/edit forms (not Dialog)**. |
+| [`Dialog`](frontend/src/components/v3/generic/Dialog/Dialog.tsx) | Centered modal — short interactive prompts. Prefer Sheet for forms. |
+| [`AlertDialog`](frontend/src/components/v3/generic/AlertDialog/AlertDialog.tsx) | Confirm an action (destructive included). Replaces `confirm()`. |
+| [`Popover`](frontend/src/components/v3/generic/Popover/Popover.tsx) | Anchored floating panel — filters, pickers, contextual UI. |
+| [`Tooltip`](frontend/src/components/v3/generic/Tooltip/Tooltip.tsx) | Small floating annotation on hover/focus. |
+| [`Accordion`](frontend/src/components/v3/generic/Accordion/Accordion.tsx) | Collapsible sections. |
+
+#### Data display
+| Component | Reach for this when… |
+| --- | --- |
+| [`Table`](frontend/src/components/v3/generic/Table/Table.tsx) | Read-mostly list of records with sortable columns. Pair with `Empty` + `Pagination`. |
+| [`DataGrid`](frontend/src/components/v3/generic/DataGrid/data-grid.tsx) | Editable spreadsheet-style grid — copy/paste, multi-cell selection, keyboard nav. Use only when `Table` isn't enough. |
+| [`Pagination`](frontend/src/components/v3/generic/Pagination/Pagination.tsx) | Page controls under a Table or list. |
+| [`Item`](frontend/src/components/v3/generic/Item/Item.tsx) | Vertically-stacked list rows with shared spacing — when a `Table` is too heavy. |
+| [`Detail`](frontend/src/components/v3/generic/Detail/Detail.tsx) | Read-only label/value pairs in a detail view. |
+| [`Badge`](frontend/src/components/v3/generic/Badge/Badge.tsx) | Small label or chip — status, scope tag, key/value pair. |
+
+#### Navigation & search
+| Component | Reach for this when… |
+| --- | --- |
+| [`Sidebar`](frontend/src/components/v3/generic/Sidebar/Sidebar.tsx) | Scope-aware product navigation panel. |
+| [`Breadcrumb`](frontend/src/components/v3/generic/Breadcrumb/Breadcrumb.tsx) | Hierarchical location trail at the top of a page. |
+| [`Command`](frontend/src/components/v3/generic/Command/Command.tsx) | Search-driven command palette / typeahead list. |
+
+#### Feedback & loading
+| Component | Reach for this when… |
+| --- | --- |
+| [`Alert`](frontend/src/components/v3/generic/Alert/Alert.tsx) | Inline message banner inside a page or Card. |
+| [`Toast`](frontend/src/components/v3/generic/Toast/Toast.tsx) | Transient post-action feedback. Replaces `alert()`. |
+| [`Empty`](frontend/src/components/v3/generic/Empty/Empty.tsx) | Zero-state placeholder — pair with Table, list, or empty filter. |
+| [`Skeleton`](frontend/src/components/v3/generic/Skeleton/Skeleton.tsx) | Shimmer placeholder while data is loading. |
+| [`PageLoader`](frontend/src/components/v3/generic/PageLoader/PageLoader.tsx) | Centered Lottie spinner for full-page loading. |
+
+#### Atoms & domain
+| Component | Reach for this when… |
+| --- | --- |
+| [`Separator`](frontend/src/components/v3/generic/Separator/Separator.tsx) | Horizontal/vertical divider. |
+| [`ScopeIcons`](frontend/src/components/v3/platform/ScopeIcons.tsx) | `OrgIcon` / `SubOrgIcon` / `ProjectIcon` / `InstanceIcon` — use when intent is scope. |
+| [`DocumentationLinkBadge`](frontend/src/components/v3/platform/DocumentationLinkBadge/DocumentationLinkBadge.tsx) | Inline "Documentation" link badge in `CardTitle`. |
+
+**Icons** — [`lucide-react`](https://lucide.dev). Sizing is bound by the
+host component; don't override unless necessary.
 
 ## 5. Layout Principles
 
@@ -184,7 +238,7 @@ Button strokes 1.5–1.75.
 - **Page header** — `PageHeader` with scope icon + underlined `h1` + description. See [`PageHeader.tsx`](frontend/src/components/v2/PageHeader/PageHeader.tsx). Always set `scope` to the correct hierarchy level.
 - **Section** — one `Card` per logical section. Title + optional `DocumentationLinkBadge` in `CardHeader`; primary action in `CardAction` (top-right).
 - **Tables inside Cards** — filters and search sit in the `CardHeader` above the table; pagination sits in the `CardFooter` or bottom of `CardContent`.
-- **Forms inside Sheets** — create / edit flows open in a right-side Sheet, never inline, never as a full-page route. Multi-step forms remain inside the Sheet.
+- **Forms inside Sheets/Dialog** — create / edit flows open in a right-side Sheet or Dialog, never inline, never as a full-page route. Multi-step forms remain inside the Sheet.
 - **Spacing rhythm** — `gap-1.5` (intra-element), `gap-2 / gap-3` (adjacent elements), `p-4 / p-5` (section padding). Card = `p-5 gap-5`; Sheet header/footer = `p-4`.
 
 ## 6. Depth & Elevation

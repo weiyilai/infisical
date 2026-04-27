@@ -62,7 +62,16 @@ type IconButtonProps = React.ComponentProps<"button"> &
     asChild?: boolean;
     isPending?: boolean;
     isDisabled?: boolean;
-  };
+  } & (
+    | {
+        asChild: true;
+        isPending?: never;
+      }
+    | {
+        asChild?: false;
+        isPending?: boolean;
+      }
+  );
 
 const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   (

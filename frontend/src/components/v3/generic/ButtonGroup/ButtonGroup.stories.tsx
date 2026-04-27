@@ -70,13 +70,13 @@ export const Horizontal: Story = {
   },
   render: (args) => (
     <ButtonGroup {...args}>
-      <IconButton variant="outline">
+      <IconButton variant="outline" aria-label="Align left">
         <AlignLeftIcon />
       </IconButton>
-      <IconButton variant="outline">
+      <IconButton variant="outline" aria-label="Align center">
         <AlignCenterIcon />
       </IconButton>
-      <IconButton variant="outline">
+      <IconButton variant="outline" aria-label="Align right">
         <AlignRightIcon />
       </IconButton>
     </ButtonGroup>
