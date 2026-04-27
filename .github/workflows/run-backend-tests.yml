@@ -77,7 +77,6 @@ jobs:
             -e E2E_TEST_ORACLE_DB_19_USERNAME="${{ secrets.E2E_TEST_ORACLE_DB_19_USERNAME }}" \
             -e E2E_TEST_ORACLE_DB_19_PASSWORD="${{ secrets.E2E_TEST_ORACLE_DB_19_PASSWORD }}" \
             -e E2E_TEST_ORACLE_DB_19_DATABASE="${{ secrets.E2E_TEST_ORACLE_DB_19_DATABASE }}" \
-            -e LICENSE_KEY="${{ secrets.E2E_TEST_LICENSE_KEY }}" \
             infisical-backend-fips:latest \
             npm run test:e2e
       - name: cleanup
