@@ -38,9 +38,9 @@ export async function seed(knex: Knex): Promise<void> {
   await initEnvConfig(hsmService, kmsRootConfigDAL, superAdminDAL, logger);
 
   await knex(TableName.SuperAdmin).insert([
-    // eslint-disable-next-line
-    // @ts-ignore
     {
+      // eslint-disable-next-line
+      // @ts-ignore
       id: "00000000-0000-0000-0000-000000000000",
       initialized: true,
       allowSignUp: true,
