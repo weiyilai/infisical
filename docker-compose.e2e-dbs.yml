@@ -139,6 +139,7 @@ services:
       - POSTGRES_USER=postgres-test
       - POSTGRES_PASSWORD=postgres-test
       - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
     volumes:
       - postgres-data-10.12:/var/lib/postgresql/data
     restart: unless-stopped
