@@ -58,7 +58,7 @@ export const LdapProvider = (): TDynamicProviderFns => {
         url: providerInputs.url,
         tlsOptions: {
           ca: providerInputs.ca ? providerInputs.ca : null,
-          rejectUnauthorized: !!providerInputs.ca
+          rejectUnauthorized: providerInputs.sslRejectUnauthorized
         },
         reconnect: true,
         bindDN: providerInputs.binddn,
