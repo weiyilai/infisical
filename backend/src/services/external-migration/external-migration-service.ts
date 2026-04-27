@@ -348,6 +348,13 @@ export const externalMigrationServiceFactory = ({
     connection: THCVaultConnection;
     namespace: string;
   }) => {
+    if (connection.projectId != null) {
+      throw new BadRequestError({
+        message:
+          "Vault external migration requires an organization-level HashiCorp Vault app connection. Project-scoped app connections cannot be used."
+      });
+    }
+
     // Allow root namespace access when no namespace is configured on the connection
     const isRootAccess = namespace === "root" || namespace === "/";
     const hasNoNamespace = connection.credentials.namespace === undefined;
