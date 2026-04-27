@@ -128,10 +128,7 @@ export const GatewayPicker = ({ value, onChange, isDisabled, className }: Props)
           {v2Gateways.map((gw) => (
             <SelectItem value={`gateway:${gw.id}`} key={`gw-${gw.id}`}>
               <div className="flex min-w-0 items-center gap-2">
-                <FontAwesomeIcon
-                  icon={faServer}
-                  className="size-3.5 shrink-0 text-mineshaft-400"
-                />
+                <FontAwesomeIcon icon={faServer} className="size-3.5 shrink-0 text-mineshaft-400" />
                 <span className="truncate">{gw.name}</span>
                 <span
                   className={`shrink-0 text-xs ${isOnline(gw) ? "text-green-500" : "text-red-400"}`}

@@ -1179,22 +1179,10 @@ export const identityKubernetesAuthServiceFactory = ({
       effectiveCaCert = undefined;
     }
 
-    // Resolve the gateway ID to validate through (either direct or from pool).
-    // If the pool has no healthy gateways right now, skip validation — the user
-    // should still be able to edit unrelated fields (TTL, audiences, etc.) while
-    // the pool recovers. Attach-time still validates, so the config was known
-    // healthy when it was first created.
     let validationGatewayId: string | null = effectiveGatewayId ?? null;
     if (!validationGatewayId && effectiveGatewayPoolId) {
-      try {
-        const picked = await gatewayPoolService.pickRandomHealthyGateway(effectiveGatewayPoolId);
-        validationGatewayId = picked.id;
-      } catch {
-        logger.warn(
-          { gatewayPoolId: effectiveGatewayPoolId },
-          "No healthy gateways in pool, skipping connectivity validation for k8s auth update"
-        );
-      }
+      const picked = await gatewayPoolService.pickRandomHealthyGateway(effectiveGatewayPoolId);
+      validationGatewayId = picked.id;
     }
 
     if (validationGatewayId) {
