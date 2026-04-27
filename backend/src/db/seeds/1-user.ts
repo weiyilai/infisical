@@ -40,7 +40,12 @@ export async function seed(knex: Knex): Promise<void> {
   await knex(TableName.SuperAdmin).insert([
     // eslint-disable-next-line
     // @ts-ignore
-    { id: "00000000-0000-0000-0000-000000000000", initialized: true, allowSignUp: true }
+    {
+      id: "00000000-0000-0000-0000-000000000000",
+      initialized: true,
+      allowSignUp: true,
+      fipsEnabled: process.env.FIPS_ENABLED === "true"
+    }
   ]);
   // Inserts seed entries
 
