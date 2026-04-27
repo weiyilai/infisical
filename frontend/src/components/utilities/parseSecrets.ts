@@ -166,11 +166,14 @@ export function parseYaml(src: ArrayBuffer | string) {
   return result;
 }
 
-function detectSeparator(csvContent: string): string {
-  const firstLine = csvContent.split("\n")[0];
-  const separators = [",", ";", "\t", "|"];
+export type CsvDelimiter = "," | ";" | "\t" | "|";
 
-  const counts = separators.map((sep) => ({
+const CSV_DELIMITERS: readonly CsvDelimiter[] = [",", ";", "\t", "|"];
+
+function detectSeparator(csvContent: string): CsvDelimiter {
+  const firstLine = csvContent.split("\n")[0];
+
+  const counts = CSV_DELIMITERS.map((sep) => ({
     separator: sep,
     count: (firstLine.match(new RegExp(`\\${sep}`, "g")) || []).length
   }));
@@ -182,7 +185,7 @@ function detectSeparator(csvContent: string): string {
 
 export function parseCsvToMatrix(src: ArrayBuffer | string): {
   matrix: string[][];
-  delimiter: string;
+  delimiter: CsvDelimiter;
 } {
   let csvContent: string;
   if (typeof src === "string") {

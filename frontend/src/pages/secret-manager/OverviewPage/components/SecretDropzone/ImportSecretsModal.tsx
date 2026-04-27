@@ -16,6 +16,7 @@ import { twMerge } from "tailwind-merge";
 import { createNotification } from "@app/components/notifications";
 import { ProjectPermissionCan } from "@app/components/permissions";
 import {
+  CsvDelimiter,
   parseCsvToMatrix,
   parseDotEnv,
   parseJson,
@@ -98,7 +99,7 @@ const ImportSecretsContent = ({
   const [csvData, setCsvData] = useState<{
     headers: string[];
     matrix: string[][];
-    delimiter: string;
+    delimiter: CsvDelimiter;
   } | null>(null);
   const [visibleSecretKeys, setVisibleSecretKeys] = useState<Set<string>>(new Set());
   const [shouldOverwrite, setShouldOverwrite] = useState(false);

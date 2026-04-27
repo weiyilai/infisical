@@ -5,6 +5,7 @@ import { twMerge } from "tailwind-merge";
 import { createNotification } from "@app/components/notifications";
 import { ProjectPermissionCan } from "@app/components/permissions";
 import {
+  CsvDelimiter,
   parseCsvToMatrix,
   parseDotEnv,
   parseJson,
@@ -40,7 +41,7 @@ export const SecretDropzone = ({ onParsedSecrets, onAddSecret }: Props) => {
   const [csvData, setCsvData] = useState<{
     headers: string[];
     matrix: string[][];
-    delimiter: string;
+    delimiter: CsvDelimiter;
   } | null>(null);
 
   const handleParsedSecrets = (env: TParsedEnv) => {

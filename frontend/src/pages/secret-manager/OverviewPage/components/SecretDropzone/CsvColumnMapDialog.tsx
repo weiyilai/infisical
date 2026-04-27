@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { createNotification } from "@app/components/notifications";
+import { CsvDelimiter } from "@app/components/utilities/parseSecrets";
 import { FormLabel } from "@app/components/v2";
 import {
   Badge,
@@ -48,14 +49,65 @@ type Props = {
   onOpenChange: (isOpen: boolean) => void;
   headers: string[];
   matrix: string[][];
-  delimiter: string;
+  delimiter: CsvDelimiter;
   onParsedSecrets: (env: TParsedEnv) => void;
 };
 
 const TRUTHY_VALUES = new Set(["true", "1", "yes", "y", "t"]);
 
-const pickInnerSeparator = (primaryDelimiter: string): string =>
-  primaryDelimiter === ";" ? "|" : ";";
+// Prefer `,` since it's the most natural list separator;
+// fall back to `;` only when `,` is itself the outer CSV delimiter.
+const pickInnerSeparator = (primaryDelimiter: CsvDelimiter): "," | ";" =>
+  primaryDelimiter === "," ? ";" : ",";
+
+const HEADER_ALIASES: Record<MapKey, string[]> = {
+  key: ["key", "name", "secret", "secret_key", "secretkey", "secret_name", "secretname"],
+  value: ["value", "val", "secret_value", "secretvalue"],
+  comment: ["comment", "comments", "description", "note", "notes"],
+  tags: ["tag", "tags", "labels", "label"],
+  metadata: ["metadata", "meta"],
+  skipMultilineEncoding: [
+    "skip_ml",
+    "skipml",
+    "skip_multiline",
+    "skipmultiline",
+    "skip_multiline_encoding",
+    "skipmultilineencoding",
+    "multiline",
+    "multiline_encoding",
+    "multilineencoding"
+  ]
+};
+
+const buildInitialMatrixMap = (headers: string[]): SecretMatrixMap => {
+  const normalized = headers.map((h) =>
+    h
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_")
+  );
+  const used = new Set<number>();
+  const pick = (aliases: string[]): number | null => {
+    const idx = normalized.findIndex((h, i) => !used.has(i) && aliases.includes(h));
+    if (idx === -1) return null;
+    used.add(idx);
+    return idx;
+  };
+
+  let keyIdx = pick(HEADER_ALIASES.key);
+  const value = pick(HEADER_ALIASES.value);
+  const comment = pick(HEADER_ALIASES.comment);
+  const tags = pick(HEADER_ALIASES.tags);
+  const metadata = pick(HEADER_ALIASES.metadata);
+  const skipMultilineEncoding = pick(HEADER_ALIASES.skipMultilineEncoding);
+
+  if (keyIdx === null) {
+    const firstFree = headers.findIndex((_, i) => !used.has(i));
+    keyIdx = firstFree === -1 ? 0 : firstFree;
+  }
+
+  return { key: keyIdx, value, comment, tags, metadata, skipMultilineEncoding };
+};
 
 const parseTagCell = (cell: string, innerSeparator: string): string[] => [
   ...new Set(
@@ -94,11 +146,13 @@ const parseMetadataCell = (
 
 const parseBooleanCell = (cell: string): boolean => TRUTHY_VALUES.has(cell.trim().toLowerCase());
 
+const formatDelimiter = (d: CsvDelimiter): string => (d === "\t" ? "tab" : d);
+
 type MatrixRow = {
   mapKey: MapKey;
   label: string;
   icon: ReactNode;
-  hint?: (innerSeparator: string) => ReactNode;
+  hint?: (innerSeparator: "," | ";", outerDelimiter: CsvDelimiter) => ReactNode;
 };
 
 const MATRIX_ROWS: MatrixRow[] = [
@@ -109,25 +163,43 @@ const MATRIX_ROWS: MatrixRow[] = [
     mapKey: "tags",
     label: "Tags",
     icon: <TagsIcon />,
-    hint: (sep) => (
-      <>
-        Separate multiple tag slugs with{" "}
-        <code className="rounded bg-bunker-400/30 px-1">{sep}</code> (e.g.{" "}
-        <code className="rounded bg-bunker-400/30 px-1">prod{sep}api</code>). Missing tags are
-        auto-created if you have permission.
-      </>
+    hint: (sep, outer) => (
+      <div className="flex flex-col gap-1.5">
+        <p>
+          Separate multiple tag slugs with either{" "}
+          <code className="rounded bg-bunker-400/30 px-1">,</code> or{" "}
+          <code className="rounded bg-bunker-400/30 px-1">;</code> — whichever is <em>not</em> your
+          CSV&apos;s column delimiter.
+        </p>
+        <p>
+          Detected column delimiter:{" "}
+          <code className="rounded bg-bunker-400/30 px-1">{formatDelimiter(outer)}</code>, so use{" "}
+          <code className="rounded bg-bunker-400/30 px-1">{sep}</code> (e.g.{" "}
+          <code className="rounded bg-bunker-400/30 px-1">prod{sep}api</code>).
+        </p>
+        <p>Missing tags are auto-created if you have permission.</p>
+      </div>
     )
   },
   {
     mapKey: "metadata",
     label: "Metadata",
     icon: <CodeXmlIcon />,
-    hint: (sep) => (
-      <>
-        Provide <code className="rounded bg-bunker-400/30 px-1">key=value</code> pairs separated by{" "}
-        <code className="rounded bg-bunker-400/30 px-1">{sep}</code> (e.g.{" "}
-        <code className="rounded bg-bunker-400/30 px-1">owner=team-a{sep}tier=p0</code>).
-      </>
+    hint: (sep, outer) => (
+      <div className="flex flex-col gap-1.5">
+        <p>
+          Provide <code className="rounded bg-bunker-400/30 px-1">key=value</code> pairs separated
+          by either <code className="rounded bg-bunker-400/30 px-1">,</code> or{" "}
+          <code className="rounded bg-bunker-400/30 px-1">;</code> — whichever is <em>not</em> your
+          CSV&apos;s column delimiter.
+        </p>
+        <p>
+          Detected column delimiter:{" "}
+          <code className="rounded bg-bunker-400/30 px-1">{formatDelimiter(outer)}</code>, so use{" "}
+          <code className="rounded bg-bunker-400/30 px-1">{sep}</code> (e.g.{" "}
+          <code className="rounded bg-bunker-400/30 px-1">owner=team-a{sep}tier=p0</code>).
+        </p>
+      </div>
     )
   },
   {
@@ -217,7 +289,7 @@ const MatrixImportModalTableRow = ({
 type ContentProps = {
   headers: string[];
   matrix: string[][];
-  delimiter: string;
+  delimiter: CsvDelimiter;
   onParsedSecrets: (env: TParsedEnv) => void;
   onClose: () => void;
 };
@@ -229,14 +301,9 @@ const CsvColumnMapContent = ({
   onParsedSecrets,
   onClose
 }: ContentProps) => {
-  const [importSecretMatrixMap, setImportSecretMatrixMap] = useState<SecretMatrixMap>({
-    key: 0,
-    value: null,
-    comment: null,
-    tags: null,
-    metadata: null,
-    skipMultilineEncoding: null
-  });
+  const [importSecretMatrixMap, setImportSecretMatrixMap] = useState<SecretMatrixMap>(() =>
+    buildInitialMatrixMap(headers)
+  );
 
   const innerSeparator = pickInnerSeparator(delimiter);
 
@@ -291,14 +358,7 @@ const CsvColumnMapContent = ({
       });
     }
 
-    setImportSecretMatrixMap({
-      key: 0,
-      value: null,
-      comment: null,
-      tags: null,
-      metadata: null,
-      skipMultilineEncoding: null
-    });
+    setImportSecretMatrixMap(buildInitialMatrixMap(headers));
     onClose();
     onParsedSecrets(env);
   };
@@ -334,7 +394,7 @@ const CsvColumnMapContent = ({
                 mapKey={row.mapKey}
                 label={row.label}
                 icon={row.icon}
-                hint={row.hint?.(innerSeparator)}
+                hint={row.hint?.(innerSeparator, delimiter)}
               />
             ))}
           </tbody>
