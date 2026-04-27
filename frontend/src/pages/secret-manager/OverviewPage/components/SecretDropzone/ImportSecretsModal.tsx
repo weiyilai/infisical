@@ -575,7 +575,7 @@ const ImportSecretsContent = ({
                                 <MessageSquareIcon className="size-3.5 shrink-0 text-muted" />
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p className="max-w-xs whitespace-pre-wrap">
+                                <p className="max-w-xl whitespace-pre-wrap">
                                   {secretData.comments.join("\n")}
                                 </p>
                               </TooltipContent>
@@ -588,7 +588,7 @@ const ImportSecretsContent = ({
                                   <TagsIcon className="size-3.5" />
                                 </span>
                               </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
+                              <TooltipContent className="max-w-xl">
                                 <div className="flex flex-col gap-1">
                                   {secretData.tagSlugs!.map((slug) => (
                                     <span key={slug} className="font-mono text-xs break-all">
@@ -606,7 +606,7 @@ const ImportSecretsContent = ({
                                   <CodeXmlIcon className="size-3.5" />
                                 </span>
                               </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
+                              <TooltipContent className="max-w-xl">
                                 <div className="flex flex-col gap-1">
                                   {secretData.secretMetadata!.map((m) => (
                                     <span key={m.key} className="font-mono text-xs break-all">
