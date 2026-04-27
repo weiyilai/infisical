@@ -647,24 +647,33 @@ export const externalMigrationServiceFactory = ({
       gatewayV2Service
     );
 
-    let vaultSecrets: Record<string, JsonValue>;
-    if (vaultSecretPaths.length === 1) {
-      vaultSecrets = secretsPerPath[0].secrets;
-    } else {
-      vaultSecrets = {};
-      for (const { vaultSecretPath, secrets } of secretsPerPath) {
-        const pathParts = vaultSecretPath.split("/").filter(Boolean);
-        const pathLabel = (pathParts.slice(1).join("/") || pathParts.join("_")).replace(/\//g, "_");
-        for (const [secretKey, secretValue] of Object.entries(secrets)) {
-          let compositeKey = `${pathLabel}__${secretKey}`;
-          let suffix = 1;
-          while (compositeKey in vaultSecrets) {
-            compositeKey = `${pathLabel}__${secretKey}__${suffix}`;
-            suffix += 1;
-          }
-          vaultSecrets[compositeKey] = secretValue;
+    const keyOrigins = new Map<string, string[]>();
+
+    // build a map of secret keys to the paths they appear in
+    for (const { vaultSecretPath, secrets } of secretsPerPath) {
+      for (const secretKey of Object.keys(secrets)) {
+        const paths = keyOrigins.get(secretKey);
+        if (paths) {
+          paths.push(vaultSecretPath);
+        } else {
+          keyOrigins.set(secretKey, [vaultSecretPath]);
         }
       }
+    }
+
+    const conflicts = [...keyOrigins.entries()]
+      .filter(([, paths]) => paths.length > 1)
+      .map(([secretKey, paths]) => `"${secretKey}" (in ${paths.join(", ")})`);
+
+    if (conflicts.length) {
+      throw new BadRequestError({
+        message: `Cannot import: the following secret keys appear in multiple selected Vault paths: ${conflicts.join("; ")}. Resolve the conflicts in Vault or import the paths separately.`
+      });
+    }
+
+    const vaultSecrets: Record<string, JsonValue> = {};
+    for (const { secrets } of secretsPerPath) {
+      Object.assign(vaultSecrets, secrets);
     }
 
     try {
