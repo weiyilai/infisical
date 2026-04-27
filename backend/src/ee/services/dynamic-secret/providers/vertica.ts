@@ -92,7 +92,7 @@ const generatePassword = (requirements?: PasswordRequirements) => {
           .map(() => chars.symbols[crypto.randomInt(chars.symbols.length)])
       );
     }
-
+    // trigger e2e tests
     const requiredTotal = Object.values(required).reduce<number>((a, b) => a + b, 0);
     const remainingLength = Math.max(length - requiredTotal, 0);
 
