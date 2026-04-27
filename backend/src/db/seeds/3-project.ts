@@ -22,8 +22,6 @@ import {
   OrgMembershipStatus,
   ProjectMembershipRole,
   ProjectType,
-  SecretEncryptionAlgo,
-  SecretKeyEncoding,
   TableName
 } from "../schemas";
 import { seedData1 } from "../seed-data";
