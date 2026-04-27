@@ -27,7 +27,7 @@ import {
   getHCVaultKubernetesRoles,
   getHCVaultLdapRoles,
   getHCVaultPolicyNames,
-  getHCVaultSecretsForPath,
+  getHCVaultSecretsForPaths,
   HCVaultAuthType,
   JsonValue,
   listHCVaultMounts,
@@ -639,12 +639,12 @@ export const externalMigrationServiceFactory = ({
       throw new BadRequestError({ message: "At least one Vault secret path is required" });
     }
 
-    const secretsPerPath = await Promise.all(
-      vaultSecretPaths.map((vaultSecretPath) =>
-        getHCVaultSecretsForPath(vaultNamespace, vaultSecretPath, connection, gatewayService, gatewayV2Service).then(
-          (secrets) => ({ vaultSecretPath, secrets })
-        )
-      )
+    const secretsPerPath = await getHCVaultSecretsForPaths(
+      vaultNamespace,
+      vaultSecretPaths,
+      connection,
+      gatewayService,
+      gatewayV2Service
     );
 
     let vaultSecrets: Record<string, JsonValue>;
