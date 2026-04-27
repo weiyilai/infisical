@@ -29,6 +29,7 @@ import {
   getHCVaultPolicyNames,
   getHCVaultSecretsForPath,
   HCVaultAuthType,
+  JsonValue,
   listHCVaultMounts,
   listHCVaultPolicies,
   listHCVaultSecretPaths,
@@ -614,7 +615,7 @@ export const externalMigrationServiceFactory = ({
     environment,
     secretPath,
     vaultNamespace,
-    vaultSecretPath,
+    vaultSecretPaths,
     auditLogInfo
   }: {
     actor: OrgServiceActor;
@@ -622,17 +623,42 @@ export const externalMigrationServiceFactory = ({
     environment: string;
     secretPath: string;
     vaultNamespace: string;
-    vaultSecretPath: string;
+    vaultSecretPaths: string[];
     auditLogInfo: AuditLogInfo;
   }) => {
     const connection = await getVaultConnectionForNamespace(actor, vaultNamespace, "import vault secrets");
-    const vaultSecrets = await getHCVaultSecretsForPath(
-      vaultNamespace,
-      vaultSecretPath,
-      connection,
-      gatewayService,
-      gatewayV2Service
+
+    if (!vaultSecretPaths.length) {
+      throw new BadRequestError({ message: "At least one Vault secret path is required" });
+    }
+
+    const secretsPerPath = await Promise.all(
+      vaultSecretPaths.map((vaultSecretPath) =>
+        getHCVaultSecretsForPath(vaultNamespace, vaultSecretPath, connection, gatewayService, gatewayV2Service).then(
+          (secrets) => ({ vaultSecretPath, secrets })
+        )
+      )
     );
+
+    let vaultSecrets: Record<string, JsonValue>;
+    if (vaultSecretPaths.length === 1) {
+      vaultSecrets = secretsPerPath[0].secrets;
+    } else {
+      vaultSecrets = {};
+      for (const { vaultSecretPath, secrets } of secretsPerPath) {
+        const pathParts = vaultSecretPath.split("/").filter(Boolean);
+        const pathLabel = (pathParts.slice(1).join("/") || pathParts.join("_")).replace(/\//g, "_");
+        for (const [secretKey, secretValue] of Object.entries(secrets)) {
+          let compositeKey = `${pathLabel}__${secretKey}`;
+          let suffix = 1;
+          while (compositeKey in vaultSecrets) {
+            compositeKey = `${pathLabel}__${secretKey}__${suffix}`;
+            suffix += 1;
+          }
+          vaultSecrets[compositeKey] = secretValue;
+        }
+      }
+    }
 
     try {
       const secretOperation = await secretService.createManySecretsRaw({

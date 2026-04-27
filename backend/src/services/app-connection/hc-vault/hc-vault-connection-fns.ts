@@ -36,7 +36,7 @@ import {
 } from "./hc-vault-connection-types";
 
 // HashiCorp Vault stores JSON data, so values can be any valid JSON type
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 export const convertVaultValueToString = (value: JsonValue): string => {
   if (value === null) {
