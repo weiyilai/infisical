@@ -95,7 +95,7 @@ const generatePassword = (requirements?: PasswordRequirements) => {
 
     const requiredTotal = Object.values(required).reduce<number>((a, b) => a + b, 0);
     const remainingLength = Math.max(length - requiredTotal, 0);
-
+    //
     const allowedChars = Object.entries(chars)
       .filter(([key]) => required[key as keyof typeof required] > 0)
       .map(([, value]) => value)
