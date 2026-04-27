@@ -883,8 +883,8 @@ export const scimServiceFactory = ({
 
     const groups = await groupDAL.findGroups(
       {
-        orgId,
-        ...(filter && parseScimFilter(filter))
+        ...(filter && parseScimFilter(filter)),
+        orgId
       },
       {
         offset: startIndex - 1,

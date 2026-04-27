@@ -69,7 +69,7 @@ type Props = {
   projectId: string;
   secretPath: string;
   initialParsedSecrets?: TParsedEnv | null;
-  onComplete?: () => void;
+  onComplete?: (envSlugs: string[]) => void;
 };
 
 type ContentProps = {
@@ -77,7 +77,7 @@ type ContentProps = {
   projectId: string;
   secretPath: string;
   initialParsedSecrets?: TParsedEnv | null;
-  onComplete?: () => void;
+  onComplete?: (envSlugs: string[]) => void;
   onClose: () => void;
 };
 
@@ -377,7 +377,9 @@ const ImportSecretsContent = ({
       const envResults = await Promise.allSettled(envPromises);
 
       const successEnvs: string[] = [];
+      const successEnvSlugs: string[] = [];
       const approvalEnvs: string[] = [];
+      const approvalEnvSlugs: string[] = [];
       const failedEnvs: string[] = [];
 
       envResults.forEach((result) => {
@@ -386,8 +388,10 @@ const ImportSecretsContent = ({
             failedEnvs.push(result.value.environment);
           } else if (result.value.hasApproval) {
             approvalEnvs.push(result.value.environment);
+            approvalEnvSlugs.push(result.value.slug);
           } else {
             successEnvs.push(result.value.environment);
+            successEnvSlugs.push(result.value.slug);
           }
         } else if (result.status === "rejected") {
           failedEnvs.push("unknown");
@@ -416,7 +420,10 @@ const ImportSecretsContent = ({
       }
 
       onClose();
-      onComplete?.();
+      const completedEnvSlugs = [...successEnvSlugs, ...approvalEnvSlugs];
+      if (completedEnvSlugs.length) {
+        onComplete?.(completedEnvSlugs);
+      }
     } catch (err) {
       console.error(err);
       createNotification({
