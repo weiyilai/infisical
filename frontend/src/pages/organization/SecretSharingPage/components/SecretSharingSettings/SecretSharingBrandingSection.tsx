@@ -167,7 +167,7 @@ const AssetUploadCard = ({
   };
 
   return (
-    <div className="flex min-h-28 justify-between gap-2 rounded-md border border-border bg-container p-3">
+    <div className="flex h-28 justify-between gap-2 rounded-md border border-border bg-container p-3">
       <div className="flex min-h-0 flex-col justify-center">
         <p className="mb-1 text-sm font-medium">{title}</p>
         <p className="mb-2 text-xs text-muted">{description}</p>
