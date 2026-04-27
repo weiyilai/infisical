@@ -13,12 +13,11 @@ export default defineConfig({
     },
     environment: "./e2e-test/vitest-environment-knex.ts",
     include: ["./e2e-test/**/*.spec.ts"],
-    pool: "threads",
+    pool: "forks",
     poolOptions: {
-      threads: {
-        minThreads: 1,
-        maxThreads: 1,
-        singleThread: true
+      forks: {
+        minForks: 1,
+        maxForks: 1
       }
     },
     fileParallelism: false,
