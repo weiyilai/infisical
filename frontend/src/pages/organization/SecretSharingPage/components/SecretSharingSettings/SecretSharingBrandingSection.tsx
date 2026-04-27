@@ -48,15 +48,8 @@ import {
 
 const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
-const ALLOWED_FILE_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/gif",
-  "image/svg+xml",
-  "image/x-icon",
-  "image/vnd.microsoft.icon",
-  "image/webp"
-];
+const ALLOWED_FILE_TYPES = ["image/png", "image/jpeg"];
+const ACCEPTED_FORMATS_LABEL = "PNG or JPEG";
 
 const formSchema = z.object({
   primaryColor: z
@@ -78,7 +71,7 @@ const validateFile = (file: File): string | null => {
     return `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`;
   }
   if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-    return "Invalid file type. Please upload a PNG, JPEG, GIF, SVG, ICO, or WebP image.";
+    return `Invalid file type. Please upload a ${ACCEPTED_FORMATS_LABEL} image.`;
   }
   return null;
 };
@@ -174,7 +167,7 @@ const AssetUploadCard = ({
   };
 
   return (
-    <div className="flex h-28 justify-between gap-2 rounded-md border border-border bg-container p-3">
+    <div className="flex min-h-28 justify-between gap-2 rounded-md border border-border bg-container p-3">
       <div className="flex min-h-0 flex-col justify-center">
         <p className="mb-1 text-sm font-medium">{title}</p>
         <p className="mb-2 text-xs text-muted">{description}</p>
@@ -341,7 +334,7 @@ export const SecretSharingBrandingSection = () => {
                   <AssetUploadCard
                     assetType="brand-logo"
                     title="Logo"
-                    description="Displayed on shared secret pages (max 1MB)"
+                    description={`Displayed on shared secret pages. ${ACCEPTED_FORMATS_LABEL}, max 1MB.`}
                     hasAsset={brandingConfig?.hasLogo ?? false}
                     isAllowed={isAllowed}
                     isPending={isPending}
@@ -351,7 +344,7 @@ export const SecretSharingBrandingSection = () => {
                   <AssetUploadCard
                     assetType="brand-favicon"
                     title="Favicon"
-                    description="Displayed in browser tab (max 1MB)"
+                    description={`Displayed in browser tab. ${ACCEPTED_FORMATS_LABEL}, max 1MB.`}
                     hasAsset={brandingConfig?.hasFavicon ?? false}
                     isAllowed={isAllowed}
                     isPending={isPending}
