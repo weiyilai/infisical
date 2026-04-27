@@ -189,7 +189,7 @@ export const SqlDatabaseProvider = ({
         options: isMsSQLClient
           ? {
               ...(providerInputs.sslEnabled !== undefined ? { encrypt: providerInputs.sslEnabled } : {}),
-              trustServerCertificate: !providerInputs.ca,
+              trustServerCertificate: !providerInputs.sslRejectUnauthorized,
               cryptoCredentialsDetails: providerInputs.ca ? { ca: providerInputs.ca } : {}
             }
           : undefined

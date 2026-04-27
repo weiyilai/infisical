@@ -181,7 +181,7 @@ export const AzureSqlDatabaseProvider = ({
         // https://github.com/tediousjs/tedious/blob/ebb023ed90969a7ec0e4b036533ad52739d921f7/test/config.ci.ts#L19
         options: {
           ...(providerInputs.sslEnabled !== undefined ? { encrypt: providerInputs.sslEnabled } : {}),
-          trustServerCertificate: !providerInputs.ca,
+          trustServerCertificate: !providerInputs.sslRejectUnauthorized,
           cryptoCredentialsDetails: providerInputs.ca ? { ca: providerInputs.ca } : {}
         }
       },
