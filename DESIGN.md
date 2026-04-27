@@ -7,6 +7,7 @@ agents producing new UI or user-visible copy.
 **Source of truth for tokens:** [`frontend/src/index.css`](frontend/src/index.css) (`@theme` block).
 **Canonical semantic reference:** [`Badge.stories.tsx`](frontend/src/components/v3/generic/Badge/Badge.stories.tsx).
 **Canonical page references:** [`OverviewPage`](frontend/src/pages/secret-manager/OverviewPage) and [`AccessControlPage`](frontend/src/pages/project/AccessControlPage).
+**Component usage reference:** Every v3 generic component has a sibling `<Name>.stories.tsx` at `frontend/src/components/v3/generic/<Name>/`. Read it before producing UI with that component — the stories carry the variants, compositions, and use-when guidance the source does not.
 
 ---
 
@@ -141,6 +142,22 @@ The v2 library is legacy; only fall back when no v3 equivalent exists.
 For exact tokens, class lists, and every variant, read the component source
 and its `*.stories.tsx` — this doc cites them rather than duplicating them.
 
+### Reading the stories
+
+Every component's `.stories.tsx` follows the same shape:
+
+- **`Variant: X`** stories — one per prop-driven variant (e.g. `Variant: Outline`).
+- **`Example: X`** stories — composition recipes (e.g. `Example: With Header`,
+  `Example: Inside Card / Sheet / Dialog`).
+- Each story's `parameters.docs.description.story` is the use-when guidance.
+
+When picking a component, find the `Example:` story closest to your need and
+mirror it. When picking a variant, the `Variant:` story descriptions are the
+canonical "use this when..." guidance.
+
+Run Storybook with `cd frontend && npm run storybook` (port 6006) to preview.
+The Generic / Platform sidebar is alphabetical.
+
 | Component | Source | Key specs & usage |
 | --- | --- | --- |
 | **Button** | [`Button.tsx`](frontend/src/components/v3/generic/Button/Button.tsx) | Sizes `xs`/`sm`/`md`(default)/`lg` (h-7/8/9/10). Variants: `outline` (default), `ghost`, `neutral`, `project`, `org`, `sub-org`, `success`, `info`, `warning`, `danger`. Primary actions use the scope variant of the current surface. |
@@ -254,6 +271,13 @@ Use `DocumentationLinkBadge` (info variant, external-link icon). Label it
 ## 9. Agent Prompt Guide
 
 Pasteable prompt fragments for AI coding agents producing new UI.
+
+**Before generating UI for any component:**
+
+1. Open `frontend/src/components/v3/generic/<Name>/<Name>.stories.tsx`.
+2. Pick the `Example:` story closest to your need; mirror its composition exactly.
+3. Pick the variant by reading the matching `Variant:` story's description —
+   not by color preference.
 
 **Adding a section to an existing page:**
 > Wrap the section in a `Card` from `@app/components/v3`. Use `CardHeader`
