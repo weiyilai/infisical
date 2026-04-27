@@ -163,7 +163,7 @@ export const ViewSecretRequestByIDPage = () => {
   if (isPending) {
     return (
       <div className="h-screen w-screen bg-bunker-800">
-        <PageLoader lottieClassName="w-34" />;
+        <PageLoader lottieClassName="w-34" />
       </div>
     );
   }
