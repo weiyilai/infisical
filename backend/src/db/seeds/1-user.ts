@@ -1,9 +1,9 @@
-import bcrypt from "bcrypt";
 import { Knex } from "knex";
 
 import { initializeHsmModule } from "@app/ee/services/hsm/hsm-fns";
 import { hsmServiceFactory } from "@app/ee/services/hsm/hsm-service";
 import { getHsmConfig, initEnvConfig } from "@app/lib/config/env";
+import { crypto } from "@app/lib/crypto/cryptography";
 import { initLogger, logger } from "@app/lib/logger";
 import { kmsRootConfigDALFactory } from "@app/services/kms/kms-root-config-dal";
 import { superAdminDALFactory } from "@app/services/super-admin/super-admin-dal";
@@ -71,7 +71,8 @@ export async function seed(knex: Knex): Promise<void> {
     .returning("*");
 
   // Hash password for modern login support (POST /api/v3/auth/login)
-  const hashedPassword = await bcrypt.hash(seedData1.password, 10);
+  // Uses FIPS-aware hashing: PBKDF2-SHA256 in FIPS mode, bcrypt otherwise
+  const hashedPassword = await crypto.hashing().hash(seedData1.password, 10);
   await knex(TableName.Users).where({ id: user.id }).update({ hashedPassword });
 
   const encKeys = await generateUserSrpKeys(seedData1.password);
