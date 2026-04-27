@@ -22,6 +22,8 @@ import { TBrandingConfig, useGetSecretRequestById } from "@app/hooks/api/secretS
 
 import {
   adjustColor,
+  DEFAULT_BRAND_PRIMARY_COLOR,
+  DEFAULT_BRAND_SECONDARY_COLOR,
   DEFAULT_FAVICON_URL,
   isLightColor
 } from "../ViewSharedSecretByIDPage/ViewSharedSecretByIDPage";
@@ -104,12 +106,15 @@ export const ViewSecretRequestByIDPage = () => {
     : DEFAULT_FAVICON_URL;
 
   const brandingTheme = useMemo(() => {
-    if (!brandingConfig?.primaryColor) {
+    if (!hasCustomBranding) {
       return undefined;
     }
 
-    const primary = brandingConfig.primaryColor;
-    const secondary = brandingConfig.secondaryColor || primary;
+    const primary = brandingConfig?.primaryColor || DEFAULT_BRAND_PRIMARY_COLOR;
+    const secondary =
+      brandingConfig?.secondaryColor ||
+      brandingConfig?.primaryColor ||
+      DEFAULT_BRAND_SECONDARY_COLOR;
     const isSecondaryLight = isLightColor(secondary);
 
     return {
@@ -122,7 +127,7 @@ export const ViewSecretRequestByIDPage = () => {
       inputBg: adjustColor(secondary, isSecondaryLight ? -15 : 15),
       buttonBg: secondary
     };
-  }, [brandingConfig?.primaryColor, brandingConfig?.secondaryColor]);
+  }, [hasCustomBranding, brandingConfig?.primaryColor, brandingConfig?.secondaryColor]);
 
   const backgroundStyle = useMemo(() => {
     if (!brandingTheme) {

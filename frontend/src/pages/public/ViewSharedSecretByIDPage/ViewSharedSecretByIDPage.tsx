@@ -24,6 +24,8 @@ import {
 
 export const DEFAULT_LOGO_URL = "/images/gradientLogo.svg";
 export const DEFAULT_FAVICON_URL = "/infisical.ico";
+export const DEFAULT_BRAND_PRIMARY_COLOR = "#0e1014";
+export const DEFAULT_BRAND_SECONDARY_COLOR = "#1e1f22";
 
 // Returns true if the color is considered "light"
 export const isLightColor = (hexColor: string): boolean => {
@@ -147,12 +149,15 @@ export const ViewSharedSecretByIDPage = () => {
     : DEFAULT_FAVICON_URL;
 
   const brandingTheme = useMemo((): BrandingTheme | undefined => {
-    if (!brandingConfig?.primaryColor) {
+    if (!hasCustomBranding) {
       return undefined;
     }
 
-    const primary = brandingConfig.primaryColor;
-    const secondary = brandingConfig.secondaryColor || primary;
+    const primary = brandingConfig?.primaryColor || DEFAULT_BRAND_PRIMARY_COLOR;
+    const secondary =
+      brandingConfig?.secondaryColor ||
+      brandingConfig?.primaryColor ||
+      DEFAULT_BRAND_SECONDARY_COLOR;
     const isSecondaryLight = isLightColor(secondary);
 
     return {
@@ -165,7 +170,7 @@ export const ViewSharedSecretByIDPage = () => {
       inputBg: adjustColor(secondary, isSecondaryLight ? -15 : 15),
       buttonBg: secondary
     };
-  }, [brandingConfig?.primaryColor, brandingConfig?.secondaryColor]);
+  }, [hasCustomBranding, brandingConfig?.primaryColor, brandingConfig?.secondaryColor]);
 
   const backgroundStyle = useMemo(() => {
     if (!brandingTheme) {
