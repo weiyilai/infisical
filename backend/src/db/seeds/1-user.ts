@@ -70,9 +70,7 @@ export async function seed(knex: Knex): Promise<void> {
     ])
     .returning("*");
 
-  // Hash password for modern login support (POST /api/v3/auth/login)
-  // Uses FIPS-aware hashing: PBKDF2-SHA256 in FIPS mode, bcrypt otherwise
-  const hashedPassword = await crypto.hashing().hash(seedData1.password, 10);
+  const hashedPassword = await crypto.hashing().createHash(seedData1.password, 10);
   await knex(TableName.Users).where({ id: user.id }).update({ hashedPassword });
 
   const encKeys = await generateUserSrpKeys(seedData1.password);
