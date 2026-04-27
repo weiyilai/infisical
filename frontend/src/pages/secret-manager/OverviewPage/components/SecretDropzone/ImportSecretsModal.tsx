@@ -588,9 +588,14 @@ const ImportSecretsContent = ({
                                   <TagsIcon className="size-3.5" />
                                 </span>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                {secretData.tagSlugs!.length} tag
-                                {secretData.tagSlugs!.length > 1 ? "s" : ""}
+                              <TooltipContent className="max-w-xs">
+                                <div className="flex flex-col gap-1">
+                                  {secretData.tagSlugs!.map((slug) => (
+                                    <span key={slug} className="font-mono text-xs break-all">
+                                      {slug}
+                                    </span>
+                                  ))}
+                                </div>
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -601,7 +606,15 @@ const ImportSecretsContent = ({
                                   <CodeXmlIcon className="size-3.5" />
                                 </span>
                               </TooltipTrigger>
-                              <TooltipContent>Has metadata</TooltipContent>
+                              <TooltipContent className="max-w-xs">
+                                <div className="flex flex-col gap-1">
+                                  {secretData.secretMetadata!.map((m) => (
+                                    <span key={m.key} className="font-mono text-xs break-all">
+                                      {m.key}={m.value}
+                                    </span>
+                                  ))}
+                                </div>
+                              </TooltipContent>
                             </Tooltip>
                           )}
                           {hasSkipMl && (
