@@ -289,6 +289,20 @@ export const SelectionPanel = ({
   };
 
   const areFoldersSelected = Boolean(Object.keys(selectedEntries[EntryType.FOLDER]).length);
+  const areRotationsSelected = selectedRotationCount > 0;
+
+  const isMoveDisabled = areFoldersSelected || isRotatedSecretSelected;
+  let moveDisabledReason = "Moving folders is not supported";
+  if (!areFoldersSelected && isRotatedSecretSelected) {
+    moveDisabledReason = "Moving rotated secrets is not supported";
+  }
+
+  const isDeleteDisabled = areRotationsSelected || isRotatedSecretSelected;
+  let deleteDisabledReason = "Rotated secrets cannot be deleted via multi-select";
+  if (areRotationsSelected) {
+    deleteDisabledReason =
+      "Rotations cannot be deleted from this view. Use the delete action on the rotation row instead.";
+  }
 
   return (
     <>
@@ -307,11 +321,6 @@ export const SelectionPanel = ({
           >
             Unselect All
           </button>
-          {isRotatedSecretSelected && (
-            <span className="text-xs text-accent">
-              Rotated Secrets will not be affected by move or delete action.
-            </span>
-          )}
           {selectedKeysCount > 0 && (
             <Tooltip open={isTagActionDisabled ? undefined : false}>
               <TooltipTrigger>
@@ -331,10 +340,10 @@ export const SelectionPanel = ({
           )}
           {shouldShowDelete && (
             <>
-              <Tooltip open={areFoldersSelected ? undefined : false}>
+              <Tooltip open={isMoveDisabled ? undefined : false}>
                 <TooltipTrigger>
                   <Button
-                    isDisabled={areFoldersSelected}
+                    isDisabled={isMoveDisabled}
                     variant="project"
                     className="ml-2"
                     onClick={() => handlePopUpOpen("bulkMoveSecrets")}
@@ -344,17 +353,23 @@ export const SelectionPanel = ({
                     Move
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Moving folders is not supported</TooltipContent>
+                <TooltipContent>{moveDisabledReason}</TooltipContent>
               </Tooltip>
-              <Button
-                variant="danger"
-                className="ml-2"
-                onClick={() => handlePopUpOpen("bulkDeleteEntries")}
-                size="xs"
-              >
-                <TrashIcon />
-                Delete
-              </Button>
+              <Tooltip open={isDeleteDisabled ? undefined : false}>
+                <TooltipTrigger>
+                  <Button
+                    isDisabled={isDeleteDisabled}
+                    variant="danger"
+                    className="ml-2"
+                    onClick={() => handlePopUpOpen("bulkDeleteEntries")}
+                    size="xs"
+                  >
+                    <TrashIcon />
+                    Delete
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{deleteDisabledReason}</TooltipContent>
+              </Tooltip>
             </>
           )}
         </div>
