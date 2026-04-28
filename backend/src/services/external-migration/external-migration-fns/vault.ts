@@ -31,7 +31,7 @@ const vaultFactory = (
       targetHostname: string;
       targetPort: number;
     },
-    gatewayCallback: (host: string, port: number, httpsAgent?: https.Agent) => Promise<T>
+    gatewayCallback: (host: string, port: number, httpsAgent?: https.Agent, hostHeader?: string) => Promise<T>
   ): Promise<T> => {
     const { gatewayId, targetProtocol, targetHostname, targetPort } = inputs;
 
@@ -42,12 +42,18 @@ const vaultFactory = (
     });
 
     if (gatewayV2Details) {
-      return withGatewayV2Proxy(async (port) => gatewayCallback("http://localhost", port), {
-        protocol: GatewayProxyProtocol.Tcp,
-        relayHost: gatewayV2Details.relayHost,
-        gateway: gatewayV2Details.gateway,
-        relay: gatewayV2Details.relay
-      });
+      const isHttps = targetProtocol === "https";
+      const httpsAgent = isHttps ? new https.Agent({ servername: targetHostname }) : undefined;
+
+      return withGatewayV2Proxy(
+        async (port) => gatewayCallback(`${targetProtocol}://localhost`, port, httpsAgent, targetHostname),
+        {
+          protocol: GatewayProxyProtocol.Tcp,
+          relayHost: gatewayV2Details.relayHost,
+          gateway: gatewayV2Details.gateway,
+          relay: gatewayV2Details.relay
+        }
+      );
     }
 
     const relayDetails = await gatewayService.fnGetGatewayClientTlsByGatewayId(gatewayId);
@@ -223,14 +229,15 @@ const vaultFactory = (
     accessToken: string;
     gatewayId?: string;
   }): Promise<VaultData[]> {
-    const getData = async (host: string, port?: number, httpsAgent?: https.Agent) => {
+    const getData = async (host: string, port?: number, httpsAgent?: https.Agent, hostHeader?: string) => {
       const allData: VaultData[] = [];
 
       const request = axios.create({
         baseURL: port ? `${host}:${port}` : host,
         headers: {
           "X-Vault-Token": accessToken,
-          ...(namespace ? { "X-Vault-Namespace": namespace } : {})
+          ...(namespace ? { "X-Vault-Namespace": namespace } : {}),
+          ...(hostHeader ? { Host: hostHeader } : {})
         },
         maxRedirects: 0,
         httpsAgent
