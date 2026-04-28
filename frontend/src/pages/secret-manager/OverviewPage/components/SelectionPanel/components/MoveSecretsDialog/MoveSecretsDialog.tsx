@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { SingleValue } from "react-select";
 import { subject } from "@casl/ability";
-import { faBan, faEyeSlash, faWarning } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { CheckCircleIcon, CircleAlertIcon, InfoIcon, LoaderCircleIcon } from "lucide-react";
@@ -14,6 +12,7 @@ import { createNotification } from "@app/components/notifications";
 import {
   Alert,
   AlertDescription,
+  AlertTitle,
   Button,
   Checkbox,
   Dialog,
@@ -695,9 +694,7 @@ const MultiEnvContent = ({
     <form onSubmit={handleSubmit(handleFormSubmit)}>
       <Alert variant="info" className="mb-4">
         <InfoIcon />
-        <AlertDescription>
-          Select a single environment to move secrets across environments.
-        </AlertDescription>
+        <AlertTitle>Select a single environment to move secrets across environments.</AlertTitle>
       </Alert>
       <Field>
         <FieldLabel>Secret Path</FieldLabel>
@@ -714,24 +711,17 @@ const MultiEnvContent = ({
         </FieldContent>
       </Field>
       {Boolean(environmentsToBeSkipped.length) && (
-        <div className="mt-4 rounded-sm bg-mineshaft-900 px-3 py-2">
-          <span className="text-sm text-yellow">
-            <FontAwesomeIcon icon={faWarning} className="mr-0.5" /> The following environments will
-            not be affected
-          </span>
-          {environmentsToBeSkipped.map((env) => (
-            <div
-              key={env.id}
-              className={`${env.type === "permission" ? "text-red" : "text-mineshaft-300"} mb-0.5 flex items-start gap-2 text-sm`}
-            >
-              <FontAwesomeIcon
-                className="mt-1"
-                icon={env.type === "permission" ? faBan : faEyeSlash}
-              />
-              <span>{env.message}</span>
-            </div>
-          ))}
-        </div>
+        <Alert variant="danger" className="mt-4">
+          <CircleAlertIcon />
+          <AlertTitle>The following environments will not be affected</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc pl-4">
+              {environmentsToBeSkipped.map((env) => (
+                <li key={env.id}>{env.message}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       )}
       <Controller
         control={control}
