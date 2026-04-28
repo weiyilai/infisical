@@ -4,7 +4,8 @@ import { AxiosError } from "axios";
 import RE2 from "re2";
 
 import { TableName } from "@app/db/schemas";
-import { request } from "@app/lib/config/request";
+import { TGatewayServiceFactory } from "@app/ee/services/gateway/gateway-service";
+import { TGatewayV2ServiceFactory } from "@app/ee/services/gateway-v2/gateway-v2-service";
 import { crypto } from "@app/lib/crypto/cryptography";
 import { BadRequestError, NotFoundError } from "@app/lib/errors";
 import { ProcessedPermissionRules } from "@app/lib/knex/permission-filter-utils";
@@ -17,6 +18,7 @@ import { TAppConnectionServiceFactory } from "@app/services/app-connection/app-c
 import {
   authenticateVenafiTpp,
   getVenafiTppHeaders,
+  requestWithVenafiTppGateway,
   revokeVenafiTppToken
 } from "@app/services/app-connection/venafi-tpp/venafi-tpp-connection-fns";
 import { TCertificateBodyDALFactory } from "@app/services/certificate/certificate-body-dal";
@@ -152,7 +154,7 @@ const parseSanToVenafiFormat = (san: string): { Type: number; Name: string } => 
   return { Type: VENAFI_SAN_TYPE_BY_NORMALIZED[type], Name: value };
 };
 
-const getVenafiTppConnectionCredentials = async (
+const getVenafiTppConnection = async (
   appConnectionId: string,
   appConnectionDAL: Pick<TAppConnectionDALFactory, "findById">,
   kmsService: Pick<TKmsServiceFactory, "createCipherPairWithDataKey">
@@ -190,18 +192,22 @@ const getVenafiTppConnectionCredentials = async (
     password: string;
   };
 
-  return credentials;
+  return { credentials, gatewayId: appConnection.gatewayId ?? null };
 };
 
 const submitCertificateToTpp = async ({
+  appConnection,
   baseUrl,
   accessToken,
   policyDN,
   csrPem,
   objectName,
   altNames,
-  workToDoTimeout = 30
+  workToDoTimeout = 30,
+  gatewayService,
+  gatewayV2Service
 }: {
+  appConnection: { gatewayId?: string | null };
   baseUrl: string;
   accessToken: string;
   policyDN: string;
@@ -209,6 +215,8 @@ const submitCertificateToTpp = async ({
   objectName: string;
   altNames?: string[];
   workToDoTimeout?: number;
+  gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
+  gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
 }): Promise<TVenafiTppRequestResponse> => {
   const requestBody: TVenafiTppCertificateRequest = {
     PolicyDN: policyDN,
@@ -232,10 +240,14 @@ const submitCertificateToTpp = async ({
     "Venafi TPP: Submitting certificate request"
   );
 
-  const { data, status } = await request.post<TVenafiTppRequestResponse>(
-    `${baseUrl}/vedsdk/certificates/request`,
-    requestBody,
+  const { data, status } = await requestWithVenafiTppGateway<TVenafiTppRequestResponse>(
+    appConnection,
+    gatewayService,
+    gatewayV2Service,
     {
+      method: "POST",
+      url: `${baseUrl}/vedsdk/certificates/request`,
+      data: requestBody,
       headers: getVenafiTppHeaders(accessToken),
       validateStatus: (s) => s === 200 || s === 202
     }
@@ -255,28 +267,38 @@ const submitCertificateToTpp = async ({
 };
 
 const retrieveCertificateFromTpp = async ({
+  appConnection,
   baseUrl,
   accessToken,
   certificateDN,
-  includeChain = true
+  includeChain = true,
+  gatewayService,
+  gatewayV2Service
 }: {
+  appConnection: { gatewayId?: string | null };
   baseUrl: string;
   accessToken: string;
   certificateDN: string;
   includeChain?: boolean;
+  gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
+  gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
 }): Promise<{ certificate: string; chain: string }> => {
   logger.info({ certificateDN, includeChain }, "Venafi TPP: Retrieving certificate");
 
-  const { data, status } = await request.post<TVenafiTppRetrieveResponse>(
-    `${baseUrl}/vedsdk/certificates/retrieve`,
+  const { data, status } = await requestWithVenafiTppGateway<TVenafiTppRetrieveResponse>(
+    appConnection,
+    gatewayService,
+    gatewayV2Service,
     {
-      CertificateDN: certificateDN,
-      Format: "Base64",
-      IncludeChain: includeChain,
-      IncludePrivateKey: false,
-      RootFirstOrder: false
-    },
-    {
+      method: "POST",
+      url: `${baseUrl}/vedsdk/certificates/retrieve`,
+      data: {
+        CertificateDN: certificateDN,
+        Format: "Base64",
+        IncludeChain: includeChain,
+        IncludePrivateKey: false,
+        RootFirstOrder: false
+      },
       headers: getVenafiTppHeaders(accessToken),
       validateStatus: (s) => s === 200 || s === 202
     }
@@ -368,6 +390,8 @@ type TVenafiTppCertificateAuthorityFnsDeps = {
   kmsService: Pick<TKmsServiceFactory, "encryptWithKmsKey" | "generateKmsKey" | "createCipherPairWithDataKey">;
   projectDAL: Pick<TProjectDALFactory, "findById" | "findOne" | "updateById" | "transaction">;
   certificateProfileDAL?: Pick<TCertificateProfileDALFactory, "findById">;
+  gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
+  gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
 };
 
 export const VenafiTppCertificateAuthorityFns = ({
@@ -380,7 +404,9 @@ export const VenafiTppCertificateAuthorityFns = ({
   certificateSecretDAL,
   kmsService,
   projectDAL,
-  certificateProfileDAL
+  certificateProfileDAL,
+  gatewayService,
+  gatewayV2Service
 }: TVenafiTppCertificateAuthorityFnsDeps) => {
   const createCertificateAuthority = async ({
     name,
@@ -627,13 +653,14 @@ export const VenafiTppCertificateAuthorityFns = ({
       kmsId: certificateManagerKmsId
     });
 
-    const credentials = await getVenafiTppConnectionCredentials(
+    const { credentials, gatewayId } = await getVenafiTppConnection(
       venafiCa.configuration.appConnectionId,
       appConnectionDAL,
       kmsService
     );
 
     const baseUrl = normalizeTppUrl(credentials.tppUrl);
+    const appConnection = { gatewayId };
 
     let csrPem: string;
     let skLeaf: string | undefined;
@@ -713,22 +740,20 @@ export const VenafiTppCertificateAuthorityFns = ({
     let accessToken: string | undefined;
 
     try {
-      const authResponse = await authenticateVenafiTpp({
-        tppUrl: credentials.tppUrl,
-        clientId: credentials.clientId,
-        username: credentials.username,
-        password: credentials.password
-      });
+      const authResponse = await authenticateVenafiTpp({ gatewayId, credentials }, gatewayService, gatewayV2Service);
       accessToken = authResponse.access_token;
 
       const requestResponse = await submitCertificateToTpp({
+        appConnection,
         baseUrl,
         accessToken,
         policyDN: venafiCa.configuration.policyDN,
         csrPem,
         objectName: commonName,
         altNames,
-        workToDoTimeout: 60
+        workToDoTimeout: 60,
+        gatewayService,
+        gatewayV2Service
       });
 
       let certificateResult: { certificate: string; chain: string } | undefined;
@@ -755,10 +780,13 @@ export const VenafiTppCertificateAuthorityFns = ({
         for (let attempt = 0; attempt < maxRetries; attempt += 1) {
           try {
             certificateResult = await retrieveCertificateFromTpp({
+              appConnection,
               baseUrl,
               accessToken,
               certificateDN: requestResponse.CertificateDN,
-              includeChain: true
+              includeChain: true,
+              gatewayService,
+              gatewayV2Service
             });
             break;
           } catch (error) {
@@ -961,7 +989,7 @@ export const VenafiTppCertificateAuthorityFns = ({
       });
     } finally {
       if (accessToken) {
-        await revokeVenafiTppToken(baseUrl, accessToken);
+        await revokeVenafiTppToken({ gatewayId, credentials }, accessToken, gatewayService, gatewayV2Service);
       }
     }
   };

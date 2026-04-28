@@ -2485,7 +2485,9 @@ export const registerRoutes = async (
     pkiSyncDAL,
     pkiSyncQueue,
     certificateRequestDAL,
-    resourceMetadataDAL
+    resourceMetadataDAL,
+    gatewayService,
+    gatewayV2Service
   });
 
   const certificateEstService = certificateEstServiceFactory({
@@ -2568,7 +2570,9 @@ export const registerRoutes = async (
     certificateRequestService,
     certificateRequestDAL,
     resourceMetadataDAL,
-    pkiAlertV2Queue
+    pkiAlertV2Queue,
+    gatewayService,
+    gatewayV2Service
   });
 
   const certificateApprovalService = certificateApprovalServiceFactory({
