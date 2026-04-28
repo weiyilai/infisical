@@ -15,8 +15,8 @@ agents producing new UI or user-visible copy.
 
 Infisical is a security tool for operators. The interface reads like
 infrastructure: dense, calm, and legible — never ornamental. Dark is the native
-medium; the page canvas is `#19191c`, and light themes are not part of the
-system yet.
+medium; the page canvas is `--color-background`, and light themes are not part
+of the system yet.
 
 Color carries **meaning before brand**. A danger badge is red because the
 action is destructive, not because red is the accent. A project-colored button
@@ -29,7 +29,7 @@ values are masked by default; revealing one is an intentional act.
 
 **Key characteristics:**
 
-- Dark-native; `#19191c` page canvas
+- Dark-native; `--color-background` page canvas
 - Semantic-first color (danger / success / warning / info / neutral)
 - Scope-aware (org / sub-org / project / admin)
 - Border-defined depth, no decorative shadows
@@ -47,38 +47,38 @@ in this file.
 
 Used to signal the scope a surface, badge, or action belongs to.
 
-| Scope            | Token              | Hex       |
-| ---------------- | ------------------ | --------- |
-| Organization     | `--color-org`      | `#30b3ff` |
-| Sub-Organization | `--color-sub-org`  | `#96ff59` |
-| Project          | `--color-project`  | `#e0ed34` |
-| Admin            | `--color-admin`    | `#c0c0c8` |
+| Scope            | Token              |
+| ---------------- | ------------------ |
+| Organization     | `--color-org`      |
+| Sub-Organization | `--color-sub-org`  |
+| Project          | `--color-project`  |
+| Admin            | `--color-admin`    |
 
 ### Semantic colors
 
-| Intent   | Token              | Hex       | Use                                              |
-| -------- | ------------------ | --------- | ------------------------------------------------ |
-| Success  | `--color-success`  | `#2ecc71` | Healthy states, completed rotations              |
-| Info     | `--color-info`     | `#63b0bd` | Informational states, external documentation     |
-| Warning  | `--color-warning`  | `#f1c40f` | Attention-warranting states, stale items         |
-| Danger   | `--color-danger`   | `#e74c3c` | Destructive actions, errors, expired access      |
-| Neutral  | `--color-neutral`  | `#adaeb0` | Disabled, muted, "empty" states                  |
+| Intent   | Token              | Use                                              |
+| -------- | ------------------ | ------------------------------------------------ |
+| Success  | `--color-success`  | Healthy states, completed rotations              |
+| Info     | `--color-info`     | Informational states, external documentation     |
+| Warning  | `--color-warning`  | Attention-warranting states, stale items         |
+| Danger   | `--color-danger`   | Destructive actions, errors, expired access      |
+| Neutral  | `--color-neutral`  | Disabled, muted, "empty" states                  |
 
 ### Surface & chrome
 
-| Role               | Token                    | Hex       |
-| ------------------ | ------------------------ | --------- |
-| Page background    | `--color-background`     | `#19191c` |
-| Foreground text    | `--color-foreground`     | `#ebebeb` |
-| Card surface       | `--color-card`           | `#16181a` |
-| Popover / Sheet    | `--color-popover`        | `#141617` |
-| Container          | `--color-container`      | `#1a1c1e` |
-| Container (hover)  | `--color-container-hover`| `#1f2123` |
-| Border             | `--color-border`         | `#2b2c30` |
-| Focus ring         | `--color-ring`           | `#2d2f33` |
-| Accent text        | `--color-accent`         | `#7d7f80` |
-| Muted text         | `--color-muted`          | `#707174` |
-| Label text         | `--color-label`          | `#adaeb0` |
+| Role               | Token                    |
+| ------------------ | ------------------------ |
+| Page background    | `--color-background`     |
+| Foreground text    | `--color-foreground`     |
+| Card surface       | `--color-card`           |
+| Popover / Sheet    | `--color-popover`        |
+| Container          | `--color-container`      |
+| Container (hover)  | `--color-container-hover`|
+| Border             | `--color-border`         |
+| Focus ring         | `--color-ring`           |
+| Accent text        | `--color-accent`         |
+| Muted text         | `--color-muted`          |
+| Label text         | `--color-label`          |
 
 The `mineshaft-*` scale (50–900) is the underlying neutral ramp; see
 `index.css` for the full list. Prefer semantic tokens (`card`, `border`,
@@ -87,9 +87,8 @@ The `mineshaft-*` scale (50–900) is the underlying neutral ramp; see
 ### Product-area accents (secret-manager)
 
 Reserved for resource types in the secret management product:
-`--color-folder` `#a4873e`, `--color-secret` `#7d7f80`,
-`--color-dynamic-secret` `#a6702b`, `--color-import` `#457d91`,
-`--color-secret-rotation` `#4c6081`, `--color-override` `#694c81`.
+`--color-folder`, `--color-secret`, `--color-dynamic-secret`,
+`--color-import`, `--color-secret-rotation`, `--color-override`.
 Do not repurpose these for generic UI.
 
 ### Tint pattern
@@ -101,18 +100,6 @@ never as solid fills. The two canonical recipes:
   (see [`Badge.tsx`](frontend/src/components/v3/generic/Badge/Badge.tsx))
 - **Button** — `bg-<c>/10 border-<c>/25 text-foreground`, hover `bg-<c>/15 border-<c>/30`
   (see [`Button.tsx`](frontend/src/components/v3/generic/Button/Button.tsx))
-
-### Quick color reference
-
-```
-Page bg        #19191c    Border       #2b2c30
-Card           #16181a    Popover      #141617
-Foreground     #ebebeb    Accent       #7d7f80
-Org            #30b3ff    Success      #2ecc71
-Sub-Org        #96ff59    Info         #63b0bd
-Project        #e0ed34    Warning      #f1c40f
-Admin          #c0c0c8    Danger       #e74c3c
-```
 
 ## 3. Typography
 
@@ -249,10 +236,10 @@ for elements that float (Popover, DropdownMenu, Sheet).
 | Layer               | Surface            | Border        |
 | ------------------- | ------------------ | ------------- |
 | Page                | `bg-bunker-800`    | —             |
-| Card                | `bg-card` #16181a  | `border-border` |
-| Popover / Sheet     | `bg-popover` #141617 | `border-border` + `shadow-lg` |
-| Row hover           | `bg-container-hover` #1f2123 | — |
-| Focus               | — | 3px ring, `--color-ring` #2d2f33 |
+| Card                | `bg-card`          | `border-border` |
+| Popover / Sheet     | `bg-popover`       | `border-border` + `shadow-lg` |
+| Row hover           | `bg-container-hover` | — |
+| Focus               | — | 3px ring, `--color-ring` |
 | Disabled            | `opacity-50 / 75`, `pointer-events-none` | — |
 
 Never add a box-shadow to a Card, Table row, or Badge; it breaks the
@@ -269,7 +256,7 @@ border-defined system.
 - **DO** put large create / edit forms in a right-side Sheet; smaller forms can be in Dialogs.
 - **DO** pair destructive confirmations with the resource name and the
   consequence (see §9).
-- **DO** cite tokens (`bg-card`) over hex (`#16181a`) in new code.
+- **DO** cite tokens (`bg-card`) over hex (`#xxxxxx`) in new code.
 - **DON'T** use v2 components when a v3 equivalent exists unless the existing scope is v2.
 - **DON'T** add box-shadows as a depth cue — borders and surface tones do
   that work. The exception is elements that genuinely float (Popover,
