@@ -359,21 +359,23 @@ export const certificateIssuanceQueueFactory = ({
         let acmeResult;
         try {
           acmeResult = await runWithAcmeOrderTimeout(
-            acmeFns.orderCertificateFromProfile({
-              caId,
-              profileId,
-              commonName: commonName || "",
-              altNames: altNames?.map((san) => san.value) || [],
-              csr: Buffer.from(certificateCsr),
-              csrPrivateKey: skLeaf,
-              keyUsages: keyUsages as CertKeyUsage[],
-              extendedKeyUsages: extendedKeyUsages as CertExtendedKeyUsage[],
-              ttl,
-              signatureAlgorithm,
-              keyAlgorithm,
-              isRenewal,
-              originalCertificateId
-            }),
+            (signal) =>
+              acmeFns.orderCertificateFromProfile({
+                caId,
+                profileId,
+                commonName: commonName || "",
+                altNames: altNames?.map((san) => san.value) || [],
+                csr: Buffer.from(certificateCsr),
+                csrPrivateKey: skLeaf,
+                keyUsages: keyUsages as CertKeyUsage[],
+                extendedKeyUsages: extendedKeyUsages as CertExtendedKeyUsage[],
+                ttl,
+                signatureAlgorithm,
+                keyAlgorithm,
+                isRenewal,
+                originalCertificateId,
+                abortSignal: signal
+              }),
             ACME_ORDER_TIMEOUT_MS
           );
         } catch (acmeError) {

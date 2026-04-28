@@ -1,6 +1,8 @@
 /* eslint-disable max-classes-per-file */
 import RE2 from "re2";
 
+import { logger } from "@app/lib/logger";
+
 export const ACME_ORDER_TIMEOUT_MS = 5 * 60 * 1000;
 
 export class AcmeOrderTimeoutError extends Error {
@@ -37,11 +39,17 @@ const formatTimeoutDuration = (timeoutMs: number): string => {
   return `${totalSeconds} seconds`;
 };
 
-export const runWithAcmeOrderTimeout = async <T>(operation: Promise<T>, timeoutMs: number): Promise<T> => {
+export const runWithAcmeOrderTimeout = async <T>(
+  operationFactory: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number
+): Promise<T> => {
+  const controller = new AbortController();
   let timeoutHandle: NodeJS.Timeout | undefined;
   const duration = formatTimeoutDuration(timeoutMs);
+
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutHandle = setTimeout(() => {
+      controller.abort();
       reject(
         new AcmeOrderTimeoutError(
           `ACME order did not complete within ${duration}. Possible causes: the CA is rate-limiting requests, the order is blocked at validation, or the CA is slow to respond.`
@@ -50,9 +58,22 @@ export const runWithAcmeOrderTimeout = async <T>(operation: Promise<T>, timeoutM
     }, timeoutMs);
   });
 
+  const operationPromise = operationFactory(controller.signal);
+  operationPromise.catch((err: unknown) => {
+    if (controller.signal.aborted) {
+      logger.debug({ err }, "ACME order operation rejected after timeout");
+    }
+  });
+
   try {
-    return await Promise.race([operation, timeoutPromise]);
+    return await Promise.race([operationPromise, timeoutPromise]);
   } finally {
     if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
+};
+
+export const throwIfAcmeOrderAborted = (signal: AbortSignal | undefined): void => {
+  if (signal?.aborted) {
+    throw new Error("ACME order aborted after timeout");
   }
 };
