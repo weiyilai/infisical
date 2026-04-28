@@ -2810,6 +2810,14 @@ export const AppConnections = {
     VENAFI: {
       apiKey: "The API key used to authenticate with Venafi TLS Protect Cloud.",
       region: "The region of your Venafi TLS Protect Cloud instance (e.g., 'us', 'eu')."
+    },
+    VENAFI_TPP: {
+      tppUrl: "The HTTPS URL of the Venafi TPP instance (e.g., 'https://tpp.example.com'). Must use HTTPS.",
+      clientId:
+        "The OAuth client ID registered in the Venafi TPP API Integration. Used for token-based authentication.",
+      username:
+        "The username used to authenticate with Venafi TPP. Supports formats: 'DOMAIN\\\\username', 'username@domain.com', or local usernames.",
+      password: "The password used to authenticate with Venafi TPP."
     }
   }
 };
@@ -3261,6 +3269,10 @@ export const SecretRotations = {
       limitReset: "The type of limit reset for the API key (daily, weekly, monthly, or null for no reset).",
       includeByokInLimit:
         "Whether to include BYOK (Bring Your Own Key) usage in the spending limit. When enabled, usage from your own provider keys counts toward this key's limit. See OpenRouter BYOK docs for details."
+    },
+    SUPABASE_API_KEY: {
+      projectRef: "The reference ID of the Supabase project to rotate the API key for.",
+      keyType: "The type of the API key to rotate (e.g. publishable, secret)."
     }
   },
   SECRETS_MAPPING: {
@@ -3321,6 +3333,9 @@ export const SecretRotations = {
     },
     OPEN_ROUTER_API_KEY: {
       apiKey: "The name of the secret that the rotated OpenRouter API key will be mapped to."
+    },
+    SUPABASE_API_KEY: {
+      apiKey: "The name of the secret that the rotated Supabase API key will be mapped to."
     }
   }
 };

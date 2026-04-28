@@ -161,6 +161,7 @@
                       "integrations/app-connections/terraform-cloud",
                       "integrations/app-connections/travis-ci",
                       "integrations/app-connections/venafi",
+                      "integrations/app-connections/venafi-tpp",
                       "integrations/app-connections/vercel",
                       "integrations/app-connections/windmill",
                       "integrations/app-connections/smb",
@@ -198,6 +199,7 @@
                 "group": "Gateway",
                 "pages": [
                   "documentation/platform/gateways/overview",
+                  "documentation/platform/gateways/gateway-pools",
                   "documentation/platform/gateways/gateway-deployment",
                   {
                     "group": "Relay Deployment",
@@ -483,6 +485,7 @@
                       "documentation/platform/secret-rotation/oracledb-credentials",
                       "documentation/platform/secret-rotation/postgres-credentials",
                       "documentation/platform/secret-rotation/redis-credentials",
+                      "documentation/platform/secret-rotation/supabase-api-key",
                       "documentation/platform/secret-rotation/unix-linux-local-account",
                       "documentation/platform/secret-rotation/windows-local-account"
                     ]
@@ -842,7 +845,8 @@
                   "documentation/platform/pki/ca/azure-adcs",
                   "documentation/platform/pki/ca/aws-pca",
                   "documentation/platform/pki/ca/aws-acm-public-ca",
-                  "documentation/platform/pki/ca/venafi"
+                  "documentation/platform/pki/ca/venafi",
+                  "documentation/platform/pki/ca/venafi-tpp"
                 ]
               }
             ]
@@ -926,29 +930,9 @@
             ]
           },
           {
-            "item": "Agent Sentinel",
-            "groups": [
-              {
-                "group": "Agent Sentinel",
-                "pages": [
-                  "documentation/platform/agent-sentinel/overview",
-                  {
-                    "group": "Concepts",
-                    "pages": [
-                      "documentation/platform/agent-sentinel/concepts/mcp-overview"
-                    ]
-                  }
-                ]
-              },
-              {
-                "group": "Product Reference",
-                "pages": [
-                  "documentation/platform/agent-sentinel/mcp-servers",
-                  "documentation/platform/agent-sentinel/mcp-endpoints",
-                  "documentation/platform/agent-sentinel/activity-logs"
-                ]
-              }
-            ]
+            "item": "Agent Vault",
+            "icon": "arrow-up-right-from-square",
+            "href": "https://docs.agent-vault.dev/"
           }
         ]
       },
@@ -2380,6 +2364,19 @@
                       "api-reference/endpoints/secret-rotations/redis-credentials/list",
                       "api-reference/endpoints/secret-rotations/redis-credentials/rotate-secrets",
                       "api-reference/endpoints/secret-rotations/redis-credentials/update"
+                    ]
+                  },
+                  {
+                    "group": "Supabase API Key",
+                    "pages": [
+                      "api-reference/endpoints/secret-rotations/supabase-api-key/create",
+                      "api-reference/endpoints/secret-rotations/supabase-api-key/delete",
+                      "api-reference/endpoints/secret-rotations/supabase-api-key/get-by-id",
+                      "api-reference/endpoints/secret-rotations/supabase-api-key/get-by-name",
+                      "api-reference/endpoints/secret-rotations/supabase-api-key/get-generated-credentials-by-id",
+                      "api-reference/endpoints/secret-rotations/supabase-api-key/list",
+                      "api-reference/endpoints/secret-rotations/supabase-api-key/rotate-secrets",
+                      "api-reference/endpoints/secret-rotations/supabase-api-key/update"
                     ]
                   },
                   {
