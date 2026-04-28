@@ -225,6 +225,7 @@ const ImportSecretsContent = ({
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     parseFile(e.target?.files?.[0]);
+    e.target.value = "";
   };
 
   const handleImport = async () => {
