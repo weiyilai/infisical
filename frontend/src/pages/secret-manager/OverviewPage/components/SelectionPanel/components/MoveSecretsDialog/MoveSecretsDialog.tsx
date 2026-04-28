@@ -35,7 +35,10 @@ import {
 } from "@app/components/v3";
 import { FilterableSelect } from "@app/components/v3/generic/ReactSelect";
 import { ProjectPermissionSub, useProjectPermission } from "@app/context";
-import { ProjectPermissionSecretActions } from "@app/context/ProjectPermissionContext/types";
+import {
+  ProjectPermissionSecretActions,
+  ProjectPermissionSecretRotationActions
+} from "@app/context/ProjectPermissionContext/types";
 import { useDebounce } from "@app/hooks";
 import { useMoveSecrets } from "@app/hooks/api";
 import { useGetProjectSecretsQuickSearch } from "@app/hooks/api/dashboard";
@@ -465,18 +468,25 @@ const MultiEnvContent = ({
     }
   });
 
-  const moveSecretsEligibility = useMemo(() => {
+  const moveEligibility = useMemo(() => {
     return Object.fromEntries(
       environments.map((env) => [
         env.slug,
         {
-          missingPermissions: permission.cannot(
+          cannotMoveSecrets: permission.cannot(
             ProjectPermissionSecretActions.Delete,
             subject(ProjectPermissionSub.Secrets, {
               environment: env.slug,
               secretPath: sourceSecretPath,
               secretName: "*",
               secretTags: ["*"]
+            })
+          ),
+          cannotMoveRotations: permission.cannot(
+            ProjectPermissionSecretRotationActions.Delete,
+            subject(ProjectPermissionSub.SecretRotation, {
+              environment: env.slug,
+              secretPath: sourceSecretPath
             })
           )
         }
@@ -494,17 +504,27 @@ const MultiEnvContent = ({
       [];
 
     environments.forEach((env) => {
-      if (moveSecretsEligibility[env.slug].missingPermissions) {
+      const { cannotMoveSecrets, cannotMoveRotations } = moveEligibility[env.slug];
+
+      if (cannotMoveSecrets) {
         environmentWarnings.push({
-          id: env.id,
+          id: `${env.id}-secrets`,
           type: "permission",
-          message: `${env.name}: You do not have permission to remove secrets from this environment`
+          message: `${env.name}: You do not have permission to move secrets from this environment`
+        });
+      }
+
+      if (cannotMoveRotations) {
+        environmentWarnings.push({
+          id: `${env.id}-rotations`,
+          type: "permission",
+          message: `${env.name}: You do not have permission to move secret rotations from this environment`
         });
       }
     });
 
     return environmentWarnings;
-  }, [moveSecretsEligibility, destinationSelected, environments]);
+  }, [moveEligibility, destinationSelected, environments]);
 
   const handleFormSubmit = async (data: TMultiEnvFormSchema) => {
     if (!selectedPath) {
@@ -542,13 +562,15 @@ const MultiEnvContent = ({
     for await (const environment of environments) {
       const envSlug = environment.slug;
 
-      const secretsToMove = secretsByEnv[envSlug];
-      const rotationsToMove = rotationsByEnv[envSlug];
+      const { cannotMoveSecrets, cannotMoveRotations } = moveEligibility[envSlug];
 
-      if (moveSecretsEligibility[envSlug].missingPermissions) {
+      if (cannotMoveSecrets && cannotMoveRotations) {
         // eslint-disable-next-line no-continue
         continue;
       }
+
+      const secretsToMove = cannotMoveSecrets ? [] : secretsByEnv[envSlug];
+      const rotationsToMove = cannotMoveRotations ? [] : rotationsByEnv[envSlug];
 
       if (!secretsToMove.length && !rotationsToMove.length) {
         results.push({

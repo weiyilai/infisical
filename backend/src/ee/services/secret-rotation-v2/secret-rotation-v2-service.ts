@@ -960,7 +960,12 @@ export const secretRotationV2ServiceFactory = ({
         message: `Could not find ${SECRET_ROTATION_NAME_MAP[type]} Rotation with ID "${rotationId}"`
       });
 
-    const { projectId, folderId: sourceFolderId, secretsMapping, folder, environment } = secretRotation;
+    const { projectId, folderId: sourceFolderId, secretsMapping, folder, environment, connection } = secretRotation;
+
+    if (connection.app !== SECRET_ROTATION_CONNECTION_MAP[type])
+      throw new BadRequestError({
+        message: `Secret Rotation with ID "${rotationId}" is not configured for ${SECRET_ROTATION_NAME_MAP[type]}`
+      });
 
     const { permission } = await permissionService.getProjectPermission({
       actor: actor.type,
@@ -999,6 +1004,16 @@ export const secretRotationV2ServiceFactory = ({
         secretPath: destinationSecretPath
       })
     );
+
+    const conflictingRotation = await secretRotationV2DAL.findOne({
+      name: secretRotation.name,
+      folderId: destinationFolder.id
+    });
+
+    if (conflictingRotation)
+      throw new BadRequestError({
+        message: `A Secret Rotation with the name "${secretRotation.name}" already exists at the secret path "${destinationSecretPath}"`
+      });
 
     const mappedKeys = Object.values(secretsMapping as TSecretRotationV2["secretsMapping"]);
 
