@@ -81,6 +81,7 @@ import {
   fnSecretBulkDelete,
   fnSecretBulkInsert,
   fnSecretBulkUpdate,
+  fnUpdateMovedSecretReferences,
   reshapeBridgeSecret
 } from "@app/services/secret-v2-bridge/secret-v2-bridge-fns";
 import { TSecretVersionV2DALFactory } from "@app/services/secret-v2-bridge/secret-version-dal";
@@ -127,12 +128,24 @@ export type TSecretRotationV2ServiceFactoryDep = {
   licenseService: Pick<TLicenseServiceFactory, "getPlan">;
   auditLogService: Pick<TAuditLogServiceFactory, "createAuditLog">;
   keyStore: Pick<TKeyStoreFactory, "acquireLock" | "setItemWithExpiry" | "getItem">;
-  folderDAL: Pick<TSecretFolderDALFactory, "findBySecretPath" | "findBySecretPathMultiEnv">;
+  folderDAL: Pick<
+    TSecretFolderDALFactory,
+    "findBySecretPath" | "findBySecretPathMultiEnv" | "findSecretPathByFolderIds"
+  >;
   secretV2BridgeDAL: Pick<
     TSecretV2BridgeDALFactory,
-    "bulkUpdate" | "insertMany" | "deleteMany" | "upsertSecretReferences" | "find" | "invalidateSecretCacheByProjectId"
+    | "bulkUpdate"
+    | "insertMany"
+    | "deleteMany"
+    | "upsertSecretReferences"
+    | "find"
+    | "findOne"
+    | "updateById"
+    | "findReferencedSecretReferencesBySecretKey"
+    | "updateSecretReferenceEnvAndPath"
+    | "invalidateSecretCacheByProjectId"
   >;
-  secretVersionV2BridgeDAL: Pick<TSecretVersionV2DALFactory, "insertMany" | "findLatestVersionMany">;
+  secretVersionV2BridgeDAL: Pick<TSecretVersionV2DALFactory, "insertMany" | "findLatestVersionMany" | "update">;
   secretVersionTagV2BridgeDAL: Pick<TSecretVersionV2TagDALFactory, "insertMany">;
   resourceMetadataDAL: Pick<TResourceMetadataDALFactory, "insertMany" | "delete">;
   secretTagDAL: Pick<TSecretTagDALFactory, "saveTagsToSecretV2" | "deleteTagsToSecretV2" | "find">;
@@ -995,6 +1008,12 @@ export const secretRotationV2ServiceFactory = ({
       secretPath: destinationSecretPath
     });
 
+    const { encryptor: secretManagerEncryptor, decryptor: secretManagerDecryptor } =
+      await kmsService.createCipherPairWithDataKey({
+        type: KmsDataKey.SecretManager,
+        projectId
+      });
+
     const updatedRotation = await secretRotationV2DAL.transaction(async (tx) => {
       const sourceSecrets = await secretV2BridgeDAL.find(
         {
@@ -1008,13 +1027,45 @@ export const secretRotationV2ServiceFactory = ({
       );
 
       if (sourceSecrets.length) {
-        await secretV2BridgeDAL.bulkUpdate(
-          sourceSecrets.map((s) => ({
-            filter: { id: s.id },
-            data: { folderId: destinationFolder.id }
-          })),
+        await tx(TableName.SecretV2)
+          .whereIn(
+            "id",
+            sourceSecrets.map((s) => s.id)
+          )
+          .update({ folderId: destinationFolder.id });
+
+        await secretVersionV2BridgeDAL.update(
+          {
+            $in: {
+              secretId: sourceSecrets.map((s) => s.id)
+            }
+          },
+          { folderId: destinationFolder.id },
           tx
         );
+
+        for await (const secret of sourceSecrets) {
+          await fnUpdateMovedSecretReferences({
+            orgId: actor.orgId,
+            projectId,
+            sourceEnvironment: environment.slug,
+            sourceSecretPath: folder.path,
+            sourceFolderId,
+            destinationEnvironment,
+            destinationSecretPath,
+            destinationFolderId: destinationFolder.id,
+            secretKey: secret.key,
+            secretId: secret.id,
+            secretDAL: secretV2BridgeDAL,
+            secretVersionDAL: secretVersionV2BridgeDAL,
+            folderCommitService,
+            folderDAL,
+            secretQueueService,
+            encryptor: ({ plainText }) => secretManagerEncryptor({ plainText }),
+            decryptor: ({ cipherTextBlob }) => secretManagerDecryptor({ cipherTextBlob }),
+            tx
+          });
+        }
       }
 
       return secretRotationV2DAL.updateById(rotationId, { folderId: destinationFolder.id }, tx);

@@ -470,7 +470,7 @@ export const AwsParameterStoreSyncFns = {
 
       if (!(key in secretMap) || !secretMap[key].value) {
         parametersToDelete.push(parameter);
-        deletedSecretKeys.push(parameter.Name!);
+        deletedSecretKeys.push(parameter.Name);
       }
     }
 
