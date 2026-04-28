@@ -6,8 +6,7 @@ export enum VercelSyncScope {
 export const VercelEnvironmentType = {
   Development: "development",
   Preview: "preview",
-  Production: "production",
-  AllCustomEnvironments: "all-custom-environments"
+  Production: "production"
 } as const;
 
 export type VercelEnvironment = (typeof VercelEnvironmentType)[keyof typeof VercelEnvironmentType];

@@ -26,10 +26,7 @@ const standardVercelEnvironments = [
   { name: "Production", slug: "production" }
 ] as const;
 
-const teamVercelEnvironments = [
-  ...standardVercelEnvironments,
-  { name: "All Custom Environments", slug: "all-custom-environments" }
-] as const;
+const teamVercelEnvironments = [...standardVercelEnvironments] as const;
 
 export const VercelSyncFields = () => {
   const { control, watch, setValue } = useFormContext<
@@ -137,6 +134,7 @@ export const VercelSyncFields = () => {
                 if (newScope === VercelSyncScope.Team) {
                   setValue("destinationConfig.teamId", "");
                   setValue("destinationConfig.targetEnvironments", []);
+                  setValue("destinationConfig.applyToAllCustomEnvironments", false);
                   setValue("destinationConfig.targetProjects", undefined);
                   setValue("destinationConfig.teamName", "");
                 } else {
@@ -232,6 +230,37 @@ export const VercelSyncFields = () => {
                   getOptionLabel={(option) => option.name}
                   getOptionValue={(option) => option.id}
                 />
+              </FormControl>
+            )}
+          />
+
+          <Controller
+            name="destinationConfig.applyToAllCustomEnvironments"
+            control={control}
+            render={({ field: { value, onChange } }) => (
+              <FormControl>
+                <Switch
+                  className="bg-mineshaft-400/50 shadow-inner data-[state=checked]:bg-green/80"
+                  id="vercel-sync-all-custom-environments"
+                  thumbClassName="bg-mineshaft-800"
+                  isChecked={Boolean(value)}
+                  onCheckedChange={onChange}
+                >
+                  <p className="w-fit">
+                    Apply to All Custom Environments{" "}
+                    <Tooltip
+                      className="max-w-md"
+                      content={
+                        <span>
+                          When enabled, shared environment variables will be applied to all custom
+                          environments in the Vercel team.
+                        </span>
+                      }
+                    >
+                      <FontAwesomeIcon icon={faCircleInfo} className="text-mineshaft-400" />
+                    </Tooltip>
+                  </p>
+                </Switch>
               </FormControl>
             )}
           />

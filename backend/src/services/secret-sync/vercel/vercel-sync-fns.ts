@@ -485,20 +485,14 @@ const createTeamSharedEnvVar = async (
     });
   }
 
-  // Derive applyToAllCustomEnvironments from the sentinel value in targetEnvironments.
-  const applyToAllCustomEnvironments = destinationConfig.targetEnvironments?.includes(
-    VercelEnvironmentType.AllCustomEnvironments
+  // When sensitive is enabled, the Development environment is not supported by Vercel.
+  const effectiveTargetEnvironments = destinationConfig.targetEnvironments?.filter(
+    (env) => !destinationConfig.sensitive || env !== VercelEnvironmentType.Development
   );
-
-  // Strip the sentinel and, when sensitive is enabled, the Development environment before
-  // sending to Vercel — neither is a valid value in the `target` array.
-  const effectiveTargetEnvironments = destinationConfig.targetEnvironments
-    ?.filter((env) => env !== VercelEnvironmentType.AllCustomEnvironments)
-    .filter((env) => !destinationConfig.sensitive || env !== VercelEnvironmentType.Development);
 
   if (
     destinationConfig.sensitive &&
-    !applyToAllCustomEnvironments &&
+    !destinationConfig.applyToAllCustomEnvironments &&
     (!effectiveTargetEnvironments || effectiveTargetEnvironments.length === 0)
   ) {
     throw new SecretSyncError({
@@ -520,7 +514,7 @@ const createTeamSharedEnvVar = async (
         type: destinationConfig.sensitive ? "sensitive" : "encrypted",
         ...(effectiveTargetEnvironments?.length ? { target: effectiveTargetEnvironments } : {}),
         ...(destinationConfig.targetProjects !== undefined ? { projectId: destinationConfig.targetProjects } : {}),
-        applyToAllCustomEnvironments: Boolean(applyToAllCustomEnvironments)
+        applyToAllCustomEnvironments: Boolean(destinationConfig.applyToAllCustomEnvironments)
       },
       {
         headers: {
@@ -569,21 +563,14 @@ const updateTeamSharedEnvVar = async (
 
   const isExistingSensitive = envVar.type === "sensitive";
 
-  // Derive applyToAllCustomEnvironments from the sentinel value in targetEnvironments.
-  const applyToAllCustomEnvironments = destinationConfig.targetEnvironments?.includes(
-    VercelEnvironmentType.AllCustomEnvironments
+  // When sensitive is enabled, the Development environment is not supported by Vercel.
+  const effectiveTargetEnvironments = destinationConfig.targetEnvironments?.filter(
+    (env) => !(destinationConfig.sensitive || isExistingSensitive) || env !== VercelEnvironmentType.Development
   );
-
-  // Strip the sentinel and, when sensitive is enabled, the Development environment.
-  const effectiveTargetEnvironments = destinationConfig.targetEnvironments
-    ?.filter((env) => env !== VercelEnvironmentType.AllCustomEnvironments)
-    .filter(
-      (env) => !(destinationConfig.sensitive || isExistingSensitive) || env !== VercelEnvironmentType.Development
-    );
 
   if (
     (destinationConfig.sensitive || isExistingSensitive) &&
-    !applyToAllCustomEnvironments &&
+    !destinationConfig.applyToAllCustomEnvironments &&
     (!effectiveTargetEnvironments || effectiveTargetEnvironments.length === 0)
   ) {
     throw new SecretSyncError({
@@ -604,9 +591,9 @@ const updateTeamSharedEnvVar = async (
         updates: {
           [envVar.id]: {
             value,
-            ...(effectiveTargetEnvironments?.length ? { target: effectiveTargetEnvironments } : {}),
+            ...(effectiveTargetEnvironments !== undefined ? { target: effectiveTargetEnvironments } : {}),
             ...(destinationConfig.targetProjects !== undefined ? { projectId: destinationConfig.targetProjects } : {}),
-            applyToAllCustomEnvironments: Boolean(applyToAllCustomEnvironments)
+            applyToAllCustomEnvironments: Boolean(destinationConfig.applyToAllCustomEnvironments)
           }
         }
       },
@@ -686,10 +673,11 @@ const deleteTeamSharedEnvVar = async (
 export const VercelSyncFns = {
   syncSecrets: async (secretSync: TVercelSyncWithCredentials, secretMap: TSecretMap) => {
     if (secretSync.destinationConfig.scope === VercelSyncScope.Team) {
-      const sharedEnvVars = await getOwnedTeamSharedEnvVars(secretSync);
-      const sharedEnvVarsMap = new Map(sharedEnvVars.map((s) => [s.key, s]));
+      const allSharedEnvVars = await getTeamSharedEnvVars(secretSync);
+      const sharedEnvVarsMap = new Map(allSharedEnvVars.map((s) => [s.key, s]));
 
-      const { targetEnvironments, targetProjects, sensitive } = secretSync.destinationConfig;
+      const { targetEnvironments, targetProjects, sensitive, applyToAllCustomEnvironments } =
+        secretSync.destinationConfig;
 
       for await (const key of Object.keys(secretMap)) {
         const existingVar = sharedEnvVarsMap.get(key);
@@ -714,26 +702,26 @@ export const VercelSyncFns = {
 
         const hasValueChanged = existingVar.value !== secretMap[key].value;
 
-        // Sensitive secrets cannot target Development in Vercel, and the AllCustomEnvironments
-        // sentinel is not a real Vercel target — strip both before comparing against the existing var.
+        // Sensitive secrets cannot target Development in Vercel — strip before comparing.
         const isSensitive = sensitive || existingVar.type === "sensitive";
-        const effectiveTargets = targetEnvironments
-          ?.filter((env) => env !== VercelEnvironmentType.AllCustomEnvironments)
-          .filter((env) => !isSensitive || env !== VercelEnvironmentType.Development);
+        const effectiveTargets = targetEnvironments?.filter(
+          (env) => !isSensitive || env !== VercelEnvironmentType.Development
+        );
 
         const existingTarget = existingVar.target ?? [];
-        const hasTargetChanged = effectiveTargets?.length
-          ? existingTarget.length !== effectiveTargets.length ||
-            !effectiveTargets.every((env) => existingTarget.includes(env))
-          : false;
+        const hasTargetChanged =
+          effectiveTargets !== undefined
+            ? existingTarget.length !== effectiveTargets.length ||
+              !effectiveTargets.every((env) => existingTarget.includes(env))
+            : false;
 
         const hasProjectsChanged = targetProjects
           ? (existingVar.projectId?.length ?? 0) !== targetProjects.length ||
             !targetProjects.every((pid) => existingVar.projectId?.includes(pid))
           : false;
 
-        const desiredAllCustom = targetEnvironments?.includes(VercelEnvironmentType.AllCustomEnvironments) ?? false;
-        const hasAllCustomChanged = desiredAllCustom !== (existingVar.applyToAllCustomEnvironments ?? false);
+        const hasAllCustomChanged =
+          Boolean(applyToAllCustomEnvironments) !== (existingVar.applyToAllCustomEnvironments ?? false);
 
         if (hasValueChanged || hasTargetChanged || hasProjectsChanged || hasAllCustomChanged) {
           await updateTeamSharedEnvVar(secretSync, existingVar, secretMap[key].value);
@@ -742,7 +730,12 @@ export const VercelSyncFns = {
 
       if (secretSync.syncOptions.disableSecretDeletion) return;
 
-      for await (const sharedEnvVar of sharedEnvVars) {
+      const teamDestinationConfig = secretSync.destinationConfig;
+      const ownedEnvVars = allSharedEnvVars.filter((envVar) =>
+        isTeamSharedEnvVarOwnedByThisSync(envVar, teamDestinationConfig)
+      );
+
+      for await (const sharedEnvVar of ownedEnvVars) {
         if (!matchesSchema(sharedEnvVar.key, secretSync.environment?.slug || "", secretSync.syncOptions.keySchema))
           // eslint-disable-next-line no-continue
           continue;
