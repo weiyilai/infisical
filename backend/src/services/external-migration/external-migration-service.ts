@@ -287,7 +287,8 @@ export const externalMigrationServiceFactory = ({
         orgId: actorOrgId
       },
       {
-        gatewayService
+        gatewayService,
+        gatewayV2Service
       }
     );
 

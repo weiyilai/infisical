@@ -4,8 +4,10 @@ import axios, { AxiosInstance, isAxiosError } from "axios";
 import { v4 as uuidv4 } from "uuid";
 
 import { TGatewayServiceFactory } from "@app/ee/services/gateway/gateway-service";
+import { TGatewayV2ServiceFactory } from "@app/ee/services/gateway-v2/gateway-v2-service";
 import { BadRequestError } from "@app/lib/errors";
 import { GatewayProxyProtocol, withGatewayProxy } from "@app/lib/gateway";
+import { withGatewayV2Proxy } from "@app/lib/gateway-v2/gateway-v2";
 import { logger } from "@app/lib/logger";
 import { blockLocalAndPrivateIpAddresses } from "@app/lib/validator";
 
@@ -18,31 +20,44 @@ type VaultData = {
   secretData: Record<string, string>;
 };
 
-const vaultFactory = (gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">) => {
+const vaultFactory = (
+  gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">,
+  gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">
+) => {
   const $gatewayProxyWrapper = async <T>(
     inputs: {
       gatewayId: string;
-      targetHost?: string;
-      targetPort?: number;
+      targetProtocol: string;
+      targetHostname: string;
+      targetPort: number;
     },
     gatewayCallback: (host: string, port: number, httpsAgent?: https.Agent) => Promise<T>
   ): Promise<T> => {
-    const relayDetails = await gatewayService.fnGetGatewayClientTlsByGatewayId(inputs.gatewayId);
+    const { gatewayId, targetProtocol, targetHostname, targetPort } = inputs;
 
-    const callbackResult = await withGatewayProxy(
-      async (port, httpsAgent) => {
-        const res = await gatewayCallback("http://localhost", port, httpsAgent);
-        return res;
-      },
-      {
-        protocol: GatewayProxyProtocol.Http,
-        targetHost: inputs.targetHost,
-        targetPort: inputs.targetPort,
-        relayDetails
-      }
-    );
+    const gatewayV2Details = await gatewayV2Service.getPlatformConnectionDetailsByGatewayId({
+      gatewayId,
+      targetHost: targetHostname,
+      targetPort
+    });
 
-    return callbackResult;
+    if (gatewayV2Details) {
+      return withGatewayV2Proxy(async (port) => gatewayCallback("http://localhost", port), {
+        protocol: GatewayProxyProtocol.Tcp,
+        relayHost: gatewayV2Details.relayHost,
+        gateway: gatewayV2Details.gateway,
+        relay: gatewayV2Details.relay
+      });
+    }
+
+    const relayDetails = await gatewayService.fnGetGatewayClientTlsByGatewayId(gatewayId);
+
+    return withGatewayProxy(async (port, httpsAgent) => gatewayCallback("http://localhost", port, httpsAgent), {
+      protocol: GatewayProxyProtocol.Http,
+      targetHost: `${targetProtocol}://${targetHostname}`,
+      targetPort,
+      relayDetails
+    });
   };
 
   const getMounts = async (request: AxiosInstance) => {
@@ -280,7 +295,8 @@ const vaultFactory = (gatewayService: Pick<TGatewayServiceFactory, "fnGetGateway
       data = await $gatewayProxyWrapper(
         {
           gatewayId,
-          targetHost: `${cleanedProtocol}://${hostname}`,
+          targetProtocol: cleanedProtocol,
+          targetHostname: hostname,
           targetPort: port ? Number(port) : 8200 // 8200, default port for Vault self-hosted/dedicated
         },
         getData
@@ -532,7 +548,13 @@ export const importVaultDataFn = async (
     gatewayId?: string;
     orgId: string;
   },
-  { gatewayService }: { gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId"> }
+  {
+    gatewayService,
+    gatewayV2Service
+  }: {
+    gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
+    gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
+  }
 ) => {
   await blockLocalAndPrivateIpAddresses(vaultUrl);
 
@@ -561,7 +583,7 @@ export const importVaultDataFn = async (
     `[importVaultDataFn]: Running ${orgId in vaultMigrationTransformMappings ? "custom" : "default"} transform`
   );
 
-  const vaultApi = vaultFactory(gatewayService);
+  const vaultApi = vaultFactory(gatewayService, gatewayV2Service);
 
   const vaultData = await vaultApi.collectVaultData({
     accessToken: vaultAccessToken,
