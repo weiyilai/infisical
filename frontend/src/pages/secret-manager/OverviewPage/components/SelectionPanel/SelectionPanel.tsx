@@ -18,6 +18,7 @@ import { useDeleteSecretBatch } from "@app/hooks/api";
 import { ProjectSecretsImportedBy, UsedBySecretSyncs } from "@app/hooks/api/dashboard/types";
 import { ProjectEnv } from "@app/hooks/api/projects/types";
 import { PendingAction } from "@app/hooks/api/secretFolders/types";
+import { TSecretRotationV2 } from "@app/hooks/api/secretRotationsV2";
 import { useCreateCommit } from "@app/hooks/api/secrets/mutations";
 import {
   SecretType,
@@ -33,7 +34,8 @@ import {
 
 export enum EntryType {
   FOLDER = "folder",
-  SECRET = "secret"
+  SECRET = "secret",
+  SECRET_ROTATION = "secretRotation"
 }
 
 type Props = {
@@ -42,6 +44,7 @@ type Props = {
   selectedEntries: {
     [EntryType.FOLDER]: Record<string, Record<string, TSecretFolder>>;
     [EntryType.SECRET]: Record<string, Record<string, SecretV3RawSanitized>>;
+    [EntryType.SECRET_ROTATION]: Record<string, Record<string, TSecretRotationV2>>;
   };
   importedBy?: ProjectSecretsImportedBy[] | null;
   usedBySecretSyncs?: UsedBySecretSyncs[];
@@ -69,10 +72,11 @@ export const SelectionPanel = ({
 
   const selectedFolderCount = Object.keys(selectedEntries.folder).length;
   const selectedKeysCount = Object.keys(selectedEntries.secret).length;
+  const selectedRotationCount = Object.keys(selectedEntries.secretRotation).length;
   const isRotatedSecretSelected = Object.values(selectedEntries.secret).some((record) =>
     Object.values(record).some((secret) => secret.isRotatedSecret)
   );
-  const selectedCount = selectedFolderCount + selectedKeysCount;
+  const selectedCount = selectedFolderCount + selectedKeysCount + selectedRotationCount;
 
   const { currentProject, projectId } = useProject();
   const userAvailableEnvs = currentProject?.environments || [];
@@ -364,6 +368,7 @@ export const SelectionPanel = ({
         projectSlug={currentProject.slug}
         sourceSecretPath={secretPath}
         secrets={selectedEntries[EntryType.SECRET]}
+        rotations={selectedEntries[EntryType.SECRET_ROTATION]}
         onComplete={resetSelectedEntries}
       />
       <BulkTagDialog

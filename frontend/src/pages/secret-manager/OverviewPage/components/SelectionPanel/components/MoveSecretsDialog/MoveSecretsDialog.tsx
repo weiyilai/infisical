@@ -40,6 +40,7 @@ import { useDebounce } from "@app/hooks";
 import { useMoveSecrets } from "@app/hooks/api";
 import { useGetProjectSecretsQuickSearch } from "@app/hooks/api/dashboard";
 import { ProjectEnv } from "@app/hooks/api/projects/types";
+import { TSecretRotationV2, useMoveSecretRotation } from "@app/hooks/api/secretRotationsV2";
 import { SecretV3RawSanitized } from "@app/hooks/api/secrets/types";
 
 type Props = {
@@ -51,6 +52,7 @@ type Props = {
   projectSlug: string;
   sourceSecretPath: string;
   secrets: Record<string, Record<string, SecretV3RawSanitized>>;
+  rotations: Record<string, Record<string, TSecretRotationV2>>;
   onComplete: () => void;
 };
 
@@ -187,6 +189,7 @@ const SingleEnvContent = ({
   onComplete,
   onClose,
   secrets,
+  rotations,
   environments,
   visibleEnvs,
   projectId,
@@ -195,6 +198,7 @@ const SingleEnvContent = ({
 }: ContentProps) => {
   const sourceEnv = visibleEnvs[0];
   const moveSecrets = useMoveSecrets();
+  const moveSecretRotation = useMoveSecretRotation();
   const [selectedPath, setSelectedPath] = useState<OptionValue | null>({
     secretPath: "/"
   });
@@ -237,44 +241,100 @@ const SingleEnvContent = ({
         (secret): secret is SecretV3RawSanitized => Boolean(secret) && !secret.isRotatedSecret
       );
 
-    if (!secretsToMove.length) {
+    const rotationsToMove = Object.values(rotations)
+      .map((rotationRecord) => rotationRecord[sourceEnv.slug])
+      .filter((rotation): rotation is TSecretRotationV2 => Boolean(rotation));
+
+    if (!secretsToMove.length && !rotationsToMove.length) {
       createNotification({
         type: "info",
-        text: "No secrets to move in this environment"
+        text: "No secrets or rotations to move in this environment"
       });
       return;
     }
 
-    const { isDestinationUpdated, isSourceUpdated } = await moveSecrets.mutateAsync({
-      shouldOverwrite: data.shouldOverwrite,
-      sourceEnvironment: sourceEnv.slug,
-      sourceSecretPath,
-      destinationEnvironment: data.environment,
-      destinationSecretPath: selectedPath.secretPath,
-      projectId,
-      projectSlug,
-      secretIds: secretsToMove.map((sec) => sec.id)
-    });
+    let isDestinationUpdated = true;
+    let isSourceUpdated = true;
 
-    if (isDestinationUpdated && isSourceUpdated) {
+    if (secretsToMove.length) {
+      const result = await moveSecrets.mutateAsync({
+        shouldOverwrite: data.shouldOverwrite,
+        sourceEnvironment: sourceEnv.slug,
+        sourceSecretPath,
+        destinationEnvironment: data.environment,
+        destinationSecretPath: selectedPath.secretPath,
+        projectId,
+        projectSlug,
+        secretIds: secretsToMove.map((sec) => sec.id)
+      });
+      isDestinationUpdated = result.isDestinationUpdated;
+      isSourceUpdated = result.isSourceUpdated;
+    }
+
+    const rotationFailures: { name: string; message: string }[] = [];
+    let rotationSuccessCount = 0;
+
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const rotation of rotationsToMove) {
+      try {
+        await moveSecretRotation.mutateAsync({
+          type: rotation.type,
+          rotationId: rotation.id,
+          destinationEnvironment: data.environment,
+          destinationSecretPath: selectedPath.secretPath,
+          projectId,
+          secretPath: sourceSecretPath
+        });
+        rotationSuccessCount += 1;
+      } catch (error) {
+        let message = (error as Error)?.message ?? "Failed to move rotation";
+        if (axios.isAxiosError(error)) {
+          const responseMessage = (error?.response?.data as { message?: string })?.message;
+          if (responseMessage) message = responseMessage;
+        }
+        rotationFailures.push({ name: rotation.name, message });
+      }
+    }
+
+    if (secretsToMove.length) {
+      if (isDestinationUpdated && isSourceUpdated) {
+        createNotification({
+          type: "success",
+          text: "Successfully moved selected secrets"
+        });
+      } else if (isDestinationUpdated) {
+        createNotification({
+          type: "info",
+          text: "Successfully created secrets in destination. A secret approval request has been generated for the source."
+        });
+      } else if (isSourceUpdated) {
+        createNotification({
+          type: "info",
+          text: "A secret approval request has been generated in the destination"
+        });
+      } else {
+        createNotification({
+          type: "info",
+          text: "A secret approval request has been generated in both the source and the destination."
+        });
+      }
+    }
+
+    if (rotationSuccessCount > 0) {
       createNotification({
         type: "success",
-        text: "Successfully moved selected secrets"
+        text: `Successfully moved ${rotationSuccessCount} secret rotation${
+          rotationSuccessCount === 1 ? "" : "s"
+        }`
       });
-    } else if (isDestinationUpdated) {
+    }
+
+    if (rotationFailures.length > 0) {
       createNotification({
-        type: "info",
-        text: "Successfully created secrets in destination. A secret approval request has been generated for the source."
-      });
-    } else if (isSourceUpdated) {
-      createNotification({
-        type: "info",
-        text: "A secret approval request has been generated in the destination"
-      });
-    } else {
-      createNotification({
-        type: "info",
-        text: "A secret approval request has been generated in both the source and the destination."
+        type: "error",
+        text: `Failed to move ${rotationFailures.length} secret rotation${
+          rotationFailures.length === 1 ? "" : "s"
+        }: ${rotationFailures.map((f) => `${f.name} (${f.message})`).join("; ")}`
       });
     }
 
@@ -380,12 +440,14 @@ const MultiEnvContent = ({
   onComplete,
   onClose,
   secrets,
+  rotations,
   environments,
   projectId,
   projectSlug,
   sourceSecretPath
 }: ContentProps) => {
   const moveSecrets = useMoveSecrets();
+  const moveSecretRotation = useMoveSecretRotation();
   const { permission } = useProjectPermission();
   const [moveResults, setMoveResults] = useState<MoveResults | null>(null);
   const [selectedPath, setSelectedPath] = useState<OptionValue | null>({
@@ -466,21 +528,32 @@ const MultiEnvContent = ({
       })
     );
 
+    const rotationsByEnv: Record<string, TSecretRotationV2[]> = Object.fromEntries(
+      environments.map((env) => [env.slug, []])
+    );
+
+    Object.values(rotations).forEach((rotationRecord) =>
+      Object.entries(rotationRecord).forEach(([env, rotation]) => {
+        rotationsByEnv[env].push(rotation);
+      })
+    );
+
     // eslint-disable-next-line no-restricted-syntax
     for await (const environment of environments) {
       const envSlug = environment.slug;
 
       const secretsToMove = secretsByEnv[envSlug];
+      const rotationsToMove = rotationsByEnv[envSlug];
 
       if (moveSecretsEligibility[envSlug].missingPermissions) {
         // eslint-disable-next-line no-continue
         continue;
       }
 
-      if (!secretsToMove.length) {
+      if (!secretsToMove.length && !rotationsToMove.length) {
         results.push({
           name: environment.name,
-          message: "No secrets selected in environment",
+          message: "No secrets or rotations selected in environment",
           status: MoveResult.Info,
           id: environment.id
         });
@@ -488,53 +561,89 @@ const MultiEnvContent = ({
         continue;
       }
 
-      try {
-        const { isDestinationUpdated, isSourceUpdated } = await moveSecrets.mutateAsync({
-          shouldOverwrite: data.shouldOverwrite,
-          sourceEnvironment: environment.slug,
-          sourceSecretPath,
-          destinationEnvironment: environment.slug,
-          destinationSecretPath: selectedPath.secretPath,
-          projectId,
-          projectSlug,
-          secretIds: secretsToMove.map((sec) => sec.id)
-        });
+      if (secretsToMove.length) {
+        try {
+          const { isDestinationUpdated, isSourceUpdated } = await moveSecrets.mutateAsync({
+            shouldOverwrite: data.shouldOverwrite,
+            sourceEnvironment: environment.slug,
+            sourceSecretPath,
+            destinationEnvironment: environment.slug,
+            destinationSecretPath: selectedPath.secretPath,
+            projectId,
+            projectSlug,
+            secretIds: secretsToMove.map((sec) => sec.id)
+          });
 
-        let message = "";
-        let status: MoveResult = MoveResult.Info;
+          let message = "";
+          let status: MoveResult = MoveResult.Info;
 
-        if (isDestinationUpdated && isSourceUpdated) {
-          message = "Successfully moved selected secrets";
-          status = MoveResult.Success;
-        } else if (isDestinationUpdated) {
-          message =
-            "Successfully created secrets in destination. A secret approval request has been generated for the source.";
-        } else if (isSourceUpdated) {
-          message = "A secret approval request has been generated in the destination";
-        } else {
-          message =
-            "A secret approval request has been generated in both the source and the destination.";
+          if (isDestinationUpdated && isSourceUpdated) {
+            message = "Successfully moved selected secrets";
+            status = MoveResult.Success;
+          } else if (isDestinationUpdated) {
+            message =
+              "Successfully created secrets in destination. A secret approval request has been generated for the source.";
+          } else if (isSourceUpdated) {
+            message = "A secret approval request has been generated in the destination";
+          } else {
+            message =
+              "A secret approval request has been generated in both the source and the destination.";
+          }
+
+          results.push({
+            name: environment.name,
+            message,
+            status,
+            id: environment.id
+          });
+        } catch (error) {
+          let errorMessage = (error as Error)?.message ?? "Failed to move secrets";
+          if (axios.isAxiosError(error)) {
+            const { message } = error?.response?.data as { message: string };
+            if (message) errorMessage = message;
+          }
+
+          results.push({
+            name: environment.name,
+            message: errorMessage,
+            status: MoveResult.Error,
+            id: environment.id
+          });
         }
+      }
 
-        results.push({
-          name: environment.name,
-          message,
-          status,
-          id: environment.id
-        });
-      } catch (error) {
-        let errorMessage = (error as Error)?.message ?? "Failed to move secrets";
-        if (axios.isAxiosError(error)) {
-          const { message } = error?.response?.data as { message: string };
-          if (message) errorMessage = message;
+      // eslint-disable-next-line no-restricted-syntax
+      for await (const rotation of rotationsToMove) {
+        try {
+          await moveSecretRotation.mutateAsync({
+            type: rotation.type,
+            rotationId: rotation.id,
+            destinationEnvironment: environment.slug,
+            destinationSecretPath: selectedPath.secretPath,
+            projectId,
+            secretPath: sourceSecretPath
+          });
+
+          results.push({
+            name: `${environment.name} / ${rotation.name}`,
+            message: "Successfully moved secret rotation",
+            status: MoveResult.Success,
+            id: `${environment.id}-${rotation.id}`
+          });
+        } catch (error) {
+          let errorMessage = (error as Error)?.message ?? "Failed to move secret rotation";
+          if (axios.isAxiosError(error)) {
+            const responseMessage = (error?.response?.data as { message?: string })?.message;
+            if (responseMessage) errorMessage = responseMessage;
+          }
+
+          results.push({
+            name: `${environment.name} / ${rotation.name}`,
+            message: errorMessage,
+            status: MoveResult.Error,
+            id: `${environment.id}-${rotation.id}`
+          });
         }
-
-        results.push({
-          name: environment.name,
-          message: errorMessage,
-          status: MoveResult.Error,
-          id: environment.id
-        });
       }
     }
 
@@ -551,7 +660,7 @@ const MultiEnvContent = ({
     return <MoveResultsView moveResults={moveResults} onComplete={onComplete} />;
   }
 
-  if (moveSecrets.isPending) {
+  if (moveSecrets.isPending || moveSecretRotation.isPending) {
     return (
       <div className="flex h-full flex-col items-center justify-center py-2.5">
         <LoaderCircleIcon className="size-8 animate-spin text-accent" />

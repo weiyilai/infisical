@@ -5,6 +5,7 @@ import { dashboardKeys } from "@app/hooks/api/dashboard/queries";
 import {
   TCreateSecretRotationV2DTO,
   TDeleteSecretRotationV2DTO,
+  TMoveSecretRotationV2DTO,
   TReconcileLocalAccountRotationDTO,
   TReconcileLocalAccountRotationResponse,
   TRotateSecretRotationV2DTO,
@@ -81,6 +82,29 @@ export const useDeleteSecretRotationV2 = () => {
       const { data } = await apiRequest.delete<TSecretRotationV2Response>(
         `/api/v2/secret-rotations/${type}/${rotationId}`,
         { params: { deleteSecrets, revokeGeneratedCredentials } }
+      );
+
+      return data.secretRotation;
+    },
+    onSuccess: (_, { projectId, secretPath }) =>
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.getDashboardSecrets({ projectId, secretPath })
+      })
+  });
+};
+
+export const useMoveSecretRotation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      type,
+      rotationId,
+      destinationEnvironment,
+      destinationSecretPath
+    }: TMoveSecretRotationV2DTO) => {
+      const { data } = await apiRequest.post<TSecretRotationV2Response>(
+        `/api/v2/secret-rotations/${type}/move/${rotationId}`,
+        { destinationEnvironment, destinationSecretPath }
       );
 
       return data.secretRotation;

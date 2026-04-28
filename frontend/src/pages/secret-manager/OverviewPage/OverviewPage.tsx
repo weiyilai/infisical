@@ -231,7 +231,8 @@ type TSecOverwriteOpt = { update: TParsedEnv; create: TParsedEnv };
 
 export enum EntryType {
   FOLDER = "folder",
-  SECRET = "secret"
+  SECRET = "secret",
+  SECRET_ROTATION = "secretRotation"
 }
 
 export enum RowType {
@@ -336,9 +337,11 @@ const OverviewPageContent = () => {
     // selectedEntries[name/key][envSlug][resource]
     [EntryType.FOLDER]: Record<string, Record<string, TSecretFolder>>;
     [EntryType.SECRET]: Record<string, Record<string, SecretV3RawSanitized>>;
+    [EntryType.SECRET_ROTATION]: Record<string, Record<string, TSecretRotationV2>>;
   }>({
     [EntryType.FOLDER]: {},
-    [EntryType.SECRET]: {}
+    [EntryType.SECRET]: {},
+    [EntryType.SECRET_ROTATION]: {}
   });
 
   const {
@@ -363,7 +366,8 @@ const OverviewPageContent = () => {
   const resetSelectedEntries = useCallback(() => {
     setSelectedEntries({
       [EntryType.FOLDER]: {},
-      [EntryType.SECRET]: {}
+      [EntryType.SECRET]: {},
+      [EntryType.SECRET_ROTATION]: {}
     });
   }, []);
 
@@ -2082,24 +2086,28 @@ const OverviewPageContent = () => {
   }, []);
 
   const allRowsSelectedOnPage = useMemo(() => {
-    if (!secrets?.length && !folders?.length) return { isChecked: false, isIndeterminate: false };
+    if (!secrets?.length && !folders?.length && !secretRotationNames?.length)
+      return { isChecked: false, isIndeterminate: false };
 
     if (
       (!secrets?.length ||
         secrets?.every((secret) => selectedEntries[EntryType.SECRET][secret.key])) &&
       (!folders?.length ||
-        folders?.every((folder) => selectedEntries[EntryType.FOLDER][folder.name]))
+        folders?.every((folder) => selectedEntries[EntryType.FOLDER][folder.name])) &&
+      (!secretRotationNames?.length ||
+        secretRotationNames?.every((name) => selectedEntries[EntryType.SECRET_ROTATION][name]))
     )
       return { isChecked: true, isIndeterminate: false };
 
     if (
       secrets?.some((secret) => selectedEntries[EntryType.SECRET][secret.key]) ||
-      folders?.some((folder) => selectedEntries[EntryType.FOLDER][folder.name])
+      folders?.some((folder) => selectedEntries[EntryType.FOLDER][folder.name]) ||
+      secretRotationNames?.some((name) => selectedEntries[EntryType.SECRET_ROTATION][name])
     )
       return { isChecked: true, isIndeterminate: true };
 
     return { isChecked: false, isIndeterminate: false };
-  }, [selectedEntries, secrets, folders]);
+  }, [selectedEntries, secrets, folders, secretRotationNames]);
 
   const toggleSelectedEntry = useCallback(
     (type: EntryType, key: string) => {
@@ -2112,10 +2120,14 @@ const OverviewPageContent = () => {
       } else {
         newChecks[type][key] = {};
         userAvailableEnvs.forEach((env) => {
-          const resource =
-            type === EntryType.SECRET
-              ? getSecretByKey(env.slug, key)
-              : getFolderByNameAndEnv(key, env.slug);
+          let resource;
+          if (type === EntryType.SECRET) {
+            resource = getSecretByKey(env.slug, key);
+          } else if (type === EntryType.FOLDER) {
+            resource = getFolderByNameAndEnv(key, env.slug);
+          } else {
+            resource = getSecretRotationByName(env.slug, key);
+          }
 
           if (resource) newChecks[type][key][env.slug] = resource;
         });
@@ -2123,7 +2135,7 @@ const OverviewPageContent = () => {
 
       setSelectedEntries(newChecks);
     },
-    [selectedEntries, getFolderByNameAndEnv, getSecretByKey]
+    [selectedEntries, getFolderByNameAndEnv, getSecretByKey, getSecretRotationByName]
   );
 
   const toggleSelectAllRows = () => {
@@ -2153,6 +2165,19 @@ const OverviewPageContent = () => {
           const resource = getFolderByNameAndEnv(folder.name, env.slug);
 
           if (resource) newChecks[EntryType.FOLDER][folder.name][env.slug] = resource;
+        }
+      });
+
+      secretRotationNames?.forEach((rotationName) => {
+        if (allRowsSelectedOnPage.isChecked) {
+          delete newChecks[EntryType.SECRET_ROTATION][rotationName];
+        } else {
+          if (!newChecks[EntryType.SECRET_ROTATION][rotationName])
+            newChecks[EntryType.SECRET_ROTATION][rotationName] = {};
+
+          const resource = getSecretRotationByName(env.slug, rotationName);
+
+          if (resource) newChecks[EntryType.SECRET_ROTATION][rotationName][env.slug] = resource;
         }
       });
     });
@@ -2999,6 +3024,12 @@ const OverviewPageContent = () => {
                               getSecretRotationStatusesByName={getSecretRotationStatusesByName}
                               key={`overview-${secretRotationName}-${index + 1}`}
                               tableWidth={tableWidth}
+                              isSelected={Boolean(
+                                selectedEntries.secretRotation[secretRotationName]
+                              )}
+                              onToggleRotationSelect={() =>
+                                toggleSelectedEntry(EntryType.SECRET_ROTATION, secretRotationName)
+                              }
                               onEdit={(secretRotation) =>
                                 handlePopUpOpen("editSecretRotation", secretRotation)
                               }
