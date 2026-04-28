@@ -639,9 +639,11 @@ export const externalMigrationServiceFactory = ({
       throw new BadRequestError({ message: "At least one Vault secret path is required" });
     }
 
+    const uniqueVaultSecretPaths = Array.from(new Set(vaultSecretPaths));
+
     const secretsPerPath = await getHCVaultSecretsForPaths(
       vaultNamespace,
-      vaultSecretPaths,
+      uniqueVaultSecretPaths,
       connection,
       gatewayService,
       gatewayV2Service
