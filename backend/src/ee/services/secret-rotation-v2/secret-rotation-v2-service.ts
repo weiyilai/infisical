@@ -42,6 +42,7 @@ import {
   TGetDashboardSecretRotationsV2,
   TGetDashboardSecretRotationV2Count,
   TListSecretRotationsV2ByProjectId,
+  TMoveSecretRotationV2DTO,
   TQuickSearchSecretRotationsV2,
   TRotateSecretRotationV2,
   TRotationFactory,
@@ -928,6 +929,106 @@ export const secretRotationV2ServiceFactory = ({
     return expandSecretRotation(secretRotation, kmsService);
   };
 
+  const moveSecretRotation = async (
+    { type, rotationId, destinationEnvironment, destinationSecretPath }: TMoveSecretRotationV2DTO,
+    actor: OrgServiceActor
+  ) => {
+    const plan = await licenseService.getPlan(actor.orgId);
+
+    if (!plan.secretRotation)
+      throw new BadRequestError({
+        message: "Failed to move secret rotation due to plan restriction. Upgrade plan to manage secret rotations."
+      });
+
+    const secretRotation = await secretRotationV2DAL.findById(rotationId);
+
+    if (!secretRotation)
+      throw new NotFoundError({
+        message: `Could not find ${SECRET_ROTATION_NAME_MAP[type]} Rotation with ID "${rotationId}"`
+      });
+
+    const { projectId, folderId: sourceFolderId, secretsMapping, folder, environment } = secretRotation;
+
+    const { permission } = await permissionService.getProjectPermission({
+      actor: actor.type,
+      actorId: actor.id,
+      actorAuthMethod: actor.authMethod,
+      actorOrgId: actor.orgId,
+      actionProjectType: ActionProjectType.SecretManager,
+      projectId
+    });
+
+    ForbiddenError.from(permission).throwUnlessCan(
+      ProjectPermissionSecretRotationActions.Delete,
+      getSecretRotationSubject(secretRotation)
+    );
+
+    const destinationFolder = await folderDAL.findBySecretPath(
+      projectId,
+      destinationEnvironment,
+      destinationSecretPath
+    );
+
+    if (!destinationFolder)
+      throw new NotFoundError({
+        message: `Destination folder with path "${destinationSecretPath}" in environment "${destinationEnvironment}" not found`
+      });
+
+    if (destinationFolder.id === sourceFolderId)
+      throw new BadRequestError({
+        message: "Source and destination locations are the same"
+      });
+
+    ForbiddenError.from(permission).throwUnlessCan(
+      ProjectPermissionSecretRotationActions.Create,
+      getSecretRotationSubject(secretRotation, {
+        environment: destinationEnvironment,
+        secretPath: destinationSecretPath
+      })
+    );
+
+    const mappedKeys = Object.values(secretsMapping as TSecretRotationV2["secretsMapping"]);
+
+    await $throwOnConflictingSecrets({
+      secretKeys: mappedKeys,
+      folderId: destinationFolder.id,
+      secretPath: destinationSecretPath
+    });
+
+    const updatedRotation = await secretRotationV2DAL.transaction(async (tx) => {
+      const sourceSecrets = await secretV2BridgeDAL.find(
+        {
+          $in: {
+            [`${TableName.SecretV2}.key` as "key"]: mappedKeys
+          },
+          [`${TableName.SecretV2}.folderId` as "folderId"]: sourceFolderId,
+          [`${TableName.SecretV2}.type` as "type"]: SecretType.Shared
+        },
+        { tx }
+      );
+
+      if (sourceSecrets.length) {
+        await secretV2BridgeDAL.bulkUpdate(
+          sourceSecrets.map((s) => ({
+            filter: { id: s.id },
+            data: { folderId: destinationFolder.id }
+          })),
+          tx
+        );
+      }
+
+      return secretRotationV2DAL.updateById(rotationId, { folderId: destinationFolder.id }, tx);
+    });
+
+    await secretV2BridgeDAL.invalidateSecretCacheByProjectId(projectId);
+
+    return {
+      secretRotation: await expandSecretRotation(updatedRotation, kmsService),
+      sourceEnvironment: environment.slug,
+      sourceSecretPath: folder.path
+    };
+  };
+
   const triggerFailedWebhook = async (
     projectId: string,
     environment: { slug: string; name: string; id: string },
@@ -1686,6 +1787,7 @@ export const secretRotationV2ServiceFactory = ({
     findSecretRotationById,
     findSecretRotationByName,
     deleteSecretRotation,
+    moveSecretRotation,
     findSecretRotationGeneratedCredentialsById,
     rotateSecretRotation,
     rotateGeneratedCredentials,
