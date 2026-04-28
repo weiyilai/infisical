@@ -29,7 +29,8 @@ import {
   CertKeyAlgorithm,
   CertKeyUsage,
   CertStatus,
-  TAltNameType
+  CertSubjectAlternativeNameType,
+  mapSanTypeToX509Type
 } from "@app/services/certificate/certificate-types";
 import { calculateRenewalThreshold, parseTtlToDays } from "@app/services/certificate-common/certificate-issuance-utils";
 import { TCertificateProfileDALFactory } from "@app/services/certificate-profile/certificate-profile-dal";
@@ -48,57 +49,11 @@ import {
 } from "./venafi-tpp-certificate-authority-types";
 
 // -- SAN type codes for Venafi TPP SubjectAltNames --
-const VENAFI_SAN_TYPE_DNS = 2;
-const VENAFI_SAN_TYPE_IP = 7;
-const VENAFI_SAN_TYPE_EMAIL = 1;
-const VENAFI_SAN_TYPE_URI = 6;
-
-const IPV4_DOTTED_QUAD_REGEX = new RE2("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$");
-
-type TNormalizedSanType = "dns" | "ip" | "email" | "uri";
-
-const parseSanEntry = (san: string): { type: TNormalizedSanType; value: string } => {
-  const colonIdx = san.indexOf(":");
-  if (colonIdx > 0) {
-    const prefix = san.substring(0, colonIdx).toLowerCase();
-    const value = san.substring(colonIdx + 1);
-    switch (prefix) {
-      case "dns":
-      case "dns_name":
-        return { type: "dns", value };
-      case "ip":
-      case "ip_address":
-        return { type: "ip", value };
-      case "email":
-        return { type: "email", value };
-      case "uri":
-        return { type: "uri", value };
-      default:
-        throw new BadRequestError({
-          message: `Unsupported Subject Alternative Name type prefix '${prefix}'. Supported prefixes: dns, dns_name, ip, ip_address, email, uri.`
-        });
-    }
-  }
-
-  if (IPV4_DOTTED_QUAD_REGEX.test(san)) {
-    return { type: "ip", value: san };
-  }
-
-  return { type: "dns", value: san };
-};
-
-const VENAFI_SAN_TYPE_BY_NORMALIZED: Record<TNormalizedSanType, number> = {
-  dns: VENAFI_SAN_TYPE_DNS,
-  ip: VENAFI_SAN_TYPE_IP,
-  email: VENAFI_SAN_TYPE_EMAIL,
-  uri: VENAFI_SAN_TYPE_URI
-};
-
-const X509_ALT_NAME_TYPE_BY_NORMALIZED: Record<TNormalizedSanType, TAltNameType> = {
-  dns: "dns" as TAltNameType,
-  ip: "ip" as TAltNameType,
-  email: "email" as TAltNameType,
-  uri: "url" as TAltNameType
+const VENAFI_SAN_TYPE_BY_SAN_TYPE: Record<CertSubjectAlternativeNameType, number> = {
+  [CertSubjectAlternativeNameType.DNS_NAME]: 2,
+  [CertSubjectAlternativeNameType.IP_ADDRESS]: 7,
+  [CertSubjectAlternativeNameType.EMAIL]: 1,
+  [CertSubjectAlternativeNameType.URI]: 6
 };
 
 type TVenafiTppCertificateRequest = {
@@ -146,13 +101,16 @@ const normalizeTppUrl = (tppUrl: string): string => {
   return tppUrl.replace(new RE2("\\/+$"), "");
 };
 
-/**
- * Parses a SAN string (e.g., "dns:example.com" or just "example.com") into Venafi TPP SAN format.
- */
-const parseSanToVenafiFormat = (san: string): { Type: number; Name: string } => {
-  const { type, value } = parseSanEntry(san);
-  return { Type: VENAFI_SAN_TYPE_BY_NORMALIZED[type], Name: value };
-};
+const sanToVenafiFormat = (san: {
+  type: CertSubjectAlternativeNameType;
+  value: string;
+}): {
+  Type: number;
+  Name: string;
+} => ({
+  Type: VENAFI_SAN_TYPE_BY_SAN_TYPE[san.type],
+  Name: san.value
+});
 
 const getVenafiTppConnection = async (
   appConnectionId: string,
@@ -213,7 +171,7 @@ const submitCertificateToTpp = async ({
   policyDN: string;
   csrPem: string;
   objectName: string;
-  altNames?: string[];
+  altNames?: Array<{ type: CertSubjectAlternativeNameType; value: string }>;
   workToDoTimeout?: number;
   gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
   gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
@@ -228,7 +186,7 @@ const submitCertificateToTpp = async ({
   };
 
   if (altNames && altNames.length > 0) {
-    requestBody.SubjectAltNames = altNames.map((san) => parseSanToVenafiFormat(san));
+    requestBody.SubjectAltNames = altNames.map(sanToVenafiFormat);
   }
 
   logger.info(
@@ -602,7 +560,7 @@ export const VenafiTppCertificateAuthorityFns = ({
     caId: string;
     profileId: string;
     commonName: string;
-    altNames?: string[];
+    altNames?: Array<{ type: CertSubjectAlternativeNameType; value: string }>;
     keyUsages?: CertKeyUsage[];
     extendedKeyUsages?: CertExtendedKeyUsage[];
     validity: { ttl: string };
@@ -719,12 +677,12 @@ export const VenafiTppCertificateAuthorityFns = ({
 
       const sanExtensions: x509.SubjectAlternativeNameExtension[] = [];
       if (altNames.length > 0) {
-        const sanEntries = altNames.map((name) => {
-          const { type, value } = parseSanEntry(name);
-          return { type: X509_ALT_NAME_TYPE_BY_NORMALIZED[type], value };
-        });
-
-        sanExtensions.push(new x509.SubjectAlternativeNameExtension(sanEntries, false));
+        sanExtensions.push(
+          new x509.SubjectAlternativeNameExtension(
+            altNames.map((san) => ({ type: mapSanTypeToX509Type(san.type), value: san.value })),
+            false
+          )
+        );
       }
 
       const csrObj = await x509.Pkcs10CertificateRequestGenerator.create({
@@ -883,7 +841,7 @@ export const VenafiTppCertificateAuthorityFns = ({
             status: CertStatus.ACTIVE,
             friendlyName: commonName,
             commonName,
-            altNames: altNames.join(","),
+            altNames: altNames.map((san) => san.value).join(","),
             serialNumber: certObj.serialNumber,
             notBefore: certObj.notBefore,
             notAfter: certObj.notAfter,
