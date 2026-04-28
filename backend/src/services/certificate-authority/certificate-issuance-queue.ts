@@ -1,7 +1,6 @@
 import acme from "acme-client";
 import { UnrecoverableError } from "bullmq";
 
-import { TGatewayServiceFactory } from "@app/ee/services/gateway/gateway-service";
 import { TGatewayV2ServiceFactory } from "@app/ee/services/gateway-v2/gateway-v2-service";
 import { crypto } from "@app/lib/crypto/cryptography";
 import { NotFoundError } from "@app/lib/errors";
@@ -123,7 +122,6 @@ type TCertificateIssuanceQueueFactoryDep = {
   certificateRequestDAL?: Pick<TCertificateRequestDALFactory, "updateById">;
   resourceMetadataDAL: Pick<TResourceMetadataDALFactory, "find" | "insertMany">;
   pkiAlertV2Queue?: Pick<TPkiAlertV2QueueServiceFactory, "queueCertificateEvent">;
-  gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
   gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
 };
 
@@ -148,7 +146,6 @@ export const certificateIssuanceQueueFactory = ({
   certificateRequestDAL,
   resourceMetadataDAL,
   pkiAlertV2Queue,
-  gatewayService,
   gatewayV2Service
 }: TCertificateIssuanceQueueFactoryDep) => {
   const acmeFns = AcmeCertificateAuthorityFns({
@@ -232,7 +229,6 @@ export const certificateIssuanceQueueFactory = ({
     kmsService,
     projectDAL,
     certificateProfileDAL,
-    gatewayService,
     gatewayV2Service
   });
 

@@ -1,7 +1,6 @@
 import { ForbiddenError, subject } from "@casl/ability";
 
 import { ActionProjectType, TableName } from "@app/db/schemas";
-import { TGatewayServiceFactory } from "@app/ee/services/gateway/gateway-service";
 import { TGatewayV2ServiceFactory } from "@app/ee/services/gateway-v2/gateway-v2-service";
 import { TPermissionServiceFactory } from "@app/ee/services/permission/permission-service-types";
 import {
@@ -124,7 +123,6 @@ type TCertificateAuthorityServiceFactoryDep = {
     "findById" | "updateById" | "updateStatus" | "attachCertificate"
   >;
   resourceMetadataDAL: Pick<TResourceMetadataDALFactory, "find" | "insertMany">;
-  gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
   gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
 };
 
@@ -148,7 +146,6 @@ export const certificateAuthorityServiceFactory = ({
   certificateProfileDAL,
   certificateRequestDAL,
   resourceMetadataDAL,
-  gatewayService,
   gatewayV2Service
 }: TCertificateAuthorityServiceFactoryDep) => {
   const acmeFns = AcmeCertificateAuthorityFns({
@@ -194,7 +191,6 @@ export const certificateAuthorityServiceFactory = ({
     kmsService,
     projectDAL,
     certificateProfileDAL,
-    gatewayService,
     gatewayV2Service
   });
 

@@ -2486,7 +2486,6 @@ export const registerRoutes = async (
     pkiSyncQueue,
     certificateRequestDAL,
     resourceMetadataDAL,
-    gatewayService,
     gatewayV2Service
   });
 
@@ -2571,7 +2570,6 @@ export const registerRoutes = async (
     certificateRequestDAL,
     resourceMetadataDAL,
     pkiAlertV2Queue,
-    gatewayService,
     gatewayV2Service
   });
 

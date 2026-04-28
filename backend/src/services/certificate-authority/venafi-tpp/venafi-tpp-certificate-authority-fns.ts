@@ -4,7 +4,6 @@ import { AxiosError } from "axios";
 import RE2 from "re2";
 
 import { TableName } from "@app/db/schemas";
-import { TGatewayServiceFactory } from "@app/ee/services/gateway/gateway-service";
 import { TGatewayV2ServiceFactory } from "@app/ee/services/gateway-v2/gateway-v2-service";
 import { crypto } from "@app/lib/crypto/cryptography";
 import { BadRequestError, NotFoundError } from "@app/lib/errors";
@@ -162,7 +161,6 @@ const submitCertificateToTpp = async ({
   objectName,
   altNames,
   workToDoTimeout = 30,
-  gatewayService,
   gatewayV2Service
 }: {
   appConnection: { gatewayId?: string | null };
@@ -173,7 +171,6 @@ const submitCertificateToTpp = async ({
   objectName: string;
   altNames?: Array<{ type: CertSubjectAlternativeNameType; value: string }>;
   workToDoTimeout?: number;
-  gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
   gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
 }): Promise<TVenafiTppRequestResponse> => {
   const requestBody: TVenafiTppCertificateRequest = {
@@ -200,7 +197,6 @@ const submitCertificateToTpp = async ({
 
   const { data, status } = await requestWithVenafiTppGateway<TVenafiTppRequestResponse>(
     appConnection,
-    gatewayService,
     gatewayV2Service,
     {
       method: "POST",
@@ -230,7 +226,6 @@ const retrieveCertificateFromTpp = async ({
   accessToken,
   certificateDN,
   includeChain = true,
-  gatewayService,
   gatewayV2Service
 }: {
   appConnection: { gatewayId?: string | null };
@@ -238,14 +233,12 @@ const retrieveCertificateFromTpp = async ({
   accessToken: string;
   certificateDN: string;
   includeChain?: boolean;
-  gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
   gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
 }): Promise<{ certificate: string; chain: string }> => {
   logger.info({ certificateDN, includeChain }, "Venafi TPP: Retrieving certificate");
 
   const { data, status } = await requestWithVenafiTppGateway<TVenafiTppRetrieveResponse>(
     appConnection,
-    gatewayService,
     gatewayV2Service,
     {
       method: "POST",
@@ -348,7 +341,6 @@ type TVenafiTppCertificateAuthorityFnsDeps = {
   kmsService: Pick<TKmsServiceFactory, "encryptWithKmsKey" | "generateKmsKey" | "createCipherPairWithDataKey">;
   projectDAL: Pick<TProjectDALFactory, "findById" | "findOne" | "updateById" | "transaction">;
   certificateProfileDAL?: Pick<TCertificateProfileDALFactory, "findById">;
-  gatewayService: Pick<TGatewayServiceFactory, "fnGetGatewayClientTlsByGatewayId">;
   gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
 };
 
@@ -363,7 +355,6 @@ export const VenafiTppCertificateAuthorityFns = ({
   kmsService,
   projectDAL,
   certificateProfileDAL,
-  gatewayService,
   gatewayV2Service
 }: TVenafiTppCertificateAuthorityFnsDeps) => {
   const createCertificateAuthority = async ({
@@ -698,7 +689,7 @@ export const VenafiTppCertificateAuthorityFns = ({
     let accessToken: string | undefined;
 
     try {
-      const authResponse = await authenticateVenafiTpp({ gatewayId, credentials }, gatewayService, gatewayV2Service);
+      const authResponse = await authenticateVenafiTpp({ gatewayId, credentials }, gatewayV2Service);
       accessToken = authResponse.access_token;
 
       const requestResponse = await submitCertificateToTpp({
@@ -710,7 +701,6 @@ export const VenafiTppCertificateAuthorityFns = ({
         objectName: commonName,
         altNames,
         workToDoTimeout: 60,
-        gatewayService,
         gatewayV2Service
       });
 
@@ -743,7 +733,6 @@ export const VenafiTppCertificateAuthorityFns = ({
               accessToken,
               certificateDN: requestResponse.CertificateDN,
               includeChain: true,
-              gatewayService,
               gatewayV2Service
             });
             break;
@@ -947,7 +936,7 @@ export const VenafiTppCertificateAuthorityFns = ({
       });
     } finally {
       if (accessToken) {
-        await revokeVenafiTppToken({ gatewayId, credentials }, accessToken, gatewayService, gatewayV2Service);
+        await revokeVenafiTppToken({ gatewayId, credentials }, accessToken, gatewayV2Service);
       }
     }
   };
