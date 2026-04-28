@@ -32,6 +32,13 @@ import { TPkiSyncDALFactory } from "../pki-sync/pki-sync-dal";
 import { TPkiSyncQueueFactory } from "../pki-sync/pki-sync-queue";
 import { TResourceMetadataDALFactory } from "../resource-metadata/resource-metadata-dal";
 import { copyMetadataFromRequestToCertificate } from "../resource-metadata/resource-metadata-fns";
+import {
+  ACME_ORDER_TIMEOUT_MS,
+  AcmeOrderTimeoutError,
+  AcmeRateLimitError,
+  isAcmeRateLimitError,
+  runWithAcmeOrderTimeout
+} from "./acme/acme-certificate-authority-errors";
 import { AcmeCertificateAuthorityFns } from "./acme/acme-certificate-authority-fns";
 import { AcmPendingError } from "./aws-acm-public-ca/aws-acm-public-ca-certificate-authority-errors";
 import { AwsAcmPublicCaCertificateAuthorityFns } from "./aws-acm-public-ca/aws-acm-public-ca-certificate-authority-fns";
@@ -349,21 +356,33 @@ export const certificateIssuanceQueueFactory = ({
           certificateCsr = generatedCsr.toString();
         }
 
-        const acmeResult = await acmeFns.orderCertificateFromProfile({
-          caId,
-          profileId,
-          commonName: commonName || "",
-          altNames: altNames?.map((san) => san.value) || [],
-          csr: Buffer.from(certificateCsr),
-          csrPrivateKey: skLeaf,
-          keyUsages: keyUsages as CertKeyUsage[],
-          extendedKeyUsages: extendedKeyUsages as CertExtendedKeyUsage[],
-          ttl,
-          signatureAlgorithm,
-          keyAlgorithm,
-          isRenewal,
-          originalCertificateId
-        });
+        let acmeResult;
+        try {
+          acmeResult = await runWithAcmeOrderTimeout(
+            acmeFns.orderCertificateFromProfile({
+              caId,
+              profileId,
+              commonName: commonName || "",
+              altNames: altNames?.map((san) => san.value) || [],
+              csr: Buffer.from(certificateCsr),
+              csrPrivateKey: skLeaf,
+              keyUsages: keyUsages as CertKeyUsage[],
+              extendedKeyUsages: extendedKeyUsages as CertExtendedKeyUsage[],
+              ttl,
+              signatureAlgorithm,
+              keyAlgorithm,
+              isRenewal,
+              originalCertificateId
+            }),
+            ACME_ORDER_TIMEOUT_MS
+          );
+        } catch (acmeError) {
+          if (isAcmeRateLimitError(acmeError)) {
+            const message = acmeError instanceof Error ? acmeError.message : String(acmeError);
+            throw new AcmeRateLimitError(`ACME CA rate-limited the order: ${message}`);
+          }
+          throw acmeError;
+        }
 
         if (certificateRequestId && certificateRequestService && acmeResult?.id) {
           try {
@@ -767,12 +786,15 @@ export const certificateIssuanceQueueFactory = ({
 
       logger.error(error, `Certificate issuance job failed for [certificateId=${certificateId}] [caId=${caId}]`);
 
+      const isAcmeTerminal = error instanceof AcmeOrderTimeoutError || error instanceof AcmeRateLimitError;
+
       if (certificateRequestId && certificateRequestService) {
         try {
+          const errorMessage = error instanceof Error ? error.message : String(error);
           await certificateRequestService.updateCertificateRequestStatus({
             certificateRequestId,
             status: CertificateRequestStatus.FAILED,
-            errorMessage: `Certificate issuance failed: ${error instanceof Error ? error.message : String(error)}`
+            errorMessage: isAcmeTerminal ? errorMessage : `Certificate issuance failed: ${errorMessage}`
           });
           logger.info(`Updated certificate request ${certificateRequestId} status to failed due to issuance error`);
         } catch (statusUpdateError) {
@@ -785,7 +807,7 @@ export const certificateIssuanceQueueFactory = ({
 
       // For ACM's 30-attempt queue, wrap non-retryable errors so BullMQ stops retrying immediately.
       // Other CAs keep default retry behavior (3 attempts is short enough that running through them is fine).
-      if (data.caType === CaType.AWS_ACM_PUBLIC_CA) {
+      if (data.caType === CaType.AWS_ACM_PUBLIC_CA || isAcmeTerminal) {
         const message = error instanceof Error ? error.message : String(error);
         const wrapped = new UnrecoverableError(message);
         (wrapped as Error).cause = error;
