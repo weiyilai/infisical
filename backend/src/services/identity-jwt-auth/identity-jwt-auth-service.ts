@@ -130,7 +130,9 @@ export const identityJwtAuthServiceFactory = ({
             cipherTextBlob: identityJwtAuth.encryptedJwksCaCert
           }).toString();
 
-          const requestAgent = new https.Agent({ ca: decryptedJwksCaCert, rejectUnauthorized: !!decryptedJwksCaCert });
+          const requestAgent = decryptedJwksCaCert
+            ? new https.Agent({ ca: decryptedJwksCaCert, rejectUnauthorized: true })
+            : undefined;
           client = new JwksClient({
             jwksUri: identityJwtAuth.jwksUrl,
             requestAgent

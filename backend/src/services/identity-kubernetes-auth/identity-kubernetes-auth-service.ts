@@ -147,8 +147,8 @@ export const identityKubernetesAuthServiceFactory = ({
       let httpsAgent: https.Agent | undefined;
       if (!inputs.reviewTokenThroughGateway) {
         httpsAgent = new https.Agent({
-          ca: inputs.caCert,
-          rejectUnauthorized: Boolean(inputs.caCert)
+          ca: inputs.caCert || undefined,
+          rejectUnauthorized: true
         });
       }
 
@@ -193,8 +193,8 @@ export const identityKubernetesAuthServiceFactory = ({
         ...(!inputs.reviewTokenThroughGateway
           ? {
               httpsAgent: new https.Agent({
-                ca: inputs.caCert,
-                rejectUnauthorized: Boolean(inputs.caCert)
+                ca: inputs.caCert || undefined,
+                rejectUnauthorized: true
               })
             }
           : {})
@@ -355,8 +355,8 @@ export const identityKubernetesAuthServiceFactory = ({
               signal: AbortSignal.timeout(10000),
               timeout: 10000,
               httpsAgent: new https.Agent({
-                ca: caCert,
-                rejectUnauthorized: Boolean(caCert),
+                ca: caCert || undefined,
+                rejectUnauthorized: true,
                 servername
               })
             }
