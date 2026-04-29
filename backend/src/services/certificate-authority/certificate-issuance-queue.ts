@@ -1,6 +1,7 @@
 import acme from "acme-client";
 import { UnrecoverableError } from "bullmq";
 
+import { TGatewayV2ServiceFactory } from "@app/ee/services/gateway-v2/gateway-v2-service";
 import { crypto } from "@app/lib/crypto/cryptography";
 import { NotFoundError } from "@app/lib/errors";
 import { logger } from "@app/lib/logger";
@@ -121,6 +122,7 @@ type TCertificateIssuanceQueueFactoryDep = {
   certificateRequestDAL?: Pick<TCertificateRequestDALFactory, "updateById">;
   resourceMetadataDAL: Pick<TResourceMetadataDALFactory, "find" | "insertMany">;
   pkiAlertV2Queue?: Pick<TPkiAlertV2QueueServiceFactory, "queueCertificateEvent">;
+  gatewayV2Service: Pick<TGatewayV2ServiceFactory, "getPlatformConnectionDetailsByGatewayId">;
 };
 
 export type TCertificateIssuanceQueueFactory = ReturnType<typeof certificateIssuanceQueueFactory>;
@@ -143,7 +145,8 @@ export const certificateIssuanceQueueFactory = ({
   certificateRequestService,
   certificateRequestDAL,
   resourceMetadataDAL,
-  pkiAlertV2Queue
+  pkiAlertV2Queue,
+  gatewayV2Service
 }: TCertificateIssuanceQueueFactoryDep) => {
   const acmeFns = AcmeCertificateAuthorityFns({
     appConnectionDAL,
@@ -225,7 +228,8 @@ export const certificateIssuanceQueueFactory = ({
     certificateSecretDAL,
     kmsService,
     projectDAL,
-    certificateProfileDAL
+    certificateProfileDAL,
+    gatewayV2Service
   });
 
   /**
@@ -689,7 +693,7 @@ export const certificateIssuanceQueueFactory = ({
           caId,
           profileId,
           commonName: commonName || "",
-          altNames: altNames?.map((san) => san.value) || [],
+          altNames: (altNames || []) as Array<{ type: CertSubjectAlternativeNameType; value: string }>,
           keyUsages: keyUsages as CertKeyUsage[],
           extendedKeyUsages: extendedKeyUsages as CertExtendedKeyUsage[],
           validity: { ttl },
