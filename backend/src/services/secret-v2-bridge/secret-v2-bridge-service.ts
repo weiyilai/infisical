@@ -2997,21 +2997,6 @@ export const secretV2BridgeServiceFactory = ({
         });
       }
 
-      const destinationRotations = await secretRotationV2DAL.find(
-        { projectId, folderId: destinationFolder.id },
-        undefined,
-        tx
-      );
-      const sourceKeySet = new Set(sourceKeys);
-      const conflictingRotationNames = destinationRotations
-        .filter((rotation) => sourceKeySet.has(rotation.name))
-        .map((rotation) => rotation.name);
-      if (conflictingRotationNames.length > 0) {
-        throw new BadRequestError({
-          message: `Cannot move secrets to '${destinationFolder.path}' because the following keys conflict with existing secret rotation names at the destination: ${conflictingRotationNames.join(", ")}`
-        });
-      }
-
       const locallyCreatedSecrets = decryptedSourceSecrets
         .filter(({ key }) => !destinationSecretsGroupedByKey[key]?.[0])
         .map((el) => ({ ...el, operation: SecretOperations.Create }));
