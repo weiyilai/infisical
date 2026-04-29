@@ -2987,7 +2987,10 @@ export const SecretSyncs = {
       teamId: "The ID of the Vercel team to sync secrets to.",
       teamName:
         "The name of the team to sync the secrets to. This is an optional field only intended for display purposes.",
-      targetEnvironments: "An optional array of Vercel environments to add shared environment variables to.",
+      targetEnvironments:
+        "An optional array of Vercel default environments (development, preview, production) to add shared environment variables to.",
+      applyToAllCustomEnvironments:
+        "Whether to apply shared environment variables to all custom environments in the team.",
       targetProjects: "An optional array of Vercel projects to add shared environment variables to.",
       sensitive:
         "Whether to create Vercel environment variables as Sensitive (cannot be read back). Not allowed when targeting the Development environment."
