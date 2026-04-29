@@ -284,6 +284,7 @@ const SingleEnvContent = ({
           rotationId: rotation.id,
           destinationEnvironment: data.environment,
           destinationSecretPath: selectedPath.secretPath,
+          overwriteDestination: data.shouldOverwrite,
           projectId,
           secretPath: sourceSecretPath
         });
@@ -632,6 +633,7 @@ const MultiEnvContent = ({
             rotationId: rotation.id,
             destinationEnvironment: environment.slug,
             destinationSecretPath: selectedPath.secretPath,
+            overwriteDestination: data.shouldOverwrite,
             projectId,
             secretPath: sourceSecretPath
           });

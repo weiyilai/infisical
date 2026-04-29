@@ -100,11 +100,12 @@ export const useMoveSecretRotation = () => {
       type,
       rotationId,
       destinationEnvironment,
-      destinationSecretPath
+      destinationSecretPath,
+      overwriteDestination
     }: TMoveSecretRotationV2DTO) => {
       const { data } = await apiRequest.post<TSecretRotationV2Response>(
         `/api/v2/secret-rotations/${type}/${rotationId}/move`,
-        { destinationEnvironment, destinationSecretPath }
+        { destinationEnvironment, destinationSecretPath, overwriteDestination }
       );
 
       return data.secretRotation;
