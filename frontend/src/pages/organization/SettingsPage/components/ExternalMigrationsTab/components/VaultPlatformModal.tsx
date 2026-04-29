@@ -270,7 +270,7 @@ export const VaultPlatformModal = ({ onClose }: Props) => {
               <FieldContent>
                 <Input
                   type="text"
-                  placeholder=""
+                  placeholder="admin"
                   autoComplete="off"
                   {...field}
                   isError={Boolean(error)}
