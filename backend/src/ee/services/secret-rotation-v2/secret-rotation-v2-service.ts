@@ -1023,30 +1023,7 @@ export const secretRotationV2ServiceFactory = ({
       })
     );
 
-    const conflictingRotation = await secretRotationV2DAL.findOne({
-      name: secretRotation.name,
-      folderId: destinationFolder.id
-    });
-
-    if (conflictingRotation)
-      throw new BadRequestError({
-        message: `A Secret Rotation with the name "${secretRotation.name}" already exists at the secret path "${destinationSecretPath}"`
-      });
-
     const mappedKeys = Object.values(secretsMapping as TSecretRotationV2["secretsMapping"]);
-
-    const conflictingDestinationSecrets = await $findConflictingSecrets({
-      secretKeys: mappedKeys,
-      folderId: destinationFolder.id
-    });
-
-    if (conflictingDestinationSecrets.length && !overwriteDestination) {
-      throw new BadRequestError({
-        message: `The following secrets already exist at the destination path "${destinationSecretPath}": ${conflictingDestinationSecrets
-          .map(({ key }) => key)
-          .join(", ")}. Set "overwriteDestination" to true to replace them.`
-      });
-    }
 
     const { encryptor: secretManagerEncryptor, decryptor: secretManagerDecryptor } =
       await kmsService.createCipherPairWithDataKey({
@@ -1055,6 +1032,29 @@ export const secretRotationV2ServiceFactory = ({
       });
 
     const updatedRotation = await secretRotationV2DAL.transaction(async (tx) => {
+      const conflictingRotation = await secretRotationV2DAL.findOne({
+        name: secretRotation.name,
+        folderId: destinationFolder.id
+      });
+
+      if (conflictingRotation)
+        throw new BadRequestError({
+          message: `A Secret Rotation with the name "${secretRotation.name}" already exists at the secret path "${destinationSecretPath}"`
+        });
+
+      const conflictingDestinationSecrets = await $findConflictingSecrets({
+        secretKeys: mappedKeys,
+        folderId: destinationFolder.id
+      });
+
+      if (conflictingDestinationSecrets.length && !overwriteDestination) {
+        throw new BadRequestError({
+          message: `The following secrets already exist at the destination path "${destinationSecretPath}": ${conflictingDestinationSecrets
+            .map(({ key }) => key)
+            .join(", ")}. Set "overwriteDestination" to true to replace them.`
+        });
+      }
+
       if (conflictingDestinationSecrets.length && overwriteDestination) {
         await secretV2BridgeDAL.deleteMany(
           conflictingDestinationSecrets.map((s) => ({ key: s.key, type: SecretType.Shared })),
