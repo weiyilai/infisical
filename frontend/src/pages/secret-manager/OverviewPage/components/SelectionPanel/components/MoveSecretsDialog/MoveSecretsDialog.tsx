@@ -331,15 +331,6 @@ const SingleEnvContent = ({
       });
     }
 
-    if (rotationFailures.length > 0) {
-      createNotification({
-        type: "error",
-        text: `Failed to move ${rotationFailures.length} secret rotation${
-          rotationFailures.length === 1 ? "" : "s"
-        }: ${rotationFailures.map((f) => `${f.name} (${f.message})`).join("; ")}`
-      });
-    }
-
     onClose();
     onComplete();
   };

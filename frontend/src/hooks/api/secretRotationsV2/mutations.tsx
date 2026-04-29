@@ -103,16 +103,25 @@ export const useMoveSecretRotation = () => {
       destinationSecretPath
     }: TMoveSecretRotationV2DTO) => {
       const { data } = await apiRequest.post<TSecretRotationV2Response>(
-        `/api/v2/secret-rotations/${type}/move/${rotationId}`,
+        `/api/v2/secret-rotations/${type}/${rotationId}/move`,
         { destinationEnvironment, destinationSecretPath }
       );
 
       return data.secretRotation;
     },
-    onSuccess: (_, { projectId, secretPath }) =>
+    onSuccess: (_, { projectId, secretPath, destinationSecretPath }) => {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.getDashboardSecrets({ projectId, secretPath })
-      })
+      });
+      if (destinationSecretPath !== secretPath) {
+        queryClient.invalidateQueries({
+          queryKey: dashboardKeys.getDashboardSecrets({
+            projectId,
+            secretPath: destinationSecretPath
+          })
+        });
+      }
+    }
   });
 };
 

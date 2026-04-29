@@ -454,7 +454,7 @@ export const registerSecretRotationEndpoints = <
 
   server.route({
     method: "POST",
-    url: "/move/:rotationId",
+    url: "/:rotationId/move",
     config: {
       rateLimit: writeLimit
     },
@@ -468,7 +468,8 @@ export const registerSecretRotationEndpoints = <
       }),
       body: z.object({
         destinationEnvironment: z.string().trim().min(1, "Destination environment required"),
-        destinationSecretPath: z.string().trim().min(1, "Destination secret path required")
+        destinationSecretPath: z.string().trim().min(1, "Destination secret path required"),
+        overwriteDestination: z.boolean().default(false)
       }),
       response: {
         200: z.object({ secretRotation: responseSchema })
@@ -477,11 +478,11 @@ export const registerSecretRotationEndpoints = <
     onRequest: verifyAuth([AuthMode.JWT, AuthMode.IDENTITY_ACCESS_TOKEN]),
     handler: async (req) => {
       const { rotationId } = req.params;
-      const { destinationEnvironment, destinationSecretPath } = req.body;
+      const { destinationEnvironment, destinationSecretPath, overwriteDestination } = req.body;
 
       const { secretRotation, sourceEnvironment, sourceSecretPath } =
         await server.services.secretRotationV2.moveSecretRotation(
-          { rotationId, type, destinationEnvironment, destinationSecretPath },
+          { rotationId, type, destinationEnvironment, destinationSecretPath, overwriteDestination },
           req.permission
         );
 

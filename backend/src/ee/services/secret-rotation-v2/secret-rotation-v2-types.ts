@@ -289,6 +289,7 @@ export type TMoveSecretRotationV2DTO = {
   rotationId: string;
   destinationEnvironment: string;
   destinationSecretPath: string;
+  overwriteDestination: boolean;
 };
 
 /** Minimal rotation shape needed to build a permission subject (env, path, connectionId). */

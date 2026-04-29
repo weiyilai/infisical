@@ -233,6 +233,26 @@ export const secretRotationV2ServiceFactory = ({
     );
   };
 
+  const $findConflictingSecrets = async ({
+    secretKeys,
+    folderId,
+    tx
+  }: {
+    secretKeys: string[];
+    folderId: string;
+    tx?: Knex;
+  }) =>
+    secretV2BridgeDAL.find(
+      {
+        $in: {
+          [`${TableName.SecretV2}.key` as "key"]: secretKeys
+        },
+        [`${TableName.SecretV2}.folderId` as "folderId"]: folderId,
+        [`${TableName.SecretV2}.type` as "type"]: SecretType.Shared
+      },
+      tx ? { tx } : undefined
+    );
+
   const $throwOnConflictingSecrets = async ({
     secretKeys,
     folderId,
@@ -250,16 +270,7 @@ export const secretRotationV2ServiceFactory = ({
       });
     }
 
-    const conflictingSecrets = await secretV2BridgeDAL.find(
-      {
-        $in: {
-          [`${TableName.SecretV2}.key` as "key"]: secretKeys
-        },
-        [`${TableName.SecretV2}.folderId` as "folderId"]: folderId,
-        [`${TableName.SecretV2}.type` as "type"]: SecretType.Shared
-      },
-      tx ? { tx } : undefined
-    );
+    const conflictingSecrets = await $findConflictingSecrets({ secretKeys, folderId, tx });
 
     if (conflictingSecrets.length) {
       throw new BadRequestError({
@@ -943,7 +954,7 @@ export const secretRotationV2ServiceFactory = ({
   };
 
   const moveSecretRotation = async (
-    { type, rotationId, destinationEnvironment, destinationSecretPath }: TMoveSecretRotationV2DTO,
+    { type, rotationId, destinationEnvironment, destinationSecretPath, overwriteDestination }: TMoveSecretRotationV2DTO,
     actor: OrgServiceActor
   ) => {
     const plan = await licenseService.getPlan(actor.orgId);
@@ -965,6 +976,13 @@ export const secretRotationV2ServiceFactory = ({
     if (connection.app !== SECRET_ROTATION_CONNECTION_MAP[type])
       throw new BadRequestError({
         message: `Secret Rotation with ID "${rotationId}" is not configured for ${SECRET_ROTATION_NAME_MAP[type]}`
+      });
+
+    const isRotationOccurring = Boolean(await keyStore.getItem(KeyStorePrefixes.SecretRotationLock(secretRotation.id)));
+
+    if (isRotationOccurring)
+      throw new BadRequestError({
+        message: "A rotation is currently in progress for this secret rotation. Please try again shortly."
       });
 
     const { permission } = await permissionService.getProjectPermission({
@@ -1017,11 +1035,18 @@ export const secretRotationV2ServiceFactory = ({
 
     const mappedKeys = Object.values(secretsMapping as TSecretRotationV2["secretsMapping"]);
 
-    await $throwOnConflictingSecrets({
+    const conflictingDestinationSecrets = await $findConflictingSecrets({
       secretKeys: mappedKeys,
-      folderId: destinationFolder.id,
-      secretPath: destinationSecretPath
+      folderId: destinationFolder.id
     });
+
+    if (conflictingDestinationSecrets.length && !overwriteDestination) {
+      throw new BadRequestError({
+        message: `The following secrets already exist at the destination path "${destinationSecretPath}": ${conflictingDestinationSecrets
+          .map(({ key }) => key)
+          .join(", ")}. Set "overwriteDestination" to true to replace them.`
+      });
+    }
 
     const { encryptor: secretManagerEncryptor, decryptor: secretManagerDecryptor } =
       await kmsService.createCipherPairWithDataKey({
@@ -1030,6 +1055,15 @@ export const secretRotationV2ServiceFactory = ({
       });
 
     const updatedRotation = await secretRotationV2DAL.transaction(async (tx) => {
+      if (conflictingDestinationSecrets.length && overwriteDestination) {
+        await secretV2BridgeDAL.deleteMany(
+          conflictingDestinationSecrets.map((s) => ({ key: s.key, type: SecretType.Shared })),
+          destinationFolder.id,
+          actor.id,
+          tx
+        );
+      }
+
       const sourceSecrets = await secretV2BridgeDAL.find(
         {
           $in: {
@@ -1087,6 +1121,24 @@ export const secretRotationV2ServiceFactory = ({
     });
 
     await secretV2BridgeDAL.invalidateSecretCacheByProjectId(projectId);
+
+    await snapshotService.performSnapshot(destinationFolder.id);
+    await secretQueueService.syncSecrets({
+      orgId: connection.orgId,
+      secretPath: destinationSecretPath,
+      projectId,
+      environmentSlug: destinationEnvironment,
+      excludeReplication: true
+    });
+
+    await snapshotService.performSnapshot(sourceFolderId);
+    await secretQueueService.syncSecrets({
+      orgId: connection.orgId,
+      secretPath: folder.path,
+      projectId,
+      environmentSlug: environment.slug,
+      excludeReplication: true
+    });
 
     return {
       secretRotation: await expandSecretRotation(updatedRotation, kmsService),
