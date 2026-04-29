@@ -53,7 +53,7 @@ export const validateKubernetesHostConnectivity = async ({
 
       const httpsAgent = new https.Agent({
         ca: caCert || undefined,
-        rejectUnauthorized: Boolean(caCert)
+        rejectUnauthorized: true
       });
 
       await blockLocalAndPrivateIpAddresses(kubernetesHost);
@@ -156,7 +156,7 @@ export const validateTokenReviewerPermissions = async ({
 
       const httpsAgent = new https.Agent({
         ca: caCert || undefined,
-        rejectUnauthorized: Boolean(caCert)
+        rejectUnauthorized: true
       });
 
       await blockLocalAndPrivateIpAddresses(kubernetesHost);

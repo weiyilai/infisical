@@ -112,7 +112,7 @@ export const identityOidcAuthServiceFactory = ({
         caCert = decryptor({ cipherTextBlob: identityOidcAuth.encryptedCaCertificate }).toString();
       }
 
-      const requestAgent = new https.Agent({ ca: caCert, rejectUnauthorized: !!caCert });
+      const requestAgent = caCert ? new https.Agent({ ca: caCert, rejectUnauthorized: true }) : undefined;
 
       await blockLocalAndPrivateIpAddresses(identityOidcAuth.oidcDiscoveryUrl);
 
