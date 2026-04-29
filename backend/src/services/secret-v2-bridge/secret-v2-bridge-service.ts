@@ -31,6 +31,7 @@ import {
   InternalMetadataType,
   TInternalMetadata
 } from "@app/ee/services/secret-approval-request/secret-approval-request-types";
+import { TSecretRotationV2DALFactory } from "@app/ee/services/secret-rotation-v2/secret-rotation-v2-dal";
 import { scanSecretPolicyViolations } from "@app/ee/services/secret-scanning-v2/secret-scanning-v2-fns";
 import { TSecretSnapshotServiceFactory } from "@app/ee/services/secret-snapshot/secret-snapshot-service";
 import { KeyStorePrefixes, KeyStoreTtls, TKeyStoreFactory } from "@app/keystore/keystore";
@@ -145,6 +146,7 @@ type TSecretV2BridgeServiceFactoryDep = {
   >;
   reminderService: Pick<TReminderServiceFactory, "createReminder" | "getReminder">;
   secretValidationRuleService: Pick<TSecretValidationRuleServiceFactory, "validateSecrets">;
+  secretRotationV2DAL: Pick<TSecretRotationV2DALFactory, "find">;
 };
 
 export type TSecretV2BridgeServiceFactory = ReturnType<typeof secretV2BridgeServiceFactory>;
@@ -173,7 +175,8 @@ export const secretV2BridgeServiceFactory = ({
   resourceMetadataDAL,
   keyStore,
   reminderService,
-  secretValidationRuleService
+  secretValidationRuleService,
+  secretRotationV2DAL
 }: TSecretV2BridgeServiceFactoryDep) => {
   const $validateSecretReferences = async (
     projectId: string,
@@ -2982,6 +2985,32 @@ export const secretV2BridgeServiceFactory = ({
       });
 
       const destinationSecretsGroupedByKey = groupBy(decryptedDestinationSecrets, (i) => i.key);
+
+      const sourceKeys = decryptedSourceSecrets.map((s) => s.key);
+
+      const conflictingRotationSecretKeys = sourceKeys.filter(
+        (key) => destinationSecretsGroupedByKey[key]?.[0]?.isRotatedSecret
+      );
+      if (conflictingRotationSecretKeys.length > 0) {
+        throw new BadRequestError({
+          message: `Cannot move secrets to '${destinationFolder.path}' because the following keys are managed by a secret rotation at the destination: ${conflictingRotationSecretKeys.join(", ")}`
+        });
+      }
+
+      const destinationRotations = await secretRotationV2DAL.find(
+        { projectId, folderId: destinationFolder.id },
+        undefined,
+        tx
+      );
+      const sourceKeySet = new Set(sourceKeys);
+      const conflictingRotationNames = destinationRotations
+        .filter((rotation) => sourceKeySet.has(rotation.name))
+        .map((rotation) => rotation.name);
+      if (conflictingRotationNames.length > 0) {
+        throw new BadRequestError({
+          message: `Cannot move secrets to '${destinationFolder.path}' because the following keys conflict with existing secret rotation names at the destination: ${conflictingRotationNames.join(", ")}`
+        });
+      }
 
       const locallyCreatedSecrets = decryptedSourceSecrets
         .filter(({ key }) => !destinationSecretsGroupedByKey[key]?.[0])
