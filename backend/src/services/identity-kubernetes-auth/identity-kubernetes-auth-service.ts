@@ -148,7 +148,8 @@ export const identityKubernetesAuthServiceFactory = ({
       if (!inputs.reviewTokenThroughGateway) {
         httpsAgent = new https.Agent({
           ca: inputs.caCert || undefined,
-          rejectUnauthorized: true
+          rejectUnauthorized: true,
+          servername: inputs.targetHost
         });
       }
 
@@ -194,7 +195,8 @@ export const identityKubernetesAuthServiceFactory = ({
           ? {
               httpsAgent: new https.Agent({
                 ca: inputs.caCert || undefined,
-                rejectUnauthorized: true
+                rejectUnauthorized: true,
+                servername: inputs.targetHost
               })
             }
           : {})
